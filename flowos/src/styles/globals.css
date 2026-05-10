@@ -1,0 +1,334 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* OrgFlow Dark Design System
+     * bg-base     #080B12  — fondo principal
+     * bg-surface  #0E1220  — superficie de cards
+     * bg-elevated #141928  — elementos elevados
+     * bg-overlay  #1A2035  — overlays / popovers
+     * border      #1E2540  — borde sutil
+     * border-strong #2A3356 — borde destacado
+     * text-primary  #E2E8F8 — texto principal
+     * text-secondary #7A8BAD — texto secundario
+     * accent-blue   #3D7EFF — acento principal
+     * accent-emerald #10D9A0 — éxito / positivo
+     * accent-amber   #F59E0B — advertencia
+     * accent-red     #F43F5E — error / destructivo
+     */
+    --bg-base:      222 39% 5%;
+    --bg-surface:   221 30% 9%;
+    --bg-elevated:  224 27% 12%;
+    --bg-overlay:   224 32% 16%;
+    --border:       224 35% 18%;
+    --border-strong: 225 34% 25%;
+    --text-primary:  220 60% 94%;
+    --text-secondary: 218 22% 57%;
+    --accent-blue:   220 100% 62%;
+    --accent-emerald: 161 86% 45%;
+    --accent-amber:  38 92% 50%;
+    --accent-red:    350 90% 60%;
+
+    /* Aliases que usan los componentes shadcn/Tailwind */
+    --background:        var(--bg-base);
+    --foreground:        var(--text-primary);
+    --card:              var(--bg-surface);
+    --card-foreground:   var(--text-primary);
+    --primary:           var(--accent-blue);
+    --primary-foreground: 220 60% 94%;
+    --secondary:         var(--bg-elevated);
+    --secondary-foreground: var(--text-primary);
+    --muted:             var(--bg-elevated);
+    --muted-foreground:  var(--text-secondary);
+    --accent:            var(--accent-blue);
+    --accent-foreground: 220 60% 94%;
+    --destructive:       var(--accent-red);
+    --destructive-foreground: 220 60% 94%;
+    --input:             var(--border);
+    --ring:              var(--accent-blue);
+    --radius: 0.5rem;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  /* ── Light theme overrides ─────────────────────────────── */
+  html.light {
+    color-scheme: light;
+    --bg-base:       210 20% 98%;
+    --bg-surface:    0 0% 100%;
+    --bg-elevated:   220 15% 95%;
+    --bg-overlay:    220 13% 91%;
+    --border:        220 13% 88%;
+    --border-strong: 220 12% 76%;
+    --text-primary:  222 30% 12%;
+    --text-secondary: 220 12% 46%;
+    --accent-blue:   220 100% 55%;
+    --accent-emerald: 161 80% 35%;
+    --accent-amber:  38 92% 42%;
+    --accent-red:    350 85% 52%;
+  }
+
+  /* Light-theme overrides for hardcoded inline hex colors used across the app.
+     This avoids a full component refactor by mapping each known dark-palette hex
+     to its light-mode equivalent via attribute substring matching. */
+  html.light body { background-color: #F8FAFC !important; color: #1A1F2E !important; }
+
+  /* Backgrounds */
+  html.light [style*="background: #080B12"],
+  html.light [style*="background:#080B12"],
+  html.light [style*="background-color: #080B12"] { background-color: #F8FAFC !important; }
+  html.light [style*="background: #0E1220"],
+  html.light [style*="background:#0E1220"],
+  html.light [style*="background-color: #0E1220"] { background-color: #FFFFFF !important; }
+  html.light [style*="background: #141928"],
+  html.light [style*="background:#141928"],
+  html.light [style*="background-color: #141928"] { background-color: #F1F5F9 !important; }
+  html.light [style*="background: #1A2035"],
+  html.light [style*="background:#1A2035"] { background-color: #E2E8F0 !important; }
+  html.light [style*="background: #0A0E1A"] { background-color: #F8FAFC !important; }
+  html.light [style*="background: #0A0F1C"] { background-color: #F1F5F9 !important; }
+
+  /* Borders */
+  html.light [style*="border: 1px solid #1E2540"],
+  html.light [style*="border:1px solid #1E2540"],
+  html.light [style*="border-color: #1E2540"],
+  html.light [style*="1px solid #1E2540"] { border-color: #E2E8F0 !important; }
+  html.light [style*="2px solid #1E2540"] { border-color: #E2E8F0 !important; }
+  html.light [style*="border: 1px dashed #1E2540"],
+  html.light [style*="1px dashed #1E2540"] { border-color: #CBD5E1 !important; }
+  html.light [style*="borderBottom: 1px solid #1E2540"] { border-bottom-color: #E2E8F0 !important; }
+  html.light [style*="borderTop: 1px solid #1E2540"] { border-top-color: #E2E8F0 !important; }
+  html.light [style*="borderLeft: 1px solid #1E2540"] { border-left-color: #E2E8F0 !important; }
+  html.light [style*="borderRight: 1px solid #1E2540"] { border-right-color: #E2E8F0 !important; }
+
+  /* Text colors */
+  html.light [style*="color: #E2E8F8"] { color: #1A1F2E !important; }
+  html.light [style*="color: #C4CFEA"] { color: #334155 !important; }
+  html.light [style*="color: #7A8BAD"] { color: #64748B !important; }
+  html.light [style*="color:#7A8BAD"] { color: #64748B !important; }
+  html.light [style*="color: #4A5568"] { color: #94A3B8 !important; }
+  html.light [style*="color: #1E2540"] { color: #CBD5E1 !important; } /* used as muted dividers */
+
+  /* Tailwind classes that hardcode colors */
+  html.light .bg-\[\#080B12\] { background-color: #F8FAFC !important; }
+  html.light .bg-\[\#0E1220\] { background-color: #FFFFFF !important; }
+  html.light .bg-\[\#141928\] { background-color: #F1F5F9 !important; }
+  html.light .bg-\[\#1E2540\] { background-color: #E2E8F0 !important; }
+  html.light .border-\[\#1E2540\] { border-color: #E2E8F0 !important; }
+  html.light .text-\[\#E2E8F8\] { color: #1A1F2E !important; }
+  html.light .text-\[\#C4CFEA\] { color: #334155 !important; }
+  html.light .text-\[\#7A8BAD\] { color: #64748B !important; }
+  html.light .hover\:bg-\[\#1E2540\]:hover { background-color: #E2E8F0 !important; }
+  html.light .hover\:bg-\[\#141928\]:hover { background-color: #F1F5F9 !important; }
+
+  /* Native form elements adapt automatically via color-scheme: light */
+  html.light select option { background-color: #FFFFFF !important; color: #1A1F2E !important; }
+  html.light select option:hover, html.light select option:checked {
+    background: linear-gradient(#E2E8F0, #E2E8F0) !important;
+    color: #1A1F2E !important;
+  }
+
+  /* ── Accent color: dynamic via --app-accent. Default = blue. ──────────── */
+  :root { --app-accent: #3D7EFF; --app-accent-rgb: 61 126 255; }
+  /* Note: applied via inline style on root by ThemeBridge component */
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: hsl(var(--bg-base));
+    color: hsl(var(--text-primary));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Label monoespaciado para badges y etiquetas */
+  .label {
+    font-family: var(--font-dm-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: hsl(var(--text-secondary));
+  }
+}
+
+@layer components {
+  /* Card glassmorphism */
+  .card-glass {
+    background: hsl(var(--bg-surface));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    backdrop-filter: blur(12px);
+    transition: border-color 0.2s ease;
+  }
+  .card-glass:hover {
+    border-color: hsl(var(--border-strong));
+  }
+
+  /* Botón primario azul con glow */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: hsl(var(--accent-blue));
+    color: #fff;
+    border-radius: calc(var(--radius) - 1px);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    letter-spacing: -0.005em;
+    box-shadow: 0 0 20px hsl(var(--accent-blue) / 0.35);
+    transition: box-shadow 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  }
+  .btn-primary:hover {
+    background: hsl(220 100% 68%);
+    box-shadow: 0 0 28px hsl(var(--accent-blue) / 0.55);
+    transform: translateY(-1px);
+  }
+
+  /* Botón ghost */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    color: hsl(var(--text-primary));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) - 1px);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    background: transparent;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .btn-ghost:hover {
+    border-color: hsl(var(--border-strong));
+    background: hsl(var(--bg-elevated));
+  }
+
+  /* Nav item activo en el sidebar */
+  .nav-active {
+    background: hsl(var(--accent-blue) / 0.1);
+    color: hsl(var(--accent-blue));
+    border-left: 2px solid hsl(var(--accent-blue));
+  }
+
+  /* Divider sutil */
+  .divider {
+    height: 1px;
+    background: hsl(var(--border));
+  }
+
+  /* Badge de estado con punto de color */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-family: var(--font-dm-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--bg-elevated));
+    color: hsl(var(--text-secondary));
+  }
+  .badge-blue {
+    background: hsl(var(--accent-blue) / 0.12);
+    border-color: hsl(var(--accent-blue) / 0.3);
+    color: hsl(var(--accent-blue));
+  }
+  .badge-emerald {
+    background: hsl(var(--accent-emerald) / 0.12);
+    border-color: hsl(var(--accent-emerald) / 0.3);
+    color: hsl(var(--accent-emerald));
+  }
+  .badge-amber {
+    background: hsl(var(--accent-amber) / 0.12);
+    border-color: hsl(var(--accent-amber) / 0.3);
+    color: hsl(var(--accent-amber));
+  }
+  .badge-red {
+    background: hsl(var(--accent-red) / 0.12);
+    border-color: hsl(var(--accent-red) / 0.3);
+    color: hsl(var(--accent-red));
+  }
+}
+
+/* ─── Native <select> + <option> dark theme ──────────────────────────────────
+   Browsers paint <option> with system colors by default. Setting accent-color
+   on the select changes the highlight color in modern Chrome/Edge/Firefox to
+   match our app accent. The option background overrides apply where supported. */
+:root {
+  accent-color: #3D7EFF;
+}
+select {
+  color-scheme: dark;
+  accent-color: var(--app-accent, #3D7EFF);
+}
+select option {
+  background-color: #141928 !important;
+  color: #E2E8F8 !important;
+  padding: 6px 10px;
+}
+select option:hover,
+select option:focus,
+select option:active,
+select option:checked {
+  background: linear-gradient(#1E2540, #1E2540) !important;
+  color: #E2E8F8 !important;
+}
+
+/* Native date/time pickers inherit dark scheme */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  color-scheme: dark;
+}
+
+/* Native color picker — strip default chrome on Chrome/Edge */
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+/* ─── ReactFlow controls dark theme ───────────────────────────────────────── */
+.react-flow__controls {
+  background: #0E1220 !important;
+  border: 1px solid #1E2540 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: #0E1220 !important;
+  border: none !important;
+  border-bottom: 1px solid #1E2540 !important;
+  color: #7A8BAD !important;
+  fill: #7A8BAD !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+.react-flow__controls-button:last-child { border-bottom: none !important; }
+.react-flow__controls-button:hover {
+  background: #1E2540 !important;
+  color: #3D7EFF !important;
+  fill: #3D7EFF !important;
+}
+.react-flow__controls-button svg { width: 12px; height: 12px; }
+.react-flow__minimap {
+  background: #0E1220 !important;
+  border: 1px solid #1E2540 !important;
+  border-radius: 6px !important;
+}
+.react-flow__attribution { display: none !important; }

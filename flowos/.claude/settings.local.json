@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node C:/Users/artua/.claude/scripts/obsidian-indexer.js search \"edge bicolor sidebar\")",
+      "Bash(gemini -p 'TAREA: Agregar un custom edge component '\\\\''BicolorEdge'\\\\'' al archivo src/components/dashboard/orgchart-canvas.tsx de un proyecto Next.js con @xyflow/react. *)",
+      "Bash(gemini --skip-trust -p 'TAREA: Agregar un custom edge component '\\\\''BicolorEdge'\\\\'' al archivo src/components/dashboard/orgchart-canvas.tsx de un proyecto Next.js con @xyflow/react. *)",
+      "Bash(npx tsc *)",
+      "Bash(codex 'TAREA: Agregar soporte para '\\\\''encargado de departamento'\\\\'' \\(headEmployeeId\\) en la app Next.js con Drizzle ORM. *)",
+      "Bash(codex --approval-mode full-auto \"TAREA: Agregar soporte para encargado de departamento \\(headEmployeeId\\) en la app Next.js con Drizzle ORM. ARCHIVOS RELEVANTES: src/db/schema.ts tabla departments, src/app/api/departments/route.ts POST, src/app/api/departments/[id]/route.ts PUT, src/components/dashboard/orgchart-canvas.tsx. QUÉ HACER: 1\\) schema.ts: agregar headEmployeeId uuid nullable en departments antes de createdAt. 2\\) API departments route.ts POST: aceptar headEmployeeId. 3\\) API departments [id]/route.ts PUT: aceptar headEmployeeId. 4\\) orgchart-canvas.tsx: a\\) tipo Department local agregar headEmployeeId: string | null. b\\) tipo DepartmentNodeData agregar head?: { fullName: string; jobTitle?: string | null; color?: string | null } | null. c\\) DepartmentNodeView: mostrar chip compacto del encargado en lado derecho del header \\(20px avatar, nombre truncado\\) si hay head. d\\) computedNodes: al crear dept node, buscar headEmp = employees.find por dp.headEmployeeId y agregar head en data. e\\) Agregar componente DepartmentEditModal con campos nombre, color, headEmployeeId usando PersonPickerModal igual que DivisionEditModal. f\\) Agregar estado editingDepartment y renderizar DepartmentEditModal. g\\) onNodeClick: cuando dept, setEditingDepartment. h\\) handleCtxAction dept: action edit abre modal. i\\) Menú contexto dept: agregar opcion edit. RESTRICCIONES: dark theme mismo que el resto, TypeScript strict, no hacer drizzle-kit push, usar PersonPickerModal y ColorPicker existentes.\")",
+      "Bash(codex --help)",
+      "Bash(codex exec *)"
+    ]
+  }
+}
