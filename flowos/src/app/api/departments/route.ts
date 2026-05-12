@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
         color: body.color ?? "#C8902C",
         positionX: body.positionX ?? 0,
         positionY: body.positionY ?? 0,
-        sizeWidth: body.sizeWidth ?? 360,
-        sizeHeight: body.sizeHeight ?? 240,
+        sizeWidth: body.sizeWidth ?? 280,
+        sizeHeight: body.sizeHeight ?? 200,
         headEmployeeId: body.headEmployeeId ?? null,
       })
       .returning();

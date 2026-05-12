@@ -70,6 +70,7 @@ type DepartmentNodeData = {
   name: string; color: string; isDepartment: true;
   head?: { fullName: string; jobTitle?: string | null; color?: string | null } | null;
   employeeCount?: number;
+  adjLeft?: boolean; adjRight?: boolean;
   onResize?: (id: string, w: number, h: number) => void;
 };
 
@@ -103,7 +104,7 @@ function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>) {
     <>
     <NodeResizer
       minWidth={320} minHeight={160}
-      isVisible={selected}
+      isVisible={selected && !data.collapsed}
       lineStyle={{ borderColor: data.color + "80" }}
       handleStyle={{ background: data.color, width: 8, height: 8, borderRadius: 4, border: "none" }}
       onResizeEnd={(_, { width, height }) => data.onResize?.(id, width, height)}
@@ -261,6 +262,15 @@ function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>) {
 
 function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentNode>) {
   const fineBorder = `1px solid ${selected ? data.color : data.color + "44"}`;
+  const noBorder = "none";
+  const borderLeftStyle = data.adjLeft ? noBorder : fineBorder;
+  const borderRightStyle = data.adjRight ? noBorder : fineBorder;
+  const radius = {
+    topLeft: data.adjLeft ? 0 : 8,
+    topRight: data.adjRight ? 0 : 8,
+    bottomLeft: data.adjLeft ? 0 : 8,
+    bottomRight: data.adjRight ? 0 : 8,
+  };
   return (
     <>
     <NodeResizer
@@ -279,10 +289,13 @@ function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentNode>) {
         width: "100%", height: "100%",
         background: `${data.color}06`,
         borderTop: fineBorder,
-        borderRight: fineBorder,
+        borderRight: borderRightStyle,
         borderBottom: fineBorder,
-        borderLeft: fineBorder,
-        borderRadius: 8,
+        borderLeft: borderLeftStyle,
+        borderTopLeftRadius: radius.topLeft,
+        borderTopRightRadius: radius.topRight,
+        borderBottomLeftRadius: radius.bottomLeft,
+        borderBottomRightRadius: radius.bottomRight,
         padding: "34px 10px 10px 10px",
         position: "relative",
         boxSizing: "border-box",
@@ -294,8 +307,8 @@ function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentNode>) {
           height: 28,
           display: "flex", alignItems: "center", gap: 6,
           padding: "0 6px",
-          borderTopLeftRadius: 7,
-          borderTopRightRadius: 7,
+          borderTopLeftRadius: Math.max(0, radius.topLeft - 1),
+          borderTopRightRadius: Math.max(0, radius.topRight - 1),
           background: `${data.color}18`,
           borderBottom: `1px solid ${data.color}30`,
           pointerEvents: "none",
@@ -1106,7 +1119,7 @@ function AddGroupPanel({
 
 type CtxTarget =
   | { kind: "canvas"; x: number; y: number }
-  | { kind: "division"; id: string; x: number; y: number; isConnectable: boolean; autoSize: boolean }
+  | { kind: "division"; id: string; x: number; y: number; isConnectable: boolean; autoSize: boolean; collapsed: boolean }
   | { kind: "department"; id: string; x: number; y: number }
   | { kind: "employee"; id: string; x: number; y: number };
 
@@ -1122,8 +1135,10 @@ function ContextMenu({ target, onAction, onClose }: {
       { label: "Nuevo puesto", icon: <UserPlus size={13} />, action: "new-position" },
     ];
     if (target.kind === "division") return [
+      { label: "Editar división", icon: <Edit3 size={13} />, action: "edit" },
       { label: "Nuevo departamento aquí", icon: <FolderPlus size={13} />, action: "new-department-in" },
       { label: "Nuevo puesto aquí", icon: <UserPlus size={13} />, action: "new-position-in" },
+      { label: target.collapsed ? "Expandir ▶" : "Colapsar ▲", icon: target.collapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />, action: "toggle-collapse" },
       { label: target.autoSize ? "Fijar tamaño manual" : "Activar auto-tamaño ✓", icon: <Layers size={13} />, action: "toggle-autosize" },
       { label: target.isConnectable ? "Deshabilitar conexiones" : "Habilitar conexiones ✓", icon: <Layers size={13} />, action: "toggle-connectable" },
       { label: "Renombrar", icon: <Edit3 size={13} />, action: "rename" },
@@ -1615,6 +1630,27 @@ function OrgChartFlow() {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("flowos-orgchart-global-connectable") !== "false";
   });
+  // Cuando ON: al resize de un item acoplado, los hermanos del grupo también se ajustan
+  const [linkedResize, setLinkedResize] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("flowos-orgchart-linked-resize") !== "false";
+  });
+  // Nodos que están recibiendo un cambio programático de tamaño/posición y necesitan animar.
+  // Se vacía solo ~350ms después de marcar para no animar drags posteriores.
+  const [syncingNodeIds, setSyncingNodeIds] = useState<Set<string>>(new Set());
+  const syncingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const markSyncing = useCallback((ids: string[]) => {
+    if (!ids.length) return;
+    setSyncingNodeIds(prev => {
+      const s = new Set(prev);
+      ids.forEach(id => s.add(id));
+      return s;
+    });
+    if (syncingTimerRef.current) clearTimeout(syncingTimerRef.current);
+    syncingTimerRef.current = setTimeout(() => {
+      setSyncingNodeIds(new Set());
+    }, 360);
+  }, []);
 
   // Compute the flow-coords for the visible viewport center
   const getViewportCenter = useCallback((): { x: number; y: number } => {
@@ -1628,6 +1664,9 @@ function OrgChartFlow() {
   // ── Refs estables para callbacks ──────────────────────────────────────────
   const employeesRef = useRef(employees);
   const updateEmployeeRef = useRef(updateEmployee);
+  const divisionsRef = useRef<Division[]>([]);
+  const departmentsRef = useRef<Department[]>([]);
+  const linkedResizeRef = useRef<boolean>(true);
   useEffect(() => { employeesRef.current = employees; }, [employees]);
   useEffect(() => { updateEmployeeRef.current = updateEmployee; }, [updateEmployee]);
 
@@ -1649,23 +1688,115 @@ function OrgChartFlow() {
   }, []);
 
   useEffect(() => { reloadGroups(); }, [reloadGroups]);
+  useEffect(() => { divisionsRef.current = divisions; }, [divisions]);
+  useEffect(() => { departmentsRef.current = departments; }, [departments]);
+  useEffect(() => { linkedResizeRef.current = linkedResize; }, [linkedResize]);
 
   const handleDivisionResize = useCallback((id: string, w: number, h: number) => {
-    setManualSizeDivs(prev => { const s = new Set(prev); s.add(id); return s; });
-    fetch(`/api/divisions/${id}`, {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sizeWidth: Math.round(w), sizeHeight: Math.round(h) }),
-    }).catch(() => {});
-    setDivisions(prev => prev.map(d => d.id === id ? { ...d, sizeWidth: Math.round(w), sizeHeight: Math.round(h) } : d));
-  }, []);
+    const newW = Math.round(w);
+    const newH = Math.round(h);
+    // Si linkedResize y la división pertenece a un coupling group → propagar a hermanos
+    const divs = divisionsRef.current;
+    const div = divs.find(d => d.id === id);
+    const targets = (linkedResizeRef.current && div?.couplingGroup)
+      ? divs.filter(d => d.couplingGroup === div.couplingGroup).map(d => d.id)
+      : [id];
+    setManualSizeDivs(prev => {
+      const s = new Set(prev);
+      targets.forEach(t => s.add(t));
+      return s;
+    });
+    targets.forEach(t => {
+      fetch(`/api/divisions/${t}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sizeWidth: newW, sizeHeight: newH }),
+      }).catch(() => {});
+    });
+    const targetSet = new Set(targets);
+    setDivisions(prev => prev.map(d => targetSet.has(d.id) ? { ...d, sizeWidth: newW, sizeHeight: newH } : d));
+    // Animar hermanos sincronizados (no el que el usuario está resizeando — ése sigue el cursor)
+    markSyncing(targets.filter(t => t !== id));
+  }, [markSyncing]);
 
   const handleDepartmentResize = useCallback((id: string, w: number, h: number) => {
-    fetch(`/api/departments/${id}`, {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sizeWidth: Math.round(w), sizeHeight: Math.round(h) }),
-    }).catch(() => {});
-    setDepartments(prev => prev.map(d => d.id === id ? { ...d, sizeWidth: Math.round(w), sizeHeight: Math.round(h) } : d));
-  }, []);
+    const newW = Math.round(w);
+    const newH = Math.round(h);
+    const depts = departmentsRef.current;
+    const dept = depts.find(d => d.id === id);
+    const oldW = dept?.sizeWidth ?? 280;
+    const deltaW = newW - oldW;
+
+    type DeptUpdate = { id: string; sizeWidth?: number; sizeHeight?: number; positionX?: number };
+    const updates: DeptUpdate[] = [{ id, sizeWidth: newW, sizeHeight: newH }];
+
+    if (linkedResizeRef.current && dept?.divisionId) {
+      // BFS por adyacencia para encontrar el grupo fusionado completo
+      const visited = new Set<string>([id]);
+      const queue = [id];
+      while (queue.length) {
+        const cur = queue.shift()!;
+        const curDept = depts.find(d => d.id === cur);
+        if (!curDept) continue;
+        const cX = curDept.positionX ?? 0;
+        const cY = curDept.positionY ?? 0;
+        const cW = curDept.sizeWidth ?? 280;
+        for (const other of depts) {
+          if (other.id === cur || visited.has(other.id)) continue;
+          if (other.divisionId !== curDept.divisionId) continue;
+          const oX = other.positionX ?? 0;
+          const oY = other.positionY ?? 0;
+          const oW = other.sizeWidth ?? 280;
+          if (Math.abs(oY - cY) > 30) continue;
+          if (Math.abs((oX + oW) - cX) < 4 || Math.abs(oX - (cX + cW)) < 4) {
+            visited.add(other.id);
+            queue.push(other.id);
+          }
+        }
+      }
+
+      // Ordenar por X — los que están a la derecha del resizeado deben shiftearse
+      // por deltaW para mantener la fusión visual cuando el W cambia.
+      const groupSorted = Array.from(visited)
+        .map(gid => depts.find(d => d.id === gid)!)
+        .sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
+      const resizedIdx = groupSorted.findIndex(d => d.id === id);
+
+      groupSorted.forEach((d, i) => {
+        if (d.id === id) return;
+        const upd: DeptUpdate = { id: d.id, sizeHeight: newH };
+        // Cascade shift: depts a la derecha del resizeado se mueven por deltaW
+        if (i > resizedIdx && deltaW !== 0) {
+          upd.positionX = (d.positionX ?? 0) + deltaW;
+        }
+        updates.push(upd);
+      });
+    }
+
+    // Persist + actualizar estado local
+    updates.forEach(u => {
+      const body: Record<string, number> = {};
+      if (u.sizeWidth !== undefined) body.sizeWidth = u.sizeWidth;
+      if (u.sizeHeight !== undefined) body.sizeHeight = u.sizeHeight;
+      if (u.positionX !== undefined) body.positionX = u.positionX;
+      fetch(`/api/departments/${u.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).catch(() => {});
+    });
+    const updateMap = new Map(updates.map(u => [u.id, u]));
+    setDepartments(prev => prev.map(d => {
+      const u = updateMap.get(d.id);
+      if (!u) return d;
+      return {
+        ...d,
+        ...(u.sizeWidth !== undefined && { sizeWidth: u.sizeWidth }),
+        ...(u.sizeHeight !== undefined && { sizeHeight: u.sizeHeight }),
+        ...(u.positionX !== undefined && { positionX: u.positionX }),
+      };
+    }));
+    // Animar todos los hermanos sincronizados (no el resizeado — sigue el cursor)
+    markSyncing(updates.map(u => u.id).filter(uid => uid !== id));
+  }, [markSyncing]);
 
   // ── Auto-size logic ──────────────────────────────────────────────────────
   // Compute the natural size needed by a single division based on its children.
@@ -1673,8 +1804,8 @@ function OrgChartFlow() {
   const HEADER_H = 80;       // header (64) + a little gap
   const FOOTER_H_ON = 52;    // when footer is enabled
   const PADDING = 16;
-  const DEPT_W = 360;
-  const DEPT_H = 250;
+  const DEPT_W = 280;
+  const DEPT_H = 200;
   const DEPT_GAP = 20;
   const EMP_W = 200;
   const EMP_H = 70;
@@ -1761,6 +1892,46 @@ function OrgChartFlow() {
     return map;
   }, [divisions]);
 
+  // Adyacencia entre departamentos: dos depts del MISMO division con misma Y y
+  // X alineados (right de uno = left del otro, dentro de tolerancia) → se ven fusionados.
+  // No requiere columna couplingGroup en DB — se deriva puramente de posiciones.
+  const deptAdjacency = useMemo(() => {
+    const map = new Map<string, { left: boolean; right: boolean }>();
+    departments.forEach(d => map.set(d.id, { left: false, right: false }));
+    // Agrupar por divisionId (sólo se fusionan depts dentro de la misma división)
+    const byDiv = new Map<string, Department[]>();
+    departments.forEach(d => {
+      if (!d.divisionId) return;
+      const arr = byDiv.get(d.divisionId) ?? [];
+      arr.push(d);
+      byDiv.set(d.divisionId, arr);
+    });
+    const TOL_X = 4;
+    const TOL_Y = 30;
+    byDiv.forEach(list => {
+      list.forEach(a => {
+        const aX = a.positionX ?? 0;
+        const aY = a.positionY ?? 0;
+        const aW = a.sizeWidth ?? 360;
+        for (const b of list) {
+          if (b.id === a.id) continue;
+          const bX = b.positionX ?? 0;
+          const bY = b.positionY ?? 0;
+          const bW = b.sizeWidth ?? 360;
+          if (Math.abs(aY - bY) > TOL_Y) continue;
+          // b está pegado a la derecha de a
+          if (Math.abs((aX + aW) - bX) < TOL_X) {
+            const cur = map.get(a.id) ?? { left: false, right: false };
+            map.set(a.id, { left: cur.left, right: true });
+            const curB = map.get(b.id) ?? { left: false, right: false };
+            map.set(b.id, { left: true, right: curB.right });
+          }
+        }
+      });
+    });
+    return map;
+  }, [departments]);
+
   // Dynamic positions for coupled groups: when a division grows/shrinks, right-side
   // siblings shift automatically so the group stays flush — no DB write needed.
   // Solo divisions just use their stored positionX/Y unchanged.
@@ -1773,17 +1944,25 @@ function OrgChartFlow() {
       arr.push(d);
       groups.set(d.couplingGroup, arr);
     });
+    // CRÍTICO: el cumX debe usar el ancho REAL que se va a renderizar
+    // (mismo cálculo que computedNodes). Si una div está en manualSize, su
+    // sizeWidth puede diferir del coupledSizes (que sólo calcula natural).
+    // Sin esta corrección, al manual-resize una div en grupo se rompe la fusión.
+    const widthFor = (d: Division) => {
+      if (manualSizeDivs.has(d.id)) return d.sizeWidth ?? 720;
+      return coupledSizes.get(d.id)?.w ?? d.sizeWidth ?? 720;
+    };
     groups.forEach(group => {
       const sorted = [...group].sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
       let cumX = sorted[0].positionX ?? 0;
       const baseY = sorted[0].positionY ?? 0;
       sorted.forEach(div => {
         positions.set(div.id, { x: cumX, y: baseY });
-        cumX += coupledSizes.get(div.id)?.w ?? (div.sizeWidth ?? 720);
+        cumX += widthFor(div);
       });
     });
     return positions;
-  }, [divisions, coupledSizes]);
+  }, [divisions, coupledSizes, manualSizeDivs]);
 
   // ── Build the React Flow nodes from data ──────────────────────────────────
   const computedNodes: AnyNode[] = useMemo(() => {
@@ -1795,10 +1974,13 @@ function OrgChartFlow() {
       result.push(n);
     };
 
+    const TRANSITION = "width 220ms cubic-bezier(0.4,0,0.2,1), height 220ms cubic-bezier(0.4,0,0.2,1), transform 220ms cubic-bezier(0.4,0,0.2,1)";
+
     // Divisions
     divisions.forEach(d => {
       const isManual = manualSizeDivs.has(d.id);
       const isCollapsed = collapsedDivs.has(d.id);
+      const isSyncing = syncingNodeIds.has(d.id);
       const size = isManual
         ? { w: d.sizeWidth ?? 720, h: d.sizeHeight ?? 500 }
         : (coupledSizes.get(d.id) ?? { w: d.sizeWidth ?? 720, h: d.sizeHeight ?? 500 });
@@ -1824,7 +2006,12 @@ function OrgChartFlow() {
           collapsed: isCollapsed,
           onResize: handleDivisionResize,
         },
-        style: { width: size.w, height: isCollapsed ? HEADER_H : size.h, zIndex: 0 },
+        style: {
+          width: size.w,
+          height: isCollapsed ? HEADER_H : size.h,
+          zIndex: 0,
+          ...(isSyncing && { transition: TRANSITION }),
+        },
         draggable: true,
         selectable: true,
       });
@@ -1835,6 +2022,8 @@ function OrgChartFlow() {
       if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
       const empCount = (employees ?? []).filter(e => e.departmentId === dp.id).length;
       const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
+      const dAdj = deptAdjacency.get(dp.id) ?? { left: false, right: false };
+      const isSyncingDept = syncingNodeIds.has(dp.id);
       const node: DepartmentNode = {
         id: dp.id,
         type: "department",
@@ -1843,9 +2032,15 @@ function OrgChartFlow() {
           name: dp.name, color: dp.color ?? "#C8902C", isDepartment: true,
           head: headEmp ? { fullName: headEmp.fullName, jobTitle: headEmp.jobTitle, color: headEmp.color } : null,
           employeeCount: empCount,
+          adjLeft: dAdj.left, adjRight: dAdj.right,
           onResize: handleDepartmentResize,
         },
-        style: { width: dp.sizeWidth ?? 360, height: dp.sizeHeight ?? 240, zIndex: 1 },
+        style: {
+          width: dp.sizeWidth ?? 280,
+          height: dp.sizeHeight ?? 200,
+          zIndex: 1,
+          ...(isSyncingDept && { transition: TRANSITION }),
+        },
         draggable: true,
         selectable: true,
       };
@@ -1888,7 +2083,7 @@ function OrgChartFlow() {
 
     return result;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, employees, coupledSizes, adjacency, coupledGroupPositions, globalConnectable, manualSizeDivs, handleDivisionResize, handleDepartmentResize]);
+  }, [divisions, departments, employees, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize]);
 
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
@@ -1914,13 +2109,18 @@ function OrgChartFlow() {
     const dragged = divisions.find(d => d.id === draggedId);
     if (!dragged) return null;
     const dragSize = coupledSizes.get(draggedId) ?? { w: dragged.sizeWidth ?? 720, h: dragged.sizeHeight ?? 500 };
-    const SNAP_PX = 60;
-    const Y_TOLERANCE = 80;
+    const SNAP_PX = 80;
+    const Y_TOLERANCE = 100;
 
     for (const other of divisions) {
       if (other.id === draggedId) continue;
-      const oX = other.positionX ?? 0;
-      const oY = other.positionY ?? 0;
+      // Usar la posición VISUAL (lo que el usuario ve) — para divisiones acopladas,
+      // la posición real en el canvas viene de coupledGroupPositions, no de positionX.
+      // Sin esto, si la división A fue acoplada a B, su positionX guardado puede
+      // diferir del lugar donde realmente se ve → snap falla.
+      const visual = coupledGroupPositions.get(other.id);
+      const oX = visual?.x ?? other.positionX ?? 0;
+      const oY = visual?.y ?? other.positionY ?? 0;
       const oSize = coupledSizes.get(other.id) ?? { w: other.sizeWidth ?? 720, h: other.sizeHeight ?? 500 };
       const yClose = Math.abs(dragY - oY) < Y_TOLERANCE;
 
@@ -1934,22 +2134,51 @@ function OrgChartFlow() {
       }
     }
     return null;
-  }, [divisions, coupledSizes]);
+  }, [divisions, coupledSizes, coupledGroupPositions]);
+
+  // Snap entre departamentos del MISMO division — los pega bordes-con-bordes igual que divisiones.
+  // No usa couplingGroup (no existe esa columna en depts); solo alinea X y Y.
+  const computeDepartmentSnap = useCallback((draggedId: string, dragX: number, dragY: number): { x: number; y: number } | null => {
+    const dragged = departments.find(d => d.id === draggedId);
+    if (!dragged || !dragged.divisionId) return null;
+    const dragW = dragged.sizeWidth ?? 360;
+    const SNAP_PX = 60;
+    const Y_TOL = 40;
+    for (const other of departments) {
+      if (other.id === draggedId) continue;
+      if (other.divisionId !== dragged.divisionId) continue; // sólo dentro de la misma división
+      const oX = other.positionX ?? 0;
+      const oY = other.positionY ?? 0;
+      const oW = other.sizeWidth ?? 360;
+      const yClose = Math.abs(dragY - oY) < Y_TOL;
+      if (yClose && Math.abs(dragX - (oX + oW)) < SNAP_PX) {
+        return { x: oX + oW, y: oY };
+      }
+      if (yClose && Math.abs((dragX + dragW) - oX) < SNAP_PX) {
+        return { x: oX - dragW, y: oY };
+      }
+    }
+    return null;
+  }, [departments]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     // Clamp employee/department Y inside divisions so they don't invade the header zone.
     // The header occupies the top HEADER_H px of any division.
+    const DEPT_HEADER_H = 34;
     const clamped = changes.map(change => {
       if (change.type === "position" && change.position) {
         const node = nodes.find(n => n.id === change.id);
         if (!node) return change;
-        // Only clamp employees/departments that are children of a division
         if ((node.type === "employee" || node.type === "department") && node.parentId) {
           const parent = nodes.find(n => n.id === node.parentId);
-          if (parent && parent.type === "division") {
-            const minY = HEADER_H;
-            if (change.position.y < minY) {
+          if (parent) {
+            let minY = 0;
+            // Empleado/Depto dentro de división: no invadir el header de la división
+            if (parent.type === "division") minY = HEADER_H;
+            // Empleado dentro de departamento: no invadir el header del departamento
+            else if (parent.type === "department" && node.type === "employee") minY = DEPT_HEADER_H;
+            if (minY && change.position.y < minY) {
               return { ...change, position: { ...change.position, y: minY } };
             }
           }
@@ -1994,15 +2223,21 @@ function OrgChartFlow() {
           }).catch(() => {});
           setDivisions(prev => prev.map(d => d.id === change.id ? { ...d, positionX: nextX, positionY: nextY, couplingGroup: nextGroup } : d));
         } else if (node.type === "department") {
+          const dSnap = computeDepartmentSnap(change.id, change.position.x, change.position.y);
+          const nx = dSnap?.x ?? change.position.x;
+          const ny = dSnap?.y ?? change.position.y;
+          if (dSnap) {
+            setNodes(prev => prev.map(n => n.id === change.id ? { ...n, position: { x: nx, y: ny } } : n));
+          }
           fetch(`/api/departments/${change.id}`, {
             method: "PUT", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ positionX: change.position.x, positionY: change.position.y }),
+            body: JSON.stringify({ positionX: nx, positionY: ny }),
           }).catch(() => {});
-          setDepartments(prev => prev.map(d => d.id === change.id ? { ...d, positionX: change.position!.x, positionY: change.position!.y } : d));
+          setDepartments(prev => prev.map(d => d.id === change.id ? { ...d, positionX: nx, positionY: ny } : d));
         }
       }
     });
-  }, [nodes, divisions, computeDivisionSnap]);
+  }, [nodes, divisions, computeDivisionSnap, computeDepartmentSnap]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     setEdges(eds => {
@@ -2025,29 +2260,44 @@ function OrgChartFlow() {
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: AnyNode) => {
     setContextMenu(null);
+    // Single-click solo abre el panel del empleado. Divisiones/Departamentos
+    // se editan vía doble-click o context menu para no interferir con el resize.
     if (node.type === "employee") {
       setSelectedEmpNode(node);
       setEditingDivision(null);
       setEditingDepartment(null);
-    } else if (node.type === "division") {
-      const div = divisions.find(d => d.id === node.id);
-      if (div) setEditingDivision(div);
-      setSelectedEmpNode(null);
-      setEditingDepartment(null);
-    } else if (node.type === "department") {
-      const dept = departments.find(d => d.id === node.id);
-      if (dept) setEditingDepartment(dept);
-      setEditingDivision(null);
-      setSelectedEmpNode(null);
     } else {
       setSelectedEmpNode(null);
     }
-  }, [divisions, departments]);
+  }, []);
 
   const onPaneClick = useCallback(() => {
     setSelectedEmpNode(null);
     setContextMenu(null);
   }, []);
+
+  // Double-click: división → zoom to fit; departamento → abre modal de edición
+  const onNodeDoubleClick = useCallback((_: React.MouseEvent, node: AnyNode) => {
+    if (node.type === "division") {
+      fitView({ nodes: [{ id: node.id }], duration: 600, padding: 0.15 });
+    } else if (node.type === "department") {
+      const dept = departments.find(d => d.id === node.id);
+      if (dept) setEditingDepartment(dept);
+    }
+  }, [fitView, departments]);
+
+  // Navigate (search result click) — expand if collapsed, then zoom
+  const handleNavigate = useCallback((nodeId: string) => {
+    setCollapsedDivs(prev => {
+      if (!prev.has(nodeId)) return prev;
+      const s = new Set(prev);
+      s.delete(nodeId);
+      return s;
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      fitView({ nodes: [{ id: nodeId }], duration: 600, padding: 0.3 });
+    }));
+  }, [fitView]);
 
   const onPaneContextMenu = useCallback((e: React.MouseEvent | MouseEvent) => {
     e.preventDefault();
@@ -2060,16 +2310,17 @@ function OrgChartFlow() {
     if (node.type === "employee") setContextMenu({ kind: "employee", id: node.id, x: e.clientX, y: e.clientY });
     else if (node.type === "division") {
       const div = divisions.find(d => d.id === node.id);
-      setContextMenu({ kind: "division", id: node.id, x: e.clientX, y: e.clientY, isConnectable: div?.isConnectable !== false, autoSize: !manualSizeDivs.has(node.id) });
+      setContextMenu({ kind: "division", id: node.id, x: e.clientX, y: e.clientY, isConnectable: div?.isConnectable !== false, autoSize: !manualSizeDivs.has(node.id), collapsed: collapsedDivs.has(node.id) });
     }
     else if (node.type === "department") setContextMenu({ kind: "department", id: node.id, x: e.clientX, y: e.clientY });
-  }, [divisions]);
+  }, [divisions, manualSizeDivs, collapsedDivs]);
 
   // ── Create employee ───────────────────────────────────────────────────────
   const handleAddEmployee = async (jobTitle: string, fullName: string, color: string, parent?: { kind: "division" | "department"; id: string }, extras?: { description?: string; salary?: string; email?: string; phone?: string; startDate?: string; }) => {
     const allEmps = employeesRef.current ?? [];
     const totalCount = allEmps.length;
-    // Use within-parent count so initial position is within the division/dept bounds
+    // Layout intuitivo: nuevos puestos se apilan verticalmente debajo del último,
+    // en una sola columna. El usuario puede arrastrar después si quiere reorganizar.
     let parentCount = 0;
     if (parent?.kind === "division") {
       parentCount = allEmps.filter(e => e.divisionId === parent.id && !e.departmentId).length;
@@ -2078,9 +2329,9 @@ function OrgChartFlow() {
     }
     const baseCount = parent ? parentCount : totalCount;
     const deptHeaderH = 34;
-    const positionX = PADDING + ((baseCount % 3) * (EMP_W + EMP_GAP));
+    const positionX = PADDING;
     const positionY = parent
-      ? (parent.kind === "division" ? HEADER_H : deptHeaderH) + PADDING + Math.floor(baseCount / 3) * (EMP_H + EMP_GAP)
+      ? (parent.kind === "division" ? HEADER_H : deptHeaderH) + PADDING + baseCount * (EMP_H + EMP_GAP)
       : Math.floor(totalCount / 4) * 120 + 40;
     const data: Partial<Employee> & { fullName: string; jobTitle: string; color: string; positionX: number; positionY: number } = {
       fullName, jobTitle, color, positionX, positionY,
@@ -2129,12 +2380,12 @@ function OrgChartFlow() {
   const handleAddDivision = async (data: { name: string; color: string }, position?: { x: number; y: number }) => {
     // Default position: viewport center if not specified, else stored pendingCreatePos, else 0/0
     const pos = position ?? pendingCreatePos ?? getViewportCenter();
-    // Default size we'll use for the new division (matches the natural minimum)
-    const defaultW = 720;
-    const defaultH = 460;
-    // Center the division on the click/viewport-center point
-    const x = pos.x - defaultW / 2;
-    const y = pos.y - defaultH / 2;
+    // Centrado usando el tamaño natural mínimo (que es lo que realmente se renderiza
+    // si la división está vacía); así el click cae cerca del centro visual de la división.
+    const naturalW = 320;
+    const naturalH = 180;
+    const x = pos.x - naturalW / 2;
+    const y = pos.y - naturalH / 2;
     const res = await fetch("/api/divisions", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -2202,6 +2453,7 @@ function OrgChartFlow() {
 
     if (t.kind === "division") {
       const div = divisions.find(d => d.id === t.id);
+      if (action === "edit" && div) { setEditingDivision(div); setContextMenu(null); }
       if (action === "new-department-in") {
         setQuickPrompt({
           title: `Nuevo departamento en "${div?.name ?? ""}"`,
@@ -2214,6 +2466,13 @@ function OrgChartFlow() {
       if (action === "new-position-in" && div) {
         setNewPosition({ kind: "division", id: t.id, name: div.name, color: div.color ?? "#3D7EFF" });
         setOpenNewPosition(true);
+      }
+      if (action === "toggle-collapse") {
+        setCollapsedDivs(prev => {
+          const s = new Set(prev);
+          if (s.has(t.id)) s.delete(t.id); else s.add(t.id);
+          return s;
+        });
       }
       if (action === "toggle-autosize") {
         setManualSizeDivs(prev => {
@@ -2374,15 +2633,15 @@ function OrgChartFlow() {
         });
       });
 
-      // Re-layout departments within each division: single horizontal row
+      // Re-layout departments within each division: single horizontal row.
+      // Acumulamos X usando el ancho real de cada dept para que queden bien fusionados.
       const newDeptPositions = new Map<string, { x: number; y: number }>();
-      const HDR = 80; const PAD = 16; const DW = 360; const DG = 20;
+      const HDR = 80; const PAD = 16; const DG = 20;
       divisions.forEach(div => {
-        departments.filter(dp => dp.divisionId === div.id).forEach((dept, i) => {
-          newDeptPositions.set(dept.id, {
-            x: PAD + i * (DW + DG),
-            y: HDR + PAD,
-          });
+        let cumX = PAD;
+        departments.filter(dp => dp.divisionId === div.id).forEach(dept => {
+          newDeptPositions.set(dept.id, { x: cumX, y: HDR + PAD });
+          cumX += (dept.sizeWidth ?? 280) + DG;
         });
       });
 
@@ -2455,6 +2714,7 @@ function OrgChartFlow() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
@@ -2482,7 +2742,20 @@ function OrgChartFlow() {
         {isAdmin && (
           <Panel position="top-right" className="m-4">
             <div className="flex flex-col items-end gap-2">
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5 justify-end" style={{ maxWidth: 520 }}>
+                <button
+                  onClick={() => setSearchOpen(prev => !prev)}
+                  title="Buscar (Ctrl+F)"
+                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  style={{
+                    background: searchOpen ? "rgba(61,126,255,0.2)" : "rgba(61,126,255,0.08)",
+                    color: searchOpen ? "#3D7EFF" : "#7A8BAD",
+                    border: `1px solid ${searchOpen ? "rgba(61,126,255,0.4)" : "#1E2540"}`,
+                  }}
+                >
+                  <Search className="h-3 w-3" />
+                  Buscar
+                </button>
                 <button
                   onClick={() => { if (!autoLayoutPending) handleAutoLayout(); }}
                   disabled={autoLayoutPending}
@@ -2539,7 +2812,32 @@ function OrgChartFlow() {
                 >
                   {globalConnectable ? "🔗 Conectables" : "✕ No conectables"}
                 </button>
+                <button
+                  onClick={() => {
+                    const next = !linkedResize;
+                    setLinkedResize(next);
+                    try { localStorage.setItem("flowos-orgchart-linked-resize", String(next)); } catch {}
+                  }}
+                  title={linkedResize ? "Tamaño vinculado: ON — al cambiar tamaño se ajustan los items acoplados" : "Tamaño vinculado: OFF — resize independiente"}
+                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  style={{
+                    background: linkedResize ? "rgba(168,85,247,0.1)" : "rgba(122,139,173,0.1)",
+                    color: linkedResize ? "#A855F7" : "#7A8BAD",
+                    border: `1px solid ${linkedResize ? "rgba(168,85,247,0.3)" : "#1E2540"}`,
+                  }}
+                >
+                  {linkedResize ? "🔗 Tamaño vinc." : "✕ Tamaño libre"}
+                </button>
               </div>
+              {searchOpen && (
+                <SearchPanel
+                  divisions={divisions}
+                  departments={departments}
+                  employees={employees}
+                  onNavigate={handleNavigate}
+                  onClose={() => setSearchOpen(false)}
+                />
+              )}
               {showAddEmp && (
                 <AddPositionPanel
                   onAdd={(jt, fn, c) => handleAddEmployee(jt, fn, c)}
