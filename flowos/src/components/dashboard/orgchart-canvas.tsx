@@ -65,6 +65,7 @@ type DivisionNodeData = {
   autoSize?: boolean;
   collapsed?: boolean;
   onResize?: (id: string, w: number, h: number) => void;
+  onResizeLive?: (id: string, w: number, h: number) => void;
 };
 type DepartmentNodeData = {
   name: string; color: string; isDepartment: true;
@@ -72,6 +73,7 @@ type DepartmentNodeData = {
   employeeCount?: number;
   adjLeft?: boolean; adjRight?: boolean;
   onResize?: (id: string, w: number, h: number) => void;
+  onResizeLive?: (id: string, w: number, h: number) => void;
 };
 
 type EmployeeNode = Node<EmployeeNodeData, "employee">;
@@ -107,6 +109,7 @@ function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>) {
       isVisible={selected && !data.collapsed}
       lineStyle={{ borderColor: data.color + "80" }}
       handleStyle={{ background: data.color, width: 8, height: 8, borderRadius: 4, border: "none" }}
+      onResize={(_, { width, height }) => data.onResizeLive?.(id, width, height)}
       onResizeEnd={(_, { width, height }) => data.onResize?.(id, width, height)}
     />
     <div
@@ -278,6 +281,7 @@ function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentNode>) {
       isVisible={selected}
       lineStyle={{ borderColor: data.color + "80" }}
       handleStyle={{ background: data.color, width: 7, height: 7, borderRadius: 3, border: "none" }}
+      onResize={(_, { width, height }) => data.onResizeLive?.(id, width, height)}
       onResizeEnd={(_, { width, height }) => data.onResize?.(id, width, height)}
     />
     <Handle type="target" position={Position.Top}
@@ -309,9 +313,12 @@ function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentNode>) {
           padding: "0 6px",
           borderTopLeftRadius: Math.max(0, radius.topLeft - 1),
           borderTopRightRadius: Math.max(0, radius.topRight - 1),
-          background: `${data.color}18`,
-          borderBottom: `1px solid ${data.color}30`,
+          // Base sólida #0A0F1C + tint del color → las líneas/edges no
+          // se ven a través del header. Mismo patrón que DivisionNodeView.
+          background: `linear-gradient(180deg, ${data.color}26 0%, ${data.color}10 100%), #0A0F1C`,
+          borderBottom: `1px solid ${data.color}40`,
           pointerEvents: "none",
+          zIndex: 5,
         }}
       >
         <FolderPlus size={10} style={{ color: data.color, flexShrink: 0 }} />
@@ -367,20 +374,24 @@ function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
     ? "?"
     : data.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 
-  const sideBorder = `${selected ? "2px" : "1px"} solid ${selected ? data.color : data.color + "40"}`;
+  // Vacantes: dashed border + leve transparencia para distinguirlos sin
+  // hacerlos ilegibles. El contraste anterior (opacity 0.6) los hacía verse "rotos".
+  const sideBorderColor = selected ? data.color : (isVacant ? data.color + "66" : data.color + "55");
+  const sideBorderStyle = isVacant ? "dashed" : "solid";
+  const sideBorder = `${selected ? "2px" : "1px"} ${sideBorderStyle} ${sideBorderColor}`;
   return (
     <div
       className="flex items-center gap-3 transition-shadow hover:shadow-lg"
       style={{
         width: 200,
         padding: 10,
-        background: "#0E1220",
+        background: isVacant ? "#0E122099" : "#0E1220",
         borderTop: sideBorder,
         borderRight: sideBorder,
         borderBottom: sideBorder,
-        borderLeft: `3px solid ${data.color}`,
+        borderLeft: `3px ${sideBorderStyle} ${data.color}`,
         borderRadius: 6,
-        opacity: isVacant ? 0.6 : 1,
+        opacity: isVacant ? 0.85 : 1,
       }}
     >
       <Handle type="target" position={Position.Top} style={{ background: data.color, width: 8, height: 8, border: "none" }} />
@@ -519,14 +530,16 @@ type NewPositionParent =
   | { kind: "employee"; id: string; fullName: string; jobTitle: string; color: string }
   | null;
 
-function NewPositionModal({ parent, employees, defaultColor, onCreate, onClose }: {
+function NewPositionModal({ parent, employees, departments, defaultColor, onCreate, onClose }: {
   parent: NewPositionParent;
   employees: Employee[];
+  departments: Department[];
   defaultColor: string;
   onCreate: (data: {
     jobTitle: string; fullName: string; color: string;
     description?: string; salary?: string; email?: string; phone?: string; startDate?: string;
     assignedEmployeeId?: string;
+    reportsToId?: string;
   }) => Promise<void>;
   onClose: () => void;
 }) {
@@ -540,6 +553,39 @@ function NewPositionModal({ parent, employees, defaultColor, onCreate, onClose }
   const [showPicker, setShowPicker] = useState(false);
   const [assignedEmpId, setAssignedEmpId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // "Reporta a" default basado en el parent y empleados del dpto/div:
+  // - Si parent es employee → ya viene fijo (jefe)
+  // - Si parent es department → default al headEmployeeId del dpto si existe
+  // - Si parent es division → default al senior si existe
+  // - Si no → ninguno
+  const getDefaultReportsTo = (): string | null => {
+    if (parent?.kind === "employee") return parent.id;
+    if (parent?.kind === "department") {
+      const dept = departments.find(d => d.id === parent.id);
+      return dept?.headEmployeeId ?? null;
+    }
+    return null;
+  };
+  const [reportsToId, setReportsToId] = useState<string | null>(getDefaultReportsTo());
+
+  // Candidatos para "Reporta a": empleados del mismo dpto (o de la división si parent es division)
+  const reportsToCandidates = useMemo(() => {
+    if (!parent) return [];
+    if (parent.kind === "department") {
+      return employees.filter(e => e.departmentId === parent.id);
+    }
+    if (parent.kind === "division") {
+      return employees.filter(e => e.divisionId === parent.id || departments.some(d => d.divisionId === parent.id && d.id === e.departmentId));
+    }
+    if (parent.kind === "employee") {
+      // El jefe del nuevo puesto YA es parent — pero el usuario podría querer cambiarlo
+      const boss = employees.find(e => e.id === parent.id);
+      if (boss?.departmentId) return employees.filter(e => e.departmentId === boss.departmentId);
+      return [boss].filter(Boolean) as Employee[];
+    }
+    return [];
+  }, [parent, employees, departments]);
 
   const assignedEmp = employees.find(e => e.id === assignedEmpId);
   const assignedName = assignedEmp?.fullName ?? "";
@@ -559,6 +605,7 @@ function NewPositionModal({ parent, employees, defaultColor, onCreate, onClose }
         phone: phone.trim() || undefined,
         startDate: startDate || undefined,
         assignedEmployeeId: assignedEmpId ?? undefined,
+        reportsToId: reportsToId ?? undefined,
       });
       onClose();
     } finally { setSaving(false); }
@@ -654,6 +701,24 @@ function NewPositionModal({ parent, employees, defaultColor, onCreate, onClose }
                 Si no asignás a nadie, queda vacante hasta que se cubra
               </p>
             </div>
+
+            {reportsToCandidates.length > 0 && (
+              <div>
+                <label style={labelStyle}>Reporta a</label>
+                <select value={reportsToId ?? ""} onChange={e => setReportsToId(e.target.value || null)}
+                  style={{ ...fieldStyle, cursor: "pointer" }}>
+                  <option value="">— Sin jefe directo (top-level) —</option>
+                  {reportsToCandidates.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.fullName === "[Puesto vacante]" ? `${emp.jobTitle ?? "Sin puesto"} (vacante)` : `${emp.fullName} · ${emp.jobTitle ?? ""}`}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+                  Define la jerarquía y la posición visual (DIR → ENC → equipo)
+                </p>
+              </div>
+            )}
 
             <div>
               <label style={labelStyle}>Descripción</label>
@@ -1146,6 +1211,7 @@ function ContextMenu({ target, onAction, onClose }: {
     ];
     if (target.kind === "department") return [
       { label: "Nuevo puesto aquí", icon: <UserPlus size={13} />, action: "new-position-in" },
+      { label: "Reorganizar puestos (jerárquico)", icon: <Sparkles size={13} />, action: "reorganize-positions" },
       { label: "Editar departamento", icon: <Edit3 size={13} />, action: "edit" },
       { label: "Renombrar", icon: <Edit3 size={13} />, action: "rename" },
       { label: "Eliminar departamento", icon: <Trash2 size={13} />, action: "delete", danger: true },
@@ -1602,7 +1668,7 @@ function useDebounce<T extends unknown[]>(fn: (...args: T) => void, delay: numbe
 // ─── Main Canvas ─────────────────────────────────────────────────────────────
 
 function OrgChartFlow() {
-  const { employees, addEmployee, updateEmployee, error } = useEmployees();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, error } = useEmployees();
   const { membership } = useOrganization();
   const isAdmin = membership?.role === "org:admin";
   const { screenToFlowPosition, getViewport, fitView } = useReactFlow();
@@ -1717,6 +1783,80 @@ function OrgChartFlow() {
     // Animar hermanos sincronizados (no el que el usuario está resizeando — ése sigue el cursor)
     markSyncing(targets.filter(t => t !== id));
   }, [markSyncing]);
+
+  // Live cascade durante el drag — solo afecta estado local (nodes), sin API.
+  // Permite ver cómo los hermanos se mueven/escalan mientras todavía estás arrastrando.
+  const handleDivisionResizeLive = useCallback((id: string, w: number, h: number) => {
+    if (!linkedResizeRef.current) return;
+    const divs = divisionsRef.current;
+    const div = divs.find(d => d.id === id);
+    if (!div?.couplingGroup) return;
+    const group = divs.filter(d => d.couplingGroup === div.couplingGroup);
+    if (group.length <= 1) return;
+    const sorted = [...group].sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
+    const baseX = sorted[0].positionX ?? 0;
+    const baseY = sorted[0].positionY ?? 0;
+    // Layout cumulativo en vivo: todos los del grupo comparten W y H = (w, h) del que se resizea
+    let cumX = baseX;
+    const updates = new Map<string, { x: number; y: number; w: number; h: number }>();
+    sorted.forEach(d => {
+      updates.set(d.id, { x: cumX, y: baseY, w, h });
+      cumX += w;
+    });
+    setNodes(prev => prev.map(n => {
+      const u = updates.get(n.id);
+      if (!u || n.type !== "division") return n;
+      return { ...n, position: { x: u.x, y: u.y }, style: { ...n.style, width: u.w, height: u.h } };
+    }));
+  }, []);
+
+  const handleDepartmentResizeLive = useCallback((id: string, w: number, h: number) => {
+    if (!linkedResizeRef.current) return;
+    const depts = departmentsRef.current;
+    const dept = depts.find(d => d.id === id);
+    if (!dept?.divisionId) return;
+    // BFS de adyacencia → grupo visualmente fusionado
+    const visited = new Set<string>([id]);
+    const queue = [id];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      const cd = depts.find(d => d.id === cur);
+      if (!cd) continue;
+      const cX = cd.positionX ?? 0;
+      const cY = cd.positionY ?? 0;
+      const cW = cd.sizeWidth ?? 280;
+      for (const other of depts) {
+        if (other.id === cur || visited.has(other.id)) continue;
+        if (other.divisionId !== cd.divisionId) continue;
+        const oX = other.positionX ?? 0;
+        const oY = other.positionY ?? 0;
+        const oW = other.sizeWidth ?? 280;
+        if (Math.abs(oY - cY) > 30) continue;
+        if (Math.abs((oX + oW) - cX) < 4 || Math.abs(oX - (cX + cW)) < 4) {
+          visited.add(other.id);
+          queue.push(other.id);
+        }
+      }
+    }
+    if (visited.size <= 1) return;
+    const oldW = dept.sizeWidth ?? 280;
+    const deltaW = w - oldW;
+    const groupSorted = Array.from(visited)
+      .map(gid => depts.find(d => d.id === gid)!)
+      .sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
+    const resizedIdx = groupSorted.findIndex(d => d.id === id);
+    const liveUpdates = new Map<string, { x: number; h: number }>();
+    groupSorted.forEach((d, i) => {
+      if (d.id === id) return;
+      const liveX = i > resizedIdx ? (d.positionX ?? 0) + deltaW : (d.positionX ?? 0);
+      liveUpdates.set(d.id, { x: liveX, h });
+    });
+    setNodes(prev => prev.map(n => {
+      const u = liveUpdates.get(n.id);
+      if (!u || n.type !== "department") return n;
+      return { ...n, position: { x: u.x, y: n.position.y }, style: { ...n.style, height: u.h } };
+    }));
+  }, []);
 
   const handleDepartmentResize = useCallback((id: string, w: number, h: number) => {
     const newW = Math.round(w);
@@ -1892,6 +2032,52 @@ function OrgChartFlow() {
     return map;
   }, [divisions]);
 
+  // Motor de layout interno por departamento: jerarquía DIR → ENC → equipo.
+  // Construye un Map<empleadoId, {x, y}> para puestos NO marcados manualPosition.
+  // Si manualPosition === true, respeta positionX/Y; si false, lo posiciona aquí.
+  const deptInternalLayout = useMemo(() => {
+    const positions = new Map<string, { x: number; y: number }>();
+    const COL_X = 16;          // PADDING
+    const TOP_Y = 34 + 12;     // header del dept + padding
+    const EMP_HEIGHT = 70 + 12; // EMP_H + EMP_GAP
+
+    departments.forEach(dept => {
+      const empsInDept = (employees ?? []).filter(e =>
+        e.departmentId === dept.id &&
+        e.manualPosition !== true
+      );
+      if (empsInDept.length === 0) return;
+
+      const visited = new Set<string>();
+      let y = TOP_Y;
+      const place = (empId: string) => {
+        if (visited.has(empId)) return;
+        const emp = empsInDept.find(e => e.id === empId);
+        if (!emp) return;
+        visited.add(empId);
+        positions.set(empId, { x: COL_X, y });
+        y += EMP_HEIGHT;
+        // Subordinados recursivos (los que reportan a este)
+        empsInDept
+          .filter(e => e.managerId === empId)
+          .forEach(sub => place(sub.id));
+      };
+
+      // 1. Director del dpto al tope
+      if (dept.headEmployeeId && empsInDept.some(e => e.id === dept.headEmployeeId)) {
+        place(dept.headEmployeeId);
+      }
+      // 2. Empleados sin manager (top-level que no son el director) — encargados directos
+      empsInDept
+        .filter(e => !e.managerId && !visited.has(e.id))
+        .forEach(e => place(e.id));
+      // 3. Empleados huérfanos (manager fuera del dpto, o referencia inválida)
+      empsInDept.forEach(e => { if (!visited.has(e.id)) place(e.id); });
+    });
+
+    return positions;
+  }, [departments, employees]);
+
   // Adyacencia entre departamentos: dos depts del MISMO division con misma Y y
   // X alineados (right de uno = left del otro, dentro de tolerancia) → se ven fusionados.
   // No requiere columna couplingGroup en DB — se deriva puramente de posiciones.
@@ -2005,6 +2191,7 @@ function OrgChartFlow() {
           autoSize: !isManual,
           collapsed: isCollapsed,
           onResize: handleDivisionResize,
+          onResizeLive: handleDivisionResizeLive,
         },
         style: {
           width: size.w,
@@ -2034,6 +2221,7 @@ function OrgChartFlow() {
           employeeCount: empCount,
           adjLeft: dAdj.left, adjRight: dAdj.right,
           onResize: handleDepartmentResize,
+          onResizeLive: handleDepartmentResizeLive,
         },
         style: {
           width: dp.sizeWidth ?? 280,
@@ -2060,10 +2248,15 @@ function OrgChartFlow() {
       } else if (emp.divisionId && collapsedDivs.has(emp.divisionId)) {
         return;
       }
+      // Posición: si manualPosition=false y hay layout calculado → usar layout jerárquico.
+      // Si manualPosition=true o no hay layout → usar positionX/Y del DB (drag manual).
+      const autoPos = !emp.manualPosition ? deptInternalLayout.get(emp.id) : undefined;
+      const pos = autoPos
+        ?? { x: emp.positionX ?? ((idx % 4) * 220 + 20), y: emp.positionY ?? (Math.floor(idx / 4) * 80 + 80) };
       const node: EmployeeNode = {
         id: emp.id,
         type: "employee",
-        position: { x: emp.positionX ?? ((idx % 4) * 220 + 20), y: emp.positionY ?? (Math.floor(idx / 4) * 80 + 80) },
+        position: pos,
         data: {
           fullName: emp.fullName,
           jobTitle: emp.jobTitle || "Sin asignar",
@@ -2083,7 +2276,7 @@ function OrgChartFlow() {
 
     return result;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, employees, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize]);
+  }, [divisions, departments, employees, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive]);
 
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
@@ -2195,7 +2388,13 @@ function OrgChartFlow() {
         const node = nodes.find(n => n.id === change.id);
         if (!node) return;
         if (node.type === "employee") {
-          updateEmployeeRef.current(change.id, { positionX: change.position.x, positionY: change.position.y }).catch(() => {});
+          // Marcar manualPosition=true al arrastrar: el layout auto se desactiva
+          // para este empleado y respeta su posición arrastrada.
+          updateEmployeeRef.current(change.id, {
+            positionX: change.position.x,
+            positionY: change.position.y,
+            manualPosition: true,
+          }).catch(() => {});
         } else if (node.type === "division") {
           // Snap-or-decouple: dropping near another division couples them; dropping far away decouples
           const snap = computeDivisionSnap(change.id, change.position.x, change.position.y);
@@ -2316,11 +2515,13 @@ function OrgChartFlow() {
   }, [divisions, manualSizeDivs, collapsedDivs]);
 
   // ── Create employee ───────────────────────────────────────────────────────
-  const handleAddEmployee = async (jobTitle: string, fullName: string, color: string, parent?: { kind: "division" | "department"; id: string }, extras?: { description?: string; salary?: string; email?: string; phone?: string; startDate?: string; }) => {
+  const handleAddEmployee = async (jobTitle: string, fullName: string, color: string, parent?: { kind: "division" | "department"; id: string }, extras?: { description?: string; salary?: string; email?: string; phone?: string; startDate?: string; managerId?: string; }) => {
     const allEmps = employeesRef.current ?? [];
     const totalCount = allEmps.length;
-    // Layout intuitivo: nuevos puestos se apilan verticalmente debajo del último,
-    // en una sola columna. El usuario puede arrastrar después si quiere reorganizar.
+    // Si va dentro de un dpto y se asigna managerId → manualPosition=false (auto-layout DIR→ENC→team).
+    // Si va suelto o se rompe la cadena de jerarquía → manualPosition=true con posición calculada.
+    const goesIntoDept = parent?.kind === "department";
+    const useAutoLayout = goesIntoDept;
     let parentCount = 0;
     if (parent?.kind === "division") {
       parentCount = allEmps.filter(e => e.divisionId === parent.id && !e.departmentId).length;
@@ -2335,11 +2536,13 @@ function OrgChartFlow() {
       : Math.floor(totalCount / 4) * 120 + 40;
     const data: Partial<Employee> & { fullName: string; jobTitle: string; color: string; positionX: number; positionY: number } = {
       fullName, jobTitle, color, positionX, positionY,
+      manualPosition: !useAutoLayout,
       ...(extras?.description && { description: extras.description }),
       ...(extras?.salary && { salary: extras.salary }),
       ...(extras?.email && { email: extras.email }),
       ...(extras?.phone && { phone: extras.phone }),
       ...(extras?.startDate && { startDate: new Date(extras.startDate) }),
+      ...(extras?.managerId && { managerId: extras.managerId }),
     };
     if (parent?.kind === "division") (data as Partial<Employee>).divisionId = parent.id;
     if (parent?.kind === "department") {
@@ -2355,6 +2558,7 @@ function OrgChartFlow() {
     jobTitle: string; fullName: string; color: string;
     description?: string; salary?: string; email?: string; phone?: string; startDate?: string;
     assignedEmployeeId?: string;
+    reportsToId?: string;
   }) => {
     let parent: { kind: "division" | "department"; id: string } | undefined;
     if (newPosition?.kind === "division") parent = { kind: "division", id: newPosition.id };
@@ -2364,6 +2568,10 @@ function OrgChartFlow() {
       if (boss?.departmentId) parent = { kind: "department", id: boss.departmentId };
       else if (boss?.divisionId) parent = { kind: "division", id: boss.divisionId };
     }
+    // Si parent es employee (subordinado de), el managerId es ese empleado.
+    // Si el usuario explícitamente seleccionó reportsToId, usamos ese (overrides).
+    const managerId = data.reportsToId
+      ?? (newPosition?.kind === "employee" ? newPosition.id : undefined);
     await handleAddEmployee(
       data.jobTitle,
       data.fullName,
@@ -2372,6 +2580,7 @@ function OrgChartFlow() {
       {
         description: data.description, salary: data.salary,
         email: data.email, phone: data.phone, startDate: data.startDate,
+        managerId,
       }
     );
   };
@@ -2500,6 +2709,13 @@ function OrgChartFlow() {
         setNewPosition({ kind: "department", id: t.id, name: dept.name, color: dept.color ?? "#C8902C" });
         setOpenNewPosition(true);
       }
+      if (action === "reorganize-positions") {
+        // Limpiar manualPosition=false en todos los empleados del dpto → activa layout jerárquico
+        const empsInDept = (employees ?? []).filter(e => e.departmentId === t.id);
+        await Promise.all(empsInDept.map(e =>
+          updateEmployeeRef.current(e.id, { manualPosition: false }).catch(() => {})
+        ));
+      }
       if (action === "rename" && dept) setRenaming({ kind: "department", id: t.id, name: dept.name });
       if (action === "delete") await deleteDepartment(t.id);
     }
@@ -2525,8 +2741,11 @@ function OrgChartFlow() {
           placeholder: 'Escribí "ARCHIVAR" para confirmar',
           onConfirm: async (v) => {
             if (v.toUpperCase() === "ARCHIVAR") {
-              await fetch(`/api/employees/${t.id}`, { method: "DELETE" });
-              await reloadGroups();
+              // Usar el hook para que SWR refresque la UI al instante.
+              // El fetch directo NO actualizaba la cache → el puesto seguía visible
+              // hasta que algo más reseteaba el estado (mover el canvas, p.ej.).
+              await deleteEmployee(t.id);
+              if (selectedEmpNode?.id === t.id) setSelectedEmpNode(null);
             }
           },
         });
@@ -2707,6 +2926,26 @@ function OrgChartFlow() {
 
   return (
     <>
+      {/* Estilos globales para nodos del orgchart — animaciones y hover */}
+      <style>{`
+        .react-flow__node-division:hover,
+        .react-flow__node-department:hover {
+          filter: brightness(1.05);
+        }
+        .react-flow__node-employee:hover {
+          filter: brightness(1.1);
+          transform: translateY(-1px);
+        }
+        @keyframes flowos-node-fade-in {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .react-flow__node-division,
+        .react-flow__node-department,
+        .react-flow__node-employee {
+          animation: flowos-node-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      `}</style>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -2915,6 +3154,7 @@ function OrgChartFlow() {
         <NewPositionModal
           parent={newPosition}
           employees={employees}
+          departments={departments}
           defaultColor={newPosition?.color ?? "#3D7EFF"}
           onCreate={handleNewPositionCreate}
           onClose={() => { setOpenNewPosition(false); setNewPosition(null); }}

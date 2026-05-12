@@ -159,6 +159,9 @@ export const employees = pgTable(
     color: text("color").default("#1A1814"),
     positionX: doublePrecision("position_x").default(0),
     positionY: doublePrecision("position_y").default(0),
+    // Si true, respeta positionX/Y. Si false, layout jerárquico auto (DIR→ENC→team)
+    // del motor `deptInternalLayout` toma control. Drag manual setea true.
+    manualPosition: boolean("manual_position").notNull().default(false),
     startDate: timestamp("start_date", { withTimezone: true }),
     metadata: jsonb("metadata").notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
