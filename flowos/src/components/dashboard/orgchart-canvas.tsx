@@ -1964,8 +1964,11 @@ function OrgChartFlow() {
     let maxChildX = 0;
     let maxChildY = 0;
     childDepts.forEach(dept => {
+      const empCount = (employees ?? []).filter(e => e.departmentId === dept.id).length;
+      const neededH = 34 + 12 + empCount * (EMP_H + EMP_GAP) + 16;
+      const dH = Math.max(dept.sizeHeight ?? DEPT_H, neededH);
       const x = (dept.positionX ?? PADDING) + (dept.sizeWidth ?? DEPT_W);
-      const y = (dept.positionY ?? HEADER_H + PADDING) + (dept.sizeHeight ?? DEPT_H);
+      const y = (dept.positionY ?? HEADER_H + PADDING) + dH;
       if (x > maxChildX) maxChildX = x;
       if (y > maxChildY) maxChildY = y;
     });
@@ -2098,12 +2101,12 @@ function OrgChartFlow() {
       list.forEach(a => {
         const aX = a.positionX ?? 0;
         const aY = a.positionY ?? 0;
-        const aW = a.sizeWidth ?? 360;
+        const aW = a.sizeWidth ?? DEPT_W;
         for (const b of list) {
           if (b.id === a.id) continue;
           const bX = b.positionX ?? 0;
           const bY = b.positionY ?? 0;
-          const bW = b.sizeWidth ?? 360;
+          const bW = b.sizeWidth ?? DEPT_W;
           if (Math.abs(aY - bY) > TOL_Y) continue;
           // b está pegado a la derecha de a
           if (Math.abs((aX + aW) - bX) < TOL_X) {
@@ -2211,6 +2214,12 @@ function OrgChartFlow() {
       const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
       const dAdj = deptAdjacency.get(dp.id) ?? { left: false, right: false };
       const isSyncingDept = syncingNodeIds.has(dp.id);
+      // Auto-height: crece para contener todos sus empleados.
+      // Fórmula: header(34) + top-pad(12) + n*EMP_STEP + bot-pad(16)
+      const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
+      const EMP_STEP = EMP_H + EMP_GAP; // 82px por empleado
+      const neededH = DEPT_HDR + DEPT_TOP_PAD + empCount * EMP_STEP + DEPT_BOT_PAD;
+      const deptH = Math.max(dp.sizeHeight ?? DEPT_H, neededH);
       const node: DepartmentNode = {
         id: dp.id,
         type: "department",
@@ -2225,7 +2234,7 @@ function OrgChartFlow() {
         },
         style: {
           width: dp.sizeWidth ?? 280,
-          height: dp.sizeHeight ?? 200,
+          height: deptH,
           zIndex: 1,
           ...(isSyncingDept && { transition: TRANSITION }),
         },
@@ -2550,7 +2559,20 @@ function OrgChartFlow() {
       const dept = departments.find(d => d.id === parent.id);
       if (dept?.divisionId) (data as Partial<Employee>).divisionId = dept.divisionId;
     }
-    await addEmployee(data as Parameters<typeof addEmployee>[0]);
+    const newEmp = await addEmployee(data as Parameters<typeof addEmployee>[0]);
+    // Si el departamento no tiene headEmployeeId y este es el primer puesto,
+    // setearlo como director automáticamente.
+    if (parent?.kind === "department" && newEmp?.id && !extras?.managerId) {
+      const dept = departments.find(d => d.id === parent.id);
+      if (dept && !dept.headEmployeeId) {
+        await fetch(`/api/departments/${dept.id}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ headEmployeeId: newEmp.id }),
+        }).catch(() => {});
+        setDepartments(prev => prev.map(d => d.id === dept.id ? { ...d, headEmployeeId: newEmp.id } : d));
+      }
+    }
+    return newEmp;
   };
 
   // Handler used by NewPositionModal (full form)

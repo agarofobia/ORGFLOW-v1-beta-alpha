@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
         departmentId: body.departmentId ?? null,
         divisionId: body.divisionId ?? null,
         managerId: body.managerId ?? null,
+        manualPosition: body.manualPosition ?? false,
         metadata: body.metadata ?? {},
       })
       .returning();
