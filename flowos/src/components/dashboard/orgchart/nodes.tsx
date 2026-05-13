@@ -267,7 +267,13 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
   // hacerlos ilegibles.
   const sideBorderColor = selected ? data.color : (isVacant ? data.color + "66" : data.color + "55");
   const sideBorderStyle = isVacant ? "dashed" : "solid";
-  const sideBorder = `${selected ? "2px" : "1px"} ${sideBorderStyle} ${sideBorderColor}`;
+  // Borde más grueso para directores/encargados — jerarquía visual sin agrandar el card.
+  const isDirector = data.role === "director";
+  const isManager = data.role === "manager";
+  const borderWeight = selected ? "2px" : isDirector ? "2px" : "1px";
+  const sideBorder = `${borderWeight} ${sideBorderStyle} ${sideBorderColor}`;
+  const leftBorderWeight = isDirector ? "5px" : isManager ? "4px" : "3px";
+  const roleBadge = isDirector ? "DIR" : isManager ? "ENC" : null;
   return (
     <div
       className="flex items-center gap-3 transition-shadow hover:shadow-lg"
@@ -278,9 +284,10 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
         borderTop: sideBorder,
         borderRight: sideBorder,
         borderBottom: sideBorder,
-        borderLeft: `3px ${sideBorderStyle} ${data.color}`,
+        borderLeft: `${leftBorderWeight} ${sideBorderStyle} ${data.color}`,
         borderRadius: 6,
         opacity: isVacant ? 0.85 : 1,
+        position: "relative",
       }}
     >
       <Handle type="target" position={Position.Top} style={{ background: data.color, width: 8, height: 8, border: "none" }} />
@@ -298,6 +305,19 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
           {data.jobTitle}
         </div>
       </div>
+      {roleBadge && (
+        <span style={{
+          position: "absolute", top: -7, right: 6,
+          fontSize: 8, fontWeight: 700, letterSpacing: "0.06em",
+          padding: "2px 5px", borderRadius: 8,
+          background: data.color, color: "#0A0F1C",
+          fontFamily: "monospace",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+          pointerEvents: "none",
+        }}>
+          {roleBadge}
+        </span>
+      )}
       <Handle type="source" position={Position.Bottom} style={{ background: data.color, width: 8, height: 8, border: "none" }} />
     </div>
   );

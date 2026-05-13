@@ -54,6 +54,8 @@ export async function PUT(
     if (body.divisionId !== undefined) updates.divisionId = body.divisionId ?? null;
     if (body.managerId !== undefined) updates.managerId = body.managerId ?? null;
     if (body.manualPosition !== undefined) updates.manualPosition = Boolean(body.manualPosition);
+    if (body.role !== undefined) updates.role = body.role ?? null;
+    if (body.unitId !== undefined) updates.unitId = body.unitId ?? null;
 
     const result = await db
       .update(employees)

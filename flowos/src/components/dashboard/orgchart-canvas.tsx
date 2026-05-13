@@ -24,7 +24,7 @@ import {
   Trash2, Edit3, Sparkles, Search, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
-import { Employee } from "@/db/schema";
+import { Employee, type Unit } from "@/db/schema";
 import { useOrganization } from "@clerk/nextjs";
 
 // Tipos, nodos, modales y ColorPicker viven en src/components/dashboard/orgchart/
@@ -45,6 +45,7 @@ import {
   ContextMenu, type CtxTarget,
 } from "./orgchart/panels";
 import { NodeInfoPanel, type EmployeeWithSection } from "./orgchart/NodeInfoPanel";
+import { getEffectiveRole } from "./orgchart/roles";
 
 
 // ─── Debounce helper ─────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ function OrgChartFlow() {
 
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [showAddEmp, setShowAddEmp] = useState(false);
   const [showAddGroup, setShowAddGroup] = useState<"division" | "department" | null>(null);
@@ -133,15 +135,17 @@ function OrgChartFlow() {
   // wiped from state and saved to DB as removed.
   const suppressEdgeRemove = useRef(false);
 
-  // ── Load divisions, departments, edges ────────────────────────────────────
+  // ── Load divisions, departments, units, edges ────────────────────────────
   const reloadGroups = useCallback(async () => {
-    const [d, dp, edges] = await Promise.all([
+    const [d, dp, u, edges] = await Promise.all([
       fetch("/api/divisions").then(r => r.ok ? r.json() : []).catch(() => []),
       fetch("/api/departments").then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch("/api/units").then(r => r.ok ? r.json() : []).catch(() => []),
       fetch("/api/orgchart/state").then(r => r.ok ? r.json() : { edges: [] }).catch(() => ({ edges: [] })),
     ]);
     setDivisions(Array.isArray(d) ? d : []);
     setDepartments(Array.isArray(dp) ? dp : []);
+    setUnits(Array.isArray(u) ? u : []);
     setEdges(Array.isArray(edges?.edges) ? edges.edges.map((e: Edge) => ({ ...e, type: "bicolor" })) : []);
   }, []);
 
@@ -659,6 +663,7 @@ function OrgChartFlow() {
       const autoPos = !emp.manualPosition ? deptInternalLayout.get(emp.id) : undefined;
       const pos = autoPos
         ?? { x: emp.positionX ?? ((idx % 4) * 220 + 20), y: emp.positionY ?? (Math.floor(idx / 4) * 80 + 80) };
+      const effectiveRole = getEffectiveRole(emp, employees ?? [], departments, units);
       const node: EmployeeNode = {
         id: emp.id,
         type: "employee",
@@ -668,6 +673,7 @@ function OrgChartFlow() {
           jobTitle: emp.jobTitle || "Sin asignar",
           color: emp.color || "#3D7EFF",
           status: emp.status,
+          role: effectiveRole,
         },
       };
       if (emp.departmentId && departments.some(d => d.id === emp.departmentId)) {
@@ -947,7 +953,7 @@ function OrgChartFlow() {
   }, [divisions, manualSizeDivs, collapsedDivs]);
 
   // ── Create employee ───────────────────────────────────────────────────────
-  const handleAddEmployee = async (jobTitle: string, fullName: string, color: string, parent?: { kind: "division" | "department"; id: string }, extras?: { description?: string; salary?: string; email?: string; phone?: string; startDate?: string; managerId?: string; }) => {
+  const handleAddEmployee = async (jobTitle: string, fullName: string, color: string, parent?: { kind: "division" | "department"; id: string }, extras?: { description?: string; salary?: string; email?: string; phone?: string; startDate?: string; managerId?: string; role?: string; }) => {
     const allEmps = employeesRef.current ?? [];
     const totalCount = allEmps.length;
     // Si va dentro de un dpto y se asigna managerId → manualPosition=false (auto-layout DIR→ENC→team).
@@ -975,6 +981,7 @@ function OrgChartFlow() {
       ...(extras?.phone && { phone: extras.phone }),
       ...(extras?.startDate && { startDate: new Date(extras.startDate) }),
       ...(extras?.managerId && { managerId: extras.managerId }),
+      ...(extras?.role && { role: extras.role }),
     };
     if (parent?.kind === "division") (data as Partial<Employee>).divisionId = parent.id;
     if (parent?.kind === "department") {
@@ -1000,6 +1007,7 @@ function OrgChartFlow() {
     description?: string; salary?: string; email?: string; phone?: string; startDate?: string;
     assignedEmployeeId?: string;
     reportsToId?: string;
+    role?: string;
   }) => {
     let parent: { kind: "division" | "department"; id: string } | undefined;
     if (newPosition?.kind === "division") parent = { kind: "division", id: newPosition.id };
@@ -1025,6 +1033,7 @@ function OrgChartFlow() {
         description: data.description, salary: data.salary,
         email: data.email, phone: data.phone, startDate: data.startDate,
         managerId,
+        role: data.role,
       }
     );
   };
@@ -1560,6 +1569,7 @@ function OrgChartFlow() {
               employees={employees}
               divisions={divisions}
               departments={departments}
+              units={units}
               isAdmin={isAdmin}
               onSave={handleSaveEmployee}
               onClose={() => setSelectedEmpNode(null)}

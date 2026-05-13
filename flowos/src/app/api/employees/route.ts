@@ -50,6 +50,8 @@ export async function POST(req: NextRequest) {
         divisionId: body.divisionId ?? null,
         managerId: body.managerId ?? null,
         manualPosition: body.manualPosition ?? false,
+        role: body.role ?? null,
+        unitId: body.unitId ?? null,
         metadata: body.metadata ?? {},
       })
       .returning();

@@ -138,6 +138,34 @@ export const departments = pgTable(
   }),
 );
 
+// ─── Units ───────────────────────────────────────────────────────────────────
+// Sub-grupos dentro de un departamento. Un encargado (manager) suele liderar una
+// unidad; los miembros se asignan a ella. Es opcional — un departamento puede
+// funcionar sin unidades, todos los empleados directos del director.
+
+export const units = pgTable(
+  "units",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => departments.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color"),
+    headEmployeeId: uuid("head_employee_id"), // el encargado que lidera la unidad
+    positionX: doublePrecision("position_x").default(0),
+    positionY: doublePrecision("position_y").default(0),
+    sizeWidth: doublePrecision("size_width").default(260),
+    sizeHeight: doublePrecision("size_height").default(160),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdx: index("units_org_idx").on(table.organizationId),
+    deptIdx: index("units_dept_idx").on(table.departmentId),
+  }),
+);
+
 // ─── Employees (nodos del org chart) ────────────────────────────────────────
 
 export const employees = pgTable(
@@ -160,6 +188,14 @@ export const employees = pgTable(
     phone: text("phone"),
     salary: text("salary"),
     managerId: uuid("manager_id"),
+    // Rol del puesto: "director" | "manager" | "member" | null (auto).
+    // Si null, se calcula automáticamente desde la estructura jerárquica
+    // (función getEffectiveRole en src/components/dashboard/orgchart/roles.ts).
+    // Si está seteado, override manual del usuario.
+    role: text("role"),
+    // Unidad a la que pertenece este puesto (sub-grupo dentro del depto).
+    // Null = no asignado a ninguna unidad (cuelga directo del director).
+    unitId: uuid("unit_id"),
     status: employeeStatusEnum("status").notNull().default("active"),
     color: text("color").default("#1A1814"),
     positionX: doublePrecision("position_x").default(0),
@@ -458,6 +494,8 @@ export type Division = typeof divisions.$inferSelect;
 export type NewDivision = typeof divisions.$inferInsert;
 export type Department = typeof departments.$inferSelect;
 export type NewDepartment = typeof departments.$inferInsert;
+export type Unit = typeof units.$inferSelect;
+export type NewUnit = typeof units.$inferInsert;
 export type Employee = typeof employees.$inferSelect;
 export type NewEmployee = typeof employees.$inferInsert;
 export type Project = typeof projects.$inferSelect;

@@ -129,6 +129,7 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
     description?: string; salary?: string; email?: string; phone?: string; startDate?: string;
     assignedEmployeeId?: string;
     reportsToId?: string;
+    role?: string;
   }) => Promise<void>;
   onClose: () => void;
 }) {
@@ -142,6 +143,8 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
   const [showPicker, setShowPicker] = useState(false);
   const [assignedEmpId, setAssignedEmpId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Tipo de puesto opcional. "" = auto-detect, "director"|"manager"|"member" = override.
+  const [role, setRole] = useState<string>("");
 
   const getDefaultReportsTo = (): string | null => {
     if (parent?.kind === "employee") return parent.id;
@@ -191,6 +194,7 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
         startDate: startDate || undefined,
         assignedEmployeeId: assignedEmpId ?? undefined,
         reportsToId: reportsToId ?? undefined,
+        role: role || undefined,
       });
       onClose();
     } finally { setSaving(false); }
@@ -236,6 +240,20 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
               <ColorPicker value={color} onChange={setColor} />
               <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
                 {parent?.kind === "employee" ? "Sugerido: el color del jefe" : "Elegí un color para identificar visualmente"}
+              </p>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Tipo de puesto</label>
+              <select value={role} onChange={e => setRole(e.target.value)}
+                style={{ ...fieldStyle, cursor: "pointer" }}>
+                <option value="">Auto (detectar por jerarquía)</option>
+                <option value="director">Director</option>
+                <option value="manager">Encargado</option>
+                <option value="member">Miembro</option>
+              </select>
+              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+                Auto: director = head del depto, encargado = tiene subordinados
               </p>
             </div>
 

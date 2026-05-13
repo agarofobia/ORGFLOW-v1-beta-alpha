@@ -23,6 +23,9 @@ export type Department = {
 
 export type EmployeeNodeData = {
   fullName: string; jobTitle: string; color: string; status?: string;
+  // Rol efectivo computado en computedNodes (auto-detect + override).
+  // Solo se renderiza badge cuando es "director" o "manager".
+  role?: "director" | "manager" | "member";
 };
 
 export type DivisionNodeData = {

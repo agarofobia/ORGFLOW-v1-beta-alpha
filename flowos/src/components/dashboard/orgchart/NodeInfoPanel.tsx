@@ -2,22 +2,24 @@
 
 import { useState } from "react";
 import { X, Loader2, Save } from "lucide-react";
-import type { Employee } from "@/db/schema";
+import type { Employee, Unit } from "@/db/schema";
 import type { Division, Department, EmployeeNode } from "./types";
 import { ColorPicker } from "./ColorPicker";
 import { PersonPickerModal } from "./modals";
+import { roleLabelLong } from "./roles";
 
 // sectionName es un campo del schema (employees.section_name) que aún no se usa
 // en otros sitios. Por eso lo intersectamos acá para que el panel pueda editarlo.
 export type EmployeeWithSection = Employee & { sectionName?: string | null };
 
 export function NodeInfoPanel({
-  node, employees, divisions, departments, isAdmin, onSave, onClose,
+  node, employees, divisions, departments, units, isAdmin, onSave, onClose,
 }: {
   node: EmployeeNode;
   employees: Employee[];
   divisions: Division[];
   departments: Department[];
+  units: Unit[];
   isAdmin: boolean;
   onSave: (id: string, updates: Partial<EmployeeWithSection>) => Promise<void>;
   onClose: () => void;
@@ -32,9 +34,16 @@ export function NodeInfoPanel({
   const [divisionId, setDivisionId] = useState(emp?.divisionId ?? "");
   const [departmentId, setDepartmentId] = useState(emp?.departmentId ?? "");
   const [sectionName, setSectionName] = useState(emp?.sectionName ?? "");
+  // role: "" = auto (no override), o "director"/"manager"/"member" = override manual
+  const [role, setRole] = useState<string>(emp?.role ?? "");
+  // unitId: "" = sin unidad asignada
+  const [unitId, setUnitId] = useState<string>(emp?.unitId ?? "");
   const [saving, setSaving] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const isVacant = fullName === "[Puesto vacante]";
+
+  // Unidades disponibles para asignar: las del depto actualmente seleccionado.
+  const availableUnits = units.filter(u => u.departmentId === departmentId);
 
   const filteredDepts = divisionId
     ? departments.filter(d => d.divisionId === divisionId)
@@ -48,6 +57,8 @@ export function NodeInfoPanel({
         divisionId: divisionId || null,
         departmentId: departmentId || null,
         sectionName: sectionName || null,
+        role: role || null,
+        unitId: unitId || null,
       });
     } finally { setSaving(false); }
   };
@@ -138,6 +149,35 @@ export function NodeInfoPanel({
                 style={{ ...fieldStyle, cursor: "pointer" }}>
                 <option value="">Sin departamento</option>
                 {filteredDepts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Tipo de puesto — override manual del rol */}
+          {isAdmin && (
+            <div>
+              <label className="mb-1 block font-mono text-[10px] uppercase" style={{ color: "#7A8BAD" }}>Tipo de puesto</label>
+              <select value={role} onChange={e => setRole(e.target.value)}
+                style={{ ...fieldStyle, cursor: "pointer" }}>
+                <option value="">Auto (detectar por jerarquía)</option>
+                <option value="director">{roleLabelLong.director}</option>
+                <option value="manager">{roleLabelLong.manager}</option>
+                <option value="member">{roleLabelLong.member}</option>
+              </select>
+              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+                Auto: director = head del depto, encargado = tiene subordinados
+              </p>
+            </div>
+          )}
+
+          {/* Unidad (sub-grupo dentro del depto) */}
+          {isAdmin && departmentId && availableUnits.length > 0 && (
+            <div>
+              <label className="mb-1 block font-mono text-[10px] uppercase" style={{ color: "#7A8BAD" }}>Unidad</label>
+              <select value={unitId} onChange={e => setUnitId(e.target.value)}
+                style={{ ...fieldStyle, cursor: "pointer" }}>
+                <option value="">Sin unidad (cuelga del director)</option>
+                {availableUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
           )}
