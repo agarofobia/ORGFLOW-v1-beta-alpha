@@ -340,26 +340,6 @@ function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentNode>) {
             {data.employeeCount}
           </span>
         )}
-        {data.head && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
-            background: "#0E1220CC", border: `1px solid ${(data.head.color ?? data.color) + "55"}`,
-            borderRadius: 10, padding: "1px 5px 1px 2px",
-          }}>
-            <div style={{
-              width: 16, height: 16, borderRadius: "50%",
-              background: (data.head.color ?? data.color) + "33",
-              border: `1.5px solid ${data.head.color ?? data.color}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 7, fontWeight: 700, color: data.head.color ?? data.color, flexShrink: 0,
-            }}>
-              {data.head.fullName.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
-            </div>
-            <span style={{ fontSize: 9, color: "#C8D6F0", maxWidth: 70, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {data.head.fullName.split(" ")[0]}
-            </span>
-          </div>
-        )}
       </div>
     </div>
     </>
@@ -1967,7 +1947,8 @@ function OrgChartFlow() {
       const empCount = (employees ?? []).filter(e => e.departmentId === dept.id).length;
       const neededH = 34 + 12 + empCount * (EMP_H + EMP_GAP) + 16;
       const dH = Math.max(dept.sizeHeight ?? DEPT_H, neededH);
-      const x = (dept.positionX ?? PADDING) + (dept.sizeWidth ?? DEPT_W);
+      const dW = Math.max(dept.sizeWidth ?? DEPT_W, 290);
+      const x = (dept.positionX ?? PADDING) + dW;
       const y = (dept.positionY ?? HEADER_H + PADDING) + dH;
       if (x > maxChildX) maxChildX = x;
       if (y > maxChildY) maxChildY = y;
@@ -2053,29 +2034,30 @@ function OrgChartFlow() {
 
       const visited = new Set<string>();
       let y = TOP_Y;
-      const place = (empId: string) => {
+      const INDENT = 20; // px por nivel de profundidad
+      const place = (empId: string, depth: number = 0) => {
         if (visited.has(empId)) return;
         const emp = empsInDept.find(e => e.id === empId);
         if (!emp) return;
         visited.add(empId);
-        positions.set(empId, { x: COL_X, y });
+        positions.set(empId, { x: COL_X + depth * INDENT, y });
         y += EMP_HEIGHT;
         // Subordinados recursivos (los que reportan a este)
         empsInDept
           .filter(e => e.managerId === empId)
-          .forEach(sub => place(sub.id));
+          .forEach(sub => place(sub.id, depth + 1));
       };
 
-      // 1. Director del dpto al tope
+      // 1. Director del dpto al tope (profundidad 0)
       if (dept.headEmployeeId && empsInDept.some(e => e.id === dept.headEmployeeId)) {
-        place(dept.headEmployeeId);
+        place(dept.headEmployeeId, 0);
       }
-      // 2. Empleados sin manager (top-level que no son el director) — encargados directos
+      // 2. Empleados sin manager (top-level que no son el director)
       empsInDept
         .filter(e => !e.managerId && !visited.has(e.id))
-        .forEach(e => place(e.id));
+        .forEach(e => place(e.id, 0));
       // 3. Empleados huérfanos (manager fuera del dpto, o referencia inválida)
-      empsInDept.forEach(e => { if (!visited.has(e.id)) place(e.id); });
+      empsInDept.forEach(e => { if (!visited.has(e.id)) place(e.id, 0); });
     });
 
     return positions;
@@ -2220,6 +2202,9 @@ function OrgChartFlow() {
       const EMP_STEP = EMP_H + EMP_GAP; // 82px por empleado
       const neededH = DEPT_HDR + DEPT_TOP_PAD + empCount * EMP_STEP + DEPT_BOT_PAD;
       const deptH = Math.max(dp.sizeHeight ?? DEPT_H, neededH);
+      // Ancho mínimo = COL_X(16) + maxIndent(3 niveles×20=60) + cardWidth(200) + rightPad(14) = 290
+      const neededW = 290;
+      const deptW = Math.max(dp.sizeWidth ?? DEPT_W, neededW);
       const node: DepartmentNode = {
         id: dp.id,
         type: "department",
@@ -2233,7 +2218,7 @@ function OrgChartFlow() {
           onResizeLive: handleDepartmentResizeLive,
         },
         style: {
-          width: dp.sizeWidth ?? 280,
+          width: deptW,
           height: deptH,
           zIndex: 1,
           ...(isSyncingDept && { transition: TRANSITION }),
@@ -2590,10 +2575,13 @@ function OrgChartFlow() {
       if (boss?.departmentId) parent = { kind: "department", id: boss.departmentId };
       else if (boss?.divisionId) parent = { kind: "division", id: boss.divisionId };
     }
-    // Si parent es employee (subordinado de), el managerId es ese empleado.
-    // Si el usuario explícitamente seleccionó reportsToId, usamos ese (overrides).
-    const managerId = data.reportsToId
-      ?? (newPosition?.kind === "employee" ? newPosition.id : undefined);
+    // managerId: prioridad explícita del usuario → headEmployeeId del dept → parent employee
+    let managerId: string | undefined = data.reportsToId;
+    if (!managerId && newPosition?.kind === "department") {
+      const deptForHead = departments.find(d => d.id === newPosition.id);
+      if (deptForHead?.headEmployeeId) managerId = deptForHead.headEmployeeId;
+    }
+    if (!managerId && newPosition?.kind === "employee") managerId = newPosition.id;
     await handleAddEmployee(
       data.jobTitle,
       data.fullName,
