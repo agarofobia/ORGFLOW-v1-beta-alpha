@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { Employee } from "@/db/schema";
+import type { Employee, NewEmployee } from "@/db/schema";
 
 // Referencia estable para array vacío — evita el loop infinito de useEffect([employees])
 const EMPTY: Employee[] = [];
@@ -13,19 +13,21 @@ const fetcher = async (url: string) => {
   return r.json();
 };
 
+// Tipo del payload aceptado por POST /api/employees.
+// fullName + jobTitle son los únicos campos obligatorios; el resto es opcional.
+// Se basa en NewEmployee del schema pero excluye campos que el servidor controla.
+export type AddEmployeePayload = Partial<Omit<NewEmployee, "id" | "organizationId" | "createdAt">> & {
+  fullName: string;
+  jobTitle: string;
+};
+
 export function useEmployees() {
   const { data, error, isLoading, mutate } = useSWR<Employee[]>(
     "/api/employees",
     fetcher
   );
 
-  const addEmployee = async (data: {
-    fullName: string;
-    jobTitle: string;
-    color: string;
-    positionX?: number;
-    positionY?: number;
-  }) => {
+  const addEmployee = async (data: AddEmployeePayload): Promise<Employee> => {
     const res = await fetch("/api/employees", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
