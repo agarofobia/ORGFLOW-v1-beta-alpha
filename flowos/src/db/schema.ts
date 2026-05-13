@@ -91,7 +91,10 @@ export const divisions = pgTable(
     organizationId: text("organization_id").notNull(),
     name: text("name").notNull(),
     description: text("description"),
-    subtitle: text("subtitle").default("DIVISIÓN"),
+    // Subtítulo libre que aparece debajo del título de la división. Si null,
+    // no se renderiza nada. Antes tenía default "DIVISIÓN" pero era un valor
+    // de UI mezclado con DB — ahora se deja al usuario configurarlo.
+    subtitle: text("subtitle"),
     footerText: text("footer_text"),
     showFooter: boolean("show_footer").notNull().default(false),
     couplingGroup: text("coupling_group"),
@@ -119,6 +122,8 @@ export const departments = pgTable(
     organizationId: text("organization_id").notNull(),
     divisionId: uuid("division_id").references(() => divisions.id, { onDelete: "set null" }),
     name: text("name").notNull(),
+    // @deprecated — pensado para sub-departamentos jerárquicos, nunca se implementó.
+    // No borrar todavía sin migración SQL (la columna existe en producción).
     parentId: uuid("parent_id"),
     color: text("color").default("#C8902C"),
     positionX: doublePrecision("position_x").default(0),

@@ -236,7 +236,10 @@ export function ContextMenu({ target, onAction, onClose }: {
     return [
       { label: "Nuevo subordinado", icon: <UserPlus size={13} />, action: "new-subordinate" },
       { label: "Editar", icon: <Edit3 size={13} />, action: "edit" },
-      { label: "Archivar puesto", icon: <Trash2 size={13} />, action: "delete", danger: true },
+      // Vaciar = mantener el nodo en la estructura, sólo quitar la persona.
+      // Eliminar = borrar el puesto definitivamente (cascade limpia referencias).
+      { label: "Vaciar puesto (mantener nodo)", icon: <UserPlus size={13} />, action: "vacate" },
+      { label: "Eliminar puesto", icon: <Trash2 size={13} />, action: "delete", danger: true },
     ];
   })();
 
