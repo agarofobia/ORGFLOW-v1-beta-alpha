@@ -30,8 +30,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { orgId } = await auth();
+  const { orgId, orgRole } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const isAdmin = orgRole === "org:admin";
 
   try {
     const body = await req.json();
@@ -56,7 +57,9 @@ export async function PUT(
     if (body.manualPosition !== undefined) updates.manualPosition = Boolean(body.manualPosition);
     if (body.role !== undefined) updates.role = body.role ?? null;
     if (body.unitId !== undefined) updates.unitId = body.unitId ?? null;
-    if (body.imageUrl !== undefined) updates.imageUrl = body.imageUrl ?? null;
+    // imageUrl: solo admins pueden cambiarla (evita abuso de empleados modificándose
+    // su propia foto o la de otros). Si no-admin lo manda, se ignora silenciosamente.
+    if (body.imageUrl !== undefined && isAdmin) updates.imageUrl = body.imageUrl ?? null;
 
     const result = await db
       .update(employees)

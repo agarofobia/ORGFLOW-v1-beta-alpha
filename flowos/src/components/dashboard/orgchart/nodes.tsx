@@ -334,17 +334,34 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
             background: data.color,
             width: 8, height: 8, border: "none", top: -3,
           }} />
-        <div
-          className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
-          style={{
-            background: isVacant ? "#7A8BAD" : data.color,
-            borderRadius: 6,
-            width: avatarSize, height: avatarSize,
-            fontSize: isCompact ? 9 : 12,
-          }}
-        >
-          {initials}
-        </div>
+        {data.imageUrl && !isVacant ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={data.imageUrl}
+            alt={data.fullName}
+            style={{
+              width: avatarSize, height: avatarSize,
+              borderRadius: 6,
+              objectFit: "cover",
+              border: `1.5px solid ${data.color}`,
+              flexShrink: 0,
+              display: "block",
+            }}
+            onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <div
+            className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
+            style={{
+              background: isVacant ? "#7A8BAD" : data.color,
+              borderRadius: 6,
+              width: avatarSize, height: avatarSize,
+              fontSize: isCompact ? 9 : 12,
+            }}
+          >
+            {initials}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium" style={{ color: isVacant ? "#7A8BAD" : "#E2E8F8", fontSize: fontSizeName, lineHeight: 1.15 }}>
             {isVacant ? "Puesto vacante" : data.fullName}
@@ -375,17 +392,33 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
                 padding: "3px 4px",
                 opacity: sub.isVacant ? 0.7 : 1,
               }}>
-                <div
-                  className="flex flex-shrink-0 items-center justify-center text-white"
-                  style={{
-                    background: sub.isVacant ? "#7A8BAD" : sub.color,
-                    borderRadius: 4,
-                    width: 18, height: 18,
-                    fontSize: 8, fontWeight: 600,
-                  }}
-                >
-                  {subInitials}
-                </div>
+                {sub.imageUrl && !sub.isVacant ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={sub.imageUrl}
+                    alt={sub.fullName}
+                    style={{
+                      width: 18, height: 18,
+                      borderRadius: 4,
+                      objectFit: "cover",
+                      border: `1px solid ${sub.color}`,
+                      flexShrink: 0,
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="flex flex-shrink-0 items-center justify-center text-white"
+                    style={{
+                      background: sub.isVacant ? "#7A8BAD" : sub.color,
+                      borderRadius: 4,
+                      width: 18, height: 18,
+                      fontSize: 8, fontWeight: 600,
+                    }}
+                  >
+                    {subInitials}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="truncate" style={{ color: sub.isVacant ? "#7A8BAD" : "#C4CFEA", fontSize: 11, lineHeight: 1.15 }}>
                     {sub.isVacant ? sub.jobTitle : sub.fullName}

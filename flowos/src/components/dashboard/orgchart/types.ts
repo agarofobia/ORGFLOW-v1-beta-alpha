@@ -27,6 +27,8 @@ export type Department = {
 
 export type EmployeeNodeData = {
   fullName: string; jobTitle: string; color: string; status?: string;
+  // URL pública de la foto. Si está seteada, reemplaza las iniciales en el avatar.
+  imageUrl?: string | null;
   // Rol efectivo computado en computedNodes (auto-detect + override).
   // Solo se renderiza badge cuando es "director" o "manager".
   role?: "director" | "manager" | "member";
@@ -47,6 +49,7 @@ export type EmployeeNodeData = {
     jobTitle: string;
     color: string;
     isVacant: boolean;
+    imageUrl?: string | null;
   }>;
 };
 

@@ -100,6 +100,23 @@ function Avatar({ name, color, size = 40, imageUrl }: { name: string; color?: st
   );
 }
 
+function MetricChip({ color, value, label }: { color: string; value: number; label: string }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 6,
+      padding: "4px 10px",
+      background: `${color}15`,
+      border: `1px solid ${color}33`,
+      borderRadius: 14,
+      fontSize: 11, fontFamily: "monospace",
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
+      <span style={{ color, fontWeight: 700 }}>{value}</span>
+      <span style={{ color: "#7A8BAD" }}>{label}</span>
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   const color = STATUS_COLORS[status] || "#7A8BAD";
   return (
@@ -557,30 +574,42 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
 
             <div><label style={labelStyle}>Fecha de ingreso</label><input style={inputStyle} type="date" value={local.startDate ? local.startDate.slice(0, 10) : ""} onChange={e => setLocal({ ...local, startDate: e.target.value })} /></div>
 
-            {/* Foto del empleado (URL pública) */}
+            {/* Foto del empleado (URL pública) — solo admins pueden modificar.
+                No-admins ven la foto pero no el input (evita que un empleado se ponga
+                gracioso con su propia foto u otra ajena). */}
             <div>
-              <label style={labelStyle}>Foto (URL)</label>
+              <label style={labelStyle}>Foto del puesto</label>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <Avatar name={local.fullName} color={local.color} size={42} imageUrl={local.imageUrl} />
-                <input
-                  style={{ ...inputStyle, flex: 1 }}
-                  type="url"
-                  value={local.imageUrl || ""}
-                  onChange={e => setLocal({ ...local, imageUrl: e.target.value || null })}
-                  placeholder="https://… (URL pública de la imagen)"
-                />
-                {local.imageUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setLocal({ ...local, imageUrl: null })}
-                    style={{ padding: "8px 10px", backgroundColor: "transparent", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD", cursor: "pointer" }}
-                    title="Quitar foto"
-                  ><X size={13} /></button>
+                {isAdmin ? (
+                  <>
+                    <input
+                      style={{ ...inputStyle, flex: 1 }}
+                      type="url"
+                      value={local.imageUrl || ""}
+                      onChange={e => setLocal({ ...local, imageUrl: e.target.value || null })}
+                      placeholder="https://… (URL pública de la imagen)"
+                    />
+                    {local.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setLocal({ ...local, imageUrl: null })}
+                        style={{ padding: "8px 10px", backgroundColor: "transparent", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD", cursor: "pointer" }}
+                        title="Quitar foto"
+                      ><X size={13} /></button>
+                    )}
+                  </>
+                ) : (
+                  <p style={{ flex: 1, fontSize: 12, color: "#7A8BAD", fontStyle: "italic", margin: 0 }}>
+                    Solo administradores pueden modificar la foto del puesto.
+                  </p>
                 )}
               </div>
-              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
-                Pegá una URL pública (Gmail avatar, LinkedIn, imgur, etc.). Subida directa en próxima versión.
-              </p>
+              {isAdmin && (
+                <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+                  Pegá una URL pública (Gmail avatar, LinkedIn, imgur, etc.). Subida directa en próxima versión.
+                </p>
+              )}
             </div>
 
             <div>
@@ -755,6 +784,17 @@ export default function EmployeesPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Métricas para el header — un golpe de vista de la salud del equipo.
+  const metrics = (() => {
+    const active = employees.filter(e => e.status === "active" && e.fullName !== "[Puesto vacante]").length;
+    const onLeave = employees.filter(e => e.status === "on_leave").length;
+    const vacant = employees.filter(e => e.fullName === "[Puesto vacante]").length;
+    const deptsWithStaff = new Set(
+      employees.filter(e => e.departmentId).map(e => e.departmentId)
+    ).size;
+    return { active, onLeave, vacant, deptsWithStaff };
+  })();
+
   // Filtros aplicados: search (libre) + status set + divisionId + departmentId
   const filtered = employees.filter(e => {
     // Búsqueda textual
@@ -811,9 +851,18 @@ export default function EmployeesPage() {
         {/* Header */}
         <div style={{ padding: "24px 32px 16px", borderBottom: "1px solid #1E2540" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <div>
-              <p style={{ fontSize: 10, letterSpacing: "0.1em", color: "#7A8BAD", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "monospace" }}>Equipo</p>
-              <h1 style={{ color: "#E2E8F8", fontSize: 20, fontWeight: 700, margin: 0 }}>Empleados</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+              <div>
+                <p style={{ fontSize: 10, letterSpacing: "0.1em", color: "#7A8BAD", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "monospace" }}>Equipo</p>
+                <h1 style={{ color: "#E2E8F8", fontSize: 20, fontWeight: 700, margin: 0 }}>Empleados</h1>
+              </div>
+              {/* Métricas inline */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <MetricChip color="#10D9A0" label="activos"   value={metrics.active} />
+                {metrics.onLeave > 0 && <MetricChip color="#F59E0B" label="licencia"  value={metrics.onLeave} />}
+                {metrics.vacant  > 0 && <MetricChip color="#7A8BAD" label="vacantes"  value={metrics.vacant}  />}
+                {metrics.deptsWithStaff > 0 && <MetricChip color="#3D7EFF" label="deptos" value={metrics.deptsWithStaff} />}
+              </div>
             </div>
             <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", backgroundColor: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               <Plus size={14} />Nuevo

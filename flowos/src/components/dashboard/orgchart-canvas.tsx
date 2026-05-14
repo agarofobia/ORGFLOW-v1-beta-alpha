@@ -578,6 +578,7 @@ function OrgChartFlow() {
         jobTitle: s.jobTitle || "Sin asignar",
         color: s.color || "#3D7EFF",
         isVacant: s.fullName === "[Puesto vacante]",
+        imageUrl: (s as Employee & { imageUrl?: string | null }).imageUrl ?? null,
       }));
       managerSubsMap.set(mgrId, list);
       subs.forEach(s => absorbedIds.add(s.id));
@@ -933,6 +934,7 @@ function OrgChartFlow() {
             jobTitle: emp.jobTitle || "Sin asignar",
             color: emp.color || "#3D7EFF",
             status: emp.status,
+            imageUrl: (emp as Employee & { imageUrl?: string | null }).imageUrl ?? null,
             role: effectiveRole,
             departmentId: emp.departmentId,
             showRoleBadge: showRoleBadges,
@@ -970,6 +972,7 @@ function OrgChartFlow() {
           jobTitle: emp.jobTitle || "Sin asignar",
           color: emp.color || "#3D7EFF",
           status: emp.status,
+          imageUrl: (emp as Employee & { imageUrl?: string | null }).imageUrl ?? null,
           role: effectiveRole,
           departmentId: emp.departmentId,
           showRoleBadge: showRoleBadges,
