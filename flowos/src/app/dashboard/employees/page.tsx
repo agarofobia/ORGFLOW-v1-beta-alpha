@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useOrganization } from "@clerk/nextjs";
-import { Plus, Search, X, Check, Archive, Save, ExternalLink } from "lucide-react";
+import { Plus, Search, X, Check, Archive, Save, ExternalLink, ChevronDown } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -188,6 +188,101 @@ function ArchiveModal({ employee, onClose, onArchived }: { employee: Employee; o
   );
 }
 
+// ─── Status Dropdown (custom, matches app's dark theme) ─────────────────────
+
+type EmpStatus = "active" | "inactive" | "on_leave";
+
+function StatusDropdown({ value, onChange }: {
+  value: EmpStatus;
+  onChange: (v: EmpStatus) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const options: { v: EmpStatus; label: string; color: string }[] = [
+    { v: "active",   label: "Activo",   color: "#10D9A0" },
+    { v: "inactive", label: "Inactivo", color: "#7A8BAD" },
+    { v: "on_leave", label: "Licencia", color: "#F59E0B" },
+  ];
+  const current = options.find(o => o.v === value) ?? options[0];
+
+  // Cerrar al clickear afuera
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          backgroundColor: "#141928",
+          border: `1px solid ${open ? current.color + "66" : "#1E2540"}`,
+          borderRadius: 6,
+          color: current.color,
+          fontSize: 12, fontWeight: 500,
+          padding: "4px 8px",
+          cursor: "pointer",
+          outline: "none",
+          minWidth: 90,
+          justifyContent: "space-between",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: current.color }} />
+          {current.label}
+        </span>
+        <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 150ms" }} />
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", right: 0,
+          backgroundColor: "#0E1220",
+          border: "1px solid #1E2540",
+          borderRadius: 6,
+          minWidth: 130,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          padding: 4,
+          zIndex: 100,
+        }}>
+          {options.map(opt => (
+            <button
+              key={opt.v}
+              type="button"
+              onClick={() => { onChange(opt.v); setOpen(false); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                width: "100%",
+                background: opt.v === value ? "#1E2540" : "transparent",
+                border: "none",
+                borderRadius: 4,
+                color: opt.color,
+                fontSize: 12,
+                padding: "6px 10px",
+                cursor: "pointer",
+                textAlign: "left",
+                fontWeight: opt.v === value ? 600 : 400,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "#1E2540")}
+              onMouseLeave={e => (e.currentTarget.style.background = opt.v === value ? "#1E2540" : "transparent")}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: opt.color }} />
+              {opt.label}
+              {opt.v === value && <Check size={12} style={{ marginLeft: "auto", color: opt.color }} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Employee Panel (drawer overlay) ─────────────────────────────────────────
 
 function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
@@ -203,7 +298,12 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
   const [processes, setProcesses] = useState<{ id: string; name?: string; status?: string }[]>([]);
   const [processesLoaded, setProcessesLoaded] = useState(false);
 
-  useEffect(() => { setLocal(employee); setTab("perfil"); }, [employee]);
+  // Sincroniza el estado local con la prop cuando cambian campos del empleado.
+  useEffect(() => { setLocal(employee); }, [employee]);
+  // El reset a tab "perfil" solo ocurre cuando cambia EL empleado (cambio de id).
+  // Antes resetear con cada actualización (e.g. toggle de onboarding) hacía que
+  // el usuario perdiera la tab al tachar un paso.
+  useEffect(() => { setTab("perfil"); }, [employee.id]);
 
   useEffect(() => {
     fetch("/api/divisions").then(r => r.ok ? r.json() : []).then(setDivisions).catch(() => {});
@@ -280,12 +380,10 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <select value={local.status} onChange={e => setLocal({ ...local, status: e.target.value as Employee["status"] })}
-              style={{ backgroundColor: "#141928", border: "1px solid #1E2540", borderRadius: 6, color: STATUS_COLORS[local.status], fontSize: 12, padding: "4px 8px", cursor: "pointer", outline: "none" }}>
-              <option value="active">Activo</option>
-              <option value="inactive">Inactivo</option>
-              <option value="on_leave">Licencia</option>
-            </select>
+            <StatusDropdown
+              value={local.status}
+              onChange={v => setLocal({ ...local, status: v })}
+            />
             <button onClick={onClose} style={{ background: "none", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 4 }}><X size={16} /></button>
           </div>
         </div>
