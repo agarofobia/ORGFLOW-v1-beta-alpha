@@ -194,7 +194,7 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
         onResizeEnd={(_, { width, height }) => data.onResize?.(id, width, height)}
       />
       <Handle type="target" position={Position.Top}
-        style={{ background: data.color, width: 8, height: 8, border: "none", top: -1, zIndex: 6 }} />
+        style={{ background: data.color, width: 8, height: 8, border: "none", top: -10, zIndex: 6 }} />
       <Handle type="source" position={Position.Bottom}
         style={{ background: data.color, width: 8, height: 8, border: "none", bottom: -1, zIndex: 6 }} />
       <div
@@ -266,15 +266,15 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
   const isVacant = data.fullName === "[Puesto vacante]";
   const isCompact = data.compact === true;
   const showBadge = data.showRoleBadge === true;
+  const subordinates = data.subordinatesInCard ?? [];
+  const hasSubsInside = subordinates.length > 0;
+
   const initials = isVacant
     ? "?"
     : data.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 
-  // Vacantes: dashed border + leve transparencia para distinguirlos sin
-  // hacerlos ilegibles.
   const sideBorderColor = selected ? data.color : (isVacant ? data.color + "66" : data.color + "55");
-  const sideBorderStyle = isVacant ? "dashed" : "solid";
-  // Border weights por rol (solo aplican si showBadge=true; sino todos iguales)
+  const sideBorderStyle = "solid" as const;
   const isDirector = data.role === "director";
   const isManager = data.role === "manager";
   const borderWeight = selected ? "2px" : (showBadge && isDirector) ? "2px" : "1px";
@@ -284,55 +284,95 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
     : "3px";
   const roleBadge = showBadge ? (isDirector ? "DIR" : isManager ? "ENC" : null) : null;
 
-  // Modo compact: avatar más chico, menos padding, sin segundo line del jobTitle
   const cardPad = isCompact ? 6 : 10;
   const avatarSize = isCompact ? 26 : 36;
   const fontSizeName = isCompact ? 11 : 14;
 
   return (
     <div
-      className="flex items-center gap-2 transition-shadow hover:shadow-lg"
+      className="transition-shadow hover:shadow-lg"
       style={{
         width: 200,
-        padding: cardPad,
-        background: isVacant ? "#0E122099" : "#0E1220",
+        background: isVacant && !hasSubsInside ? "#0E122099" : "#0E1220",
         borderTop: sideBorder,
         borderRight: sideBorder,
         borderBottom: sideBorder,
         borderLeft: `${leftBorderWeight} ${sideBorderStyle} ${data.color}`,
         borderRadius: 6,
-        opacity: isVacant ? 0.85 : 1,
+        opacity: isVacant && !hasSubsInside ? 0.85 : 1,
         position: "relative",
+        overflow: "hidden",
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: data.color, width: 8, height: 8, border: "none" }} />
-      <div
-        className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
-        style={{
-          background: isVacant ? "#7A8BAD" : data.color,
-          borderRadius: 6,
-          width: avatarSize, height: avatarSize,
-          fontSize: isCompact ? 9 : 12,
-        }}
-      >
-        {initials}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-medium" style={{ color: isVacant ? "#7A8BAD" : "#E2E8F8", fontSize: fontSizeName, lineHeight: 1.15 }}>
-          {isVacant ? "Puesto vacante" : data.fullName}
+      {/* Header del card — info del puesto principal */}
+      <div className="flex items-center gap-2" style={{ padding: cardPad }}>
+        <Handle type="target" position={Position.Top} style={{ background: data.color, width: 8, height: 8, border: "none" }} />
+        <div
+          className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
+          style={{
+            background: isVacant ? "#7A8BAD" : data.color,
+            borderRadius: 6,
+            width: avatarSize, height: avatarSize,
+            fontSize: isCompact ? 9 : 12,
+          }}
+        >
+          {initials}
         </div>
-        {!isCompact && (
-          <div className="truncate text-xs" style={{ color: "#7A8BAD" }}>
-            {data.jobTitle}
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium" style={{ color: isVacant ? "#7A8BAD" : "#E2E8F8", fontSize: fontSizeName, lineHeight: 1.15 }}>
+            {isVacant ? "Puesto vacante" : data.fullName}
           </div>
-        )}
-        {/* En modo compact, el jobTitle va inline mini debajo del nombre — solo si vacante */}
-        {isCompact && isVacant && (
-          <div className="truncate" style={{ color: "#7A8BAD", fontSize: 9 }}>
-            {data.jobTitle}
-          </div>
-        )}
+          {(!isCompact || isVacant) && (
+            <div className="truncate" style={{ color: "#7A8BAD", fontSize: isCompact ? 9 : 12 }}>
+              {data.jobTitle}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Lista de subordinados — solo si el manager los "absorbió" */}
+      {hasSubsInside && (
+        <div style={{
+          borderTop: `1px dashed ${data.color}44`,
+          background: "rgba(20, 25, 40, 0.4)",
+          padding: "4px 6px 6px 6px",
+        }}>
+          {subordinates.map(sub => {
+            const subInitials = sub.isVacant
+              ? "?"
+              : sub.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
+            return (
+              <div key={sub.id} className="flex items-center gap-2" style={{
+                padding: "3px 4px",
+                opacity: sub.isVacant ? 0.7 : 1,
+              }}>
+                <div
+                  className="flex flex-shrink-0 items-center justify-center text-white"
+                  style={{
+                    background: sub.isVacant ? "#7A8BAD" : sub.color,
+                    borderRadius: 4,
+                    width: 18, height: 18,
+                    fontSize: 8, fontWeight: 600,
+                  }}
+                >
+                  {subInitials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate" style={{ color: sub.isVacant ? "#7A8BAD" : "#C4CFEA", fontSize: 11, lineHeight: 1.15 }}>
+                    {sub.isVacant ? sub.jobTitle : sub.fullName}
+                  </div>
+                  {!sub.isVacant && (
+                    <div className="truncate" style={{ color: "#7A8BAD", fontSize: 9, lineHeight: 1.1 }}>
+                      {sub.jobTitle}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {roleBadge && (
         <span style={{
           position: "absolute", top: -7, right: 6,
@@ -385,10 +425,15 @@ export const BicolorEdge = ({
   const isSyntheticEdge = id.startsWith("__sync_");
   const useStraightCorners = isSameDeptEmpEdge || isSyntheticEdge;
 
+  // borderRadius 8 siempre: tanto las L-lines internas como las edges externas
+  // tienen esquinas redondeadas. Suavizado consistente.
+  // useStraightCorners se mantiene en la lógica de detección por si después
+  // se diferencia con otro estilo, pero ahora ambos casos usan el mismo radius.
+  void useStraightCorners;
   const [edgePath] = getSmoothStepPath({
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,
-    borderRadius: useStraightCorners ? 0 : 8,
+    borderRadius: 8,
   });
 
   return (

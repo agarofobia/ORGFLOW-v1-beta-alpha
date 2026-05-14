@@ -39,6 +39,15 @@ export type EmployeeNodeData = {
   compact?: boolean;
   // Si true, muestra el badge DIR/ENC. Controlado por toggle global del usuario.
   showRoleBadge?: boolean;
+  // Si está presente, el card es de un encargado (manager) que absorbió a sus
+  // subordinados member. Se renderizan inline como lista dentro del card.
+  subordinatesInCard?: Array<{
+    id: string;
+    fullName: string;
+    jobTitle: string;
+    color: string;
+    isVacant: boolean;
+  }>;
 };
 
 export type DivisionNodeData = {

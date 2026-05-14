@@ -452,6 +452,47 @@ function OrgChartFlow() {
     return s;
   }, [departments]);
 
+  // Absorción de subordinados: un manager (role=manager) cuyos subordinados
+  // sean TODOS miembros (role=member) los "absorbe" → se renderizan como lista
+  // inline dentro del card del manager, no como cards separados.
+  // No aplica si algún subordinado es manager/director (ahí se necesita la jerarquía visible).
+  const absorption = useMemo(() => {
+    const absorbedIds = new Set<string>(); // empleados que NO se renderizan como cards separados
+    const managerSubsMap = new Map<string, Array<{ id: string; fullName: string; jobTitle: string; color: string; isVacant: boolean }>>();
+
+    // Mapeo managerId → subordinados directos
+    const directReports = new Map<string, Employee[]>();
+    for (const e of employees ?? []) {
+      if (!e.managerId) continue;
+      const list = directReports.get(e.managerId) ?? [];
+      list.push(e);
+      directReports.set(e.managerId, list);
+    }
+
+    for (const [mgrId, subs] of directReports.entries()) {
+      const mgr = (employees ?? []).find(e => e.id === mgrId);
+      if (!mgr) continue;
+      // Solo absorben los managers (encargados), no directores ni miembros sueltos
+      const mgrRole = getEffectiveRole(mgr, employees ?? [], departments, units);
+      if (mgrRole !== "manager") continue;
+      // Todos los subs deben ser members puros (sin sub-managers)
+      const allMembers = subs.every(s => getEffectiveRole(s, employees ?? [], departments, units) === "member");
+      if (!allMembers) continue;
+      // Absorber
+      const list = subs.map(s => ({
+        id: s.id,
+        fullName: s.fullName,
+        jobTitle: s.jobTitle || "Sin asignar",
+        color: s.color || "#3D7EFF",
+        isVacant: s.fullName === "[Puesto vacante]",
+      }));
+      managerSubsMap.set(mgrId, list);
+      subs.forEach(s => absorbedIds.add(s.id));
+    }
+
+    return { absorbedIds, managerSubsMap };
+  }, [employees, departments, units]);
+
   // Edges sintéticas — generadas automáticamente, no se persisten ni son editables:
   //   1. director → su departamento (__sync_dir_<deptId>)
   //   2. manager → subordinado para cada empleado con managerId (__sync_mgr_<empId>)
@@ -475,8 +516,10 @@ function OrgChartFlow() {
     }
 
     // 2. Manager → Subordinado (managerId chain)
+    // EXCEPTO si el subordinado fue absorbido inline en el card del manager.
     for (const e of employees ?? []) {
       if (!e.managerId || !empIds.has(e.managerId)) continue;
+      if (absorption.absorbedIds.has(e.id)) continue;
       out.push({
         id: `__sync_mgr_${e.id}`,
         source: e.managerId,
@@ -489,7 +532,7 @@ function OrgChartFlow() {
     }
 
     return out;
-  }, [departments, employees]);
+  }, [departments, employees, absorption]);
 
   // Motor de layout interno por departamento — respeta el layoutMode del depto:
   //   - "vertical": stack vertical con indent por nivel (modo default, clásico)
@@ -510,6 +553,7 @@ function OrgChartFlow() {
       const empsInDept = (employees ?? []).filter(e =>
         e.departmentId === dept.id &&
         (!isPromoted || e.id !== dept.headEmployeeId) &&
+        !absorption.absorbedIds.has(e.id) &&
         e.manualPosition !== true
       );
       if (empsInDept.length === 0) return;
@@ -551,7 +595,7 @@ function OrgChartFlow() {
     });
 
     return positions;
-  }, [departments, employees]);
+  }, [departments, employees, absorption]);
 
   // Adyacencia entre departamentos: dos depts del MISMO division con misma Y y
   // X alineados (right de uno = left del otro, dentro de tolerancia) → se ven fusionados.
@@ -682,11 +726,15 @@ function OrgChartFlow() {
     // Departments — child of division if has divisionId; skip if parent division is collapsed
     departments.forEach(dp => {
       if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
-      // empCount: si promoteHead=true, excluye al director (va arriba del depto).
-      // Si promoteHead=false, lo incluye (queda adentro).
+      // empCount para auto-height: cuenta cards visibles dentro del depto.
+      // Excluye:
+      //   - el director si está promovido (va arriba del depto)
+      //   - empleados absorbidos por su manager (renderizados inline en otro card)
       const isHeadPromoted = (dp.promoteHead ?? true) && !!dp.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
-        e.departmentId === dp.id && (!isHeadPromoted || e.id !== dp.headEmployeeId)
+        e.departmentId === dp.id &&
+        (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
+        !absorption.absorbedIds.has(e.id)
       ).length;
       const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
       const dAdj = deptAdjacency.get(dp.id) ?? { left: false, right: false };
@@ -732,6 +780,8 @@ function OrgChartFlow() {
 
     // Employees — child of department > division > standalone; skip if parent is collapsed
     (employees || []).forEach((emp, idx) => {
+      // Skip si fue absorbido por su manager (se renderiza inline en el card del manager)
+      if (absorption.absorbedIds.has(emp.id)) return;
       // Skip employees whose containing division is collapsed
       if (emp.departmentId) {
         const dept = departments.find(d => d.id === emp.departmentId);
@@ -757,7 +807,7 @@ function OrgChartFlow() {
         const deptY = dpForDirector.positionY ?? 80;
         const deptW = Math.max(dpForDirector.sizeWidth ?? DEPT_W, 290);
         const EMP_W_CARD = 200;
-        const DIRECTOR_GAP_Y = 90; // separación vertical entre director y depto
+        const DIRECTOR_GAP_Y = 110; // separación vertical entre director y depto
         const pos = !emp.manualPosition
           ? { x: deptX + (deptW / 2) - (EMP_W_CARD / 2), y: deptY - DIRECTOR_GAP_Y }
           : { x: emp.positionX ?? 0, y: emp.positionY ?? 0 };
@@ -798,6 +848,7 @@ function OrgChartFlow() {
       const empDept = emp.departmentId ? departments.find(d => d.id === emp.departmentId) : undefined;
       const isCompactMode = empDept?.layoutMode === "compact";
 
+      const subsInCard = absorption.managerSubsMap.get(emp.id);
       const node: EmployeeNode = {
         id: emp.id,
         type: "employee",
@@ -811,6 +862,7 @@ function OrgChartFlow() {
           departmentId: emp.departmentId,
           showRoleBadge: showRoleBadges,
           compact: isCompactMode,
+          subordinatesInCard: subsInCard,
         },
       };
       if (emp.departmentId && departments.some(d => d.id === emp.departmentId)) {
@@ -825,7 +877,7 @@ function OrgChartFlow() {
 
     return result;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, directorEmployeeIds, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive]);
+  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, directorEmployeeIds, absorption, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive]);
 
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
