@@ -360,7 +360,10 @@ function OrgChartFlow() {
     let maxChildX = 0;
     let maxChildY = 0;
     childDepts.forEach(dept => {
-      const empCount = (employees ?? []).filter(e => e.departmentId === dept.id).length;
+      // empCount excluye al director (que va promovido arriba del depto, no adentro)
+      const empCount = (employees ?? []).filter(e =>
+        e.departmentId === dept.id && e.id !== dept.headEmployeeId
+      ).length;
       const neededH = 34 + 12 + empCount * (EMP_H + EMP_GAP) + 16;
       const dH = Math.max(dept.sizeHeight ?? DEPT_H, neededH);
       const dW = Math.max(dept.sizeWidth ?? DEPT_W, 290);
@@ -432,7 +435,40 @@ function OrgChartFlow() {
     return map;
   }, [divisions]);
 
-  // Motor de layout interno por departamento: jerarquía DIR → ENC → equipo.
+  // Set de empleados que son "head" de un departamento (directores).
+  // Esos puestos NO se renderizan dentro del depto; van "promovidos" arriba.
+  const directorEmployeeIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const dp of departments) {
+      if (dp.headEmployeeId) s.add(dp.headEmployeeId);
+    }
+    return s;
+  }, [departments]);
+
+  // Edges sintéticas: cada director → su departamento, generadas automáticamente.
+  // No se persisten, no son editables, no entran al state `edges`.
+  // Se concatenan al render de ReactFlow vía `displayEdges`.
+  const directorSyntheticEdges = useMemo<Edge[]>(() => {
+    const out: Edge[] = [];
+    for (const dp of departments) {
+      if (!dp.headEmployeeId) continue;
+      // Solo si el director y el depto existen como empleados/departamentos válidos
+      if (!(employees ?? []).some(e => e.id === dp.headEmployeeId)) continue;
+      out.push({
+        id: `__sync_dir_${dp.id}`,
+        source: dp.headEmployeeId,
+        target: dp.id,
+        type: "bicolor",
+        selectable: false,
+        deletable: false,
+        focusable: false,
+      });
+    }
+    return out;
+  }, [departments, employees]);
+
+  // Motor de layout interno por departamento: ENC → equipo.
+  // Excluye al director (queda promovido arriba del depto, no adentro).
   // Construye un Map<empleadoId, {x, y}> para puestos NO marcados manualPosition.
   // Si manualPosition === true, respeta positionX/Y; si false, lo posiciona aquí.
   const deptInternalLayout = useMemo(() => {
@@ -442,8 +478,10 @@ function OrgChartFlow() {
     const EMP_HEIGHT = 70 + 12; // EMP_H + EMP_GAP
 
     departments.forEach(dept => {
+      // empleados del depto, EXCLUYENDO al director (que va arriba), no-manual
       const empsInDept = (employees ?? []).filter(e =>
         e.departmentId === dept.id &&
+        e.id !== dept.headEmployeeId &&
         e.manualPosition !== true
       );
       if (empsInDept.length === 0) return;
@@ -464,15 +502,17 @@ function OrgChartFlow() {
           .forEach(sub => place(sub.id, depth + 1));
       };
 
-      // 1. Director del dpto al tope (profundidad 0)
-      if (dept.headEmployeeId && empsInDept.some(e => e.id === dept.headEmployeeId)) {
-        place(dept.headEmployeeId, 0);
+      // 1. Subordinados directos del director — top-level del depto interno
+      if (dept.headEmployeeId) {
+        empsInDept
+          .filter(e => e.managerId === dept.headEmployeeId)
+          .forEach(e => place(e.id, 0));
       }
-      // 2. Empleados sin manager (top-level que no son el director)
+      // 2. Empleados sin manager (huérfanos top-level que no reportan al director)
       empsInDept
         .filter(e => !e.managerId && !visited.has(e.id))
         .forEach(e => place(e.id, 0));
-      // 3. Empleados huérfanos (manager fuera del dpto, o referencia inválida)
+      // 3. Empleados con manager fuera del depto / referencia inválida
       empsInDept.forEach(e => { if (!visited.has(e.id)) place(e.id, 0); });
     });
 
@@ -608,7 +648,10 @@ function OrgChartFlow() {
     // Departments — child of division if has divisionId; skip if parent division is collapsed
     departments.forEach(dp => {
       if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
-      const empCount = (employees ?? []).filter(e => e.departmentId === dp.id).length;
+      // empCount excluye al director — ese va promovido arriba del depto.
+      const empCount = (employees ?? []).filter(e =>
+        e.departmentId === dp.id && e.id !== dp.headEmployeeId
+      ).length;
       const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
       const dAdj = deptAdjacency.get(dp.id) ?? { left: false, right: false };
       const isSyncingDept = syncingNodeIds.has(dp.id);
@@ -658,12 +701,56 @@ function OrgChartFlow() {
       } else if (emp.divisionId && collapsedDivs.has(emp.divisionId)) {
         return;
       }
+
+      // ── DIRECTOR PROMOVIDO ───────────────────────────────────────────────
+      // Si el empleado es head de un departamento, NO va adentro del depto.
+      // Se renderiza arriba del depto como tarjeta independiente, parent =
+      // la división del depto (o sin parent si el depto es standalone).
+      // Posición: centrado horizontalmente respecto al depto, 90px arriba.
+      const isDirector = directorEmployeeIds.has(emp.id);
+      const dpForDirector = isDirector && emp.departmentId
+        ? departments.find(d => d.id === emp.departmentId)
+        : undefined;
+
+      const effectiveRole = getEffectiveRole(emp, employees ?? [], departments, units);
+
+      if (dpForDirector) {
+        const deptX = dpForDirector.positionX ?? 30;
+        const deptY = dpForDirector.positionY ?? 80;
+        const deptW = Math.max(dpForDirector.sizeWidth ?? DEPT_W, 290);
+        const EMP_W_CARD = 200;
+        const DIRECTOR_GAP_Y = 90; // separación vertical entre director y depto
+        const pos = !emp.manualPosition
+          ? { x: deptX + (deptW / 2) - (EMP_W_CARD / 2), y: deptY - DIRECTOR_GAP_Y }
+          : { x: emp.positionX ?? 0, y: emp.positionY ?? 0 };
+
+        const node: EmployeeNode = {
+          id: emp.id,
+          type: "employee",
+          position: pos,
+          data: {
+            fullName: emp.fullName,
+            jobTitle: emp.jobTitle || "Sin asignar",
+            color: emp.color || "#3D7EFF",
+            status: emp.status,
+            role: effectiveRole,
+          },
+        };
+        // Parent = división del depto si existe; si no, queda standalone.
+        if (dpForDirector.divisionId && divisions.some(d => d.id === dpForDirector.divisionId)) {
+          node.parentId = dpForDirector.divisionId;
+          node.extent = "parent";
+        }
+        push(node);
+        return;
+      }
+
+      // ── EMPLEADO NORMAL (no director) ────────────────────────────────────
       // Posición: si manualPosition=false y hay layout calculado → usar layout jerárquico.
       // Si manualPosition=true o no hay layout → usar positionX/Y del DB (drag manual).
       const autoPos = !emp.manualPosition ? deptInternalLayout.get(emp.id) : undefined;
       const pos = autoPos
         ?? { x: emp.positionX ?? ((idx % 4) * 220 + 20), y: emp.positionY ?? (Math.floor(idx / 4) * 80 + 80) };
-      const effectiveRole = getEffectiveRole(emp, employees ?? [], departments, units);
       const node: EmployeeNode = {
         id: emp.id,
         type: "employee",
@@ -688,7 +775,7 @@ function OrgChartFlow() {
 
     return result;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, employees, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive]);
+  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, directorEmployeeIds, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive]);
 
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
@@ -878,9 +965,14 @@ function OrgChartFlow() {
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     setEdges(eds => {
+      // Filtrar cambios que toquen edges sintéticas (director→depto generadas auto).
+      // No deben persistirse ni borrarse desde el UI.
+      const userChanges = changes.filter(c =>
+        !("id" in c) || typeof c.id !== "string" || !c.id.startsWith("__sync_")
+      );
       const toApply = suppressEdgeRemove.current
-        ? changes.filter(c => c.type !== "remove")
-        : changes;
+        ? userChanges.filter(c => c.type !== "remove")
+        : userChanges;
       const next = applyEdgeChanges(toApply, eds);
       if (!suppressEdgeRemove.current) debouncedSaveEdges(next);
       return next;
@@ -1413,7 +1505,7 @@ function OrgChartFlow() {
       `}</style>
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={[...edges, ...directorSyntheticEdges]}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

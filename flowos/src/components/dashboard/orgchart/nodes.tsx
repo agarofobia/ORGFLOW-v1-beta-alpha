@@ -341,10 +341,23 @@ export const BicolorEdge = ({
   const targetColor = (targetNode?.data as { color?: string })?.color ?? "#3D7EFF";
   const gradientId = `bg-${id.replace(/[^a-zA-Z0-9-]/g, "-")}`;
 
+  // L-lines (ángulos rectos puros) cuando:
+  //   a) ambos nodos son empleados del mismo parent (jerarquía interna del depto)
+  //   b) la edge es sintética director→depto (id empieza con __sync_dir_)
+  // Para conexiones externas (división→director, edges user-defined) se mantiene
+  // el smoothstep curvado clásico.
+  const isInternalEmpEdge =
+    sourceNode?.type === "employee" &&
+    targetNode?.type === "employee" &&
+    !!sourceNode.parentId &&
+    sourceNode.parentId === targetNode.parentId;
+  const isSyntheticDirectorEdge = id.startsWith("__sync_dir_");
+  const useStraightCorners = isInternalEmpEdge || isSyntheticDirectorEdge;
+
   const [edgePath] = getSmoothStepPath({
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,
-    borderRadius: 8,
+    borderRadius: useStraightCorners ? 0 : 8,
   });
 
   return (
