@@ -1661,14 +1661,36 @@ function OrgChartFlow() {
         .react-flow__node-employee {
           animation: flowos-node-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-        /* Handles: ocultos por default, visibles en hover/selected. */
+        /* Handles: prácticamente invisibles por default. Sólo se notan al hacer
+           hover DIRECTAMENTE encima de ellos (no del nodo completo). Para crear
+           una conexión, el usuario apunta cerca del borde y aparece el handle. */
         .orgchart-handle {
           opacity: 0 !important;
-          transition: opacity 150ms ease;
+          transition: opacity 120ms ease, transform 120ms ease;
         }
-        .react-flow__node:hover .orgchart-handle,
+        /* El nodo selected sí muestra handles claramente (visual feedback) */
         .react-flow__node.selected .orgchart-handle {
+          opacity: 0.9 !important;
+        }
+        /* Hover SOBRE el handle propio: aparece y se agranda */
+        .orgchart-handle:hover {
           opacity: 1 !important;
+          transform: scale(1.4);
+        }
+
+        /* LOCK MODE: nodes dejan pasar clicks al canvas → pan funciona donde sea.
+           Handles y resizer se mantienen interactivos en caso de necesitarlos. */
+        .flowos-locked .react-flow__node {
+          pointer-events: none !important;
+        }
+        .flowos-locked .react-flow__node * {
+          pointer-events: none !important;
+        }
+        .flowos-locked .react-flow__pane {
+          cursor: grab;
+        }
+        .flowos-locked .react-flow__pane:active {
+          cursor: grabbing;
         }
       `}</style>
       <ReactFlow
@@ -1691,8 +1713,11 @@ function OrgChartFlow() {
         edgeTypes={edgeTypes}
         defaultEdgeOptions={{ type: "bicolor" }}
         nodesDraggable={!locked}
+        nodesConnectable={!locked}
+        elementsSelectable={!locked}
         panOnDrag={[0, 1]}
         panActivationKeyCode="Space"
+        className={locked ? "flowos-locked" : ""}
         style={{ background: "#080B12" }}
       >
         <Background color="#1E2540" gap={32} size={1} />
