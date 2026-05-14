@@ -101,6 +101,12 @@ function OrgChartFlow() {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("flowos-orgchart-show-badges") === "true";
   });
+  // Lock layout: cuando ON, bloquea el drag de TODOS los nodes → click izquierdo
+  // en cualquier parte hace pan del canvas. Útil para navegar sin desarmar la estructura.
+  const [locked, setLocked] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("flowos-orgchart-locked") === "true";
+  });
   // Nodos que están recibiendo un cambio programático de tamaño/posición y necesitan animar.
   // Se vacía solo ~350ms después de marcar para no animar drags posteriores.
   const [syncingNodeIds, setSyncingNodeIds] = useState<Set<string>>(new Set());
@@ -730,8 +736,6 @@ function OrgChartFlow() {
         },
         draggable: true,
         selectable: true,
-        // Solo se draggea desde el header — el body permite pan del canvas.
-        dragHandle: ".division-drag-handle",
       });
     });
 
@@ -801,8 +805,6 @@ function OrgChartFlow() {
         },
         draggable: true,
         selectable: true,
-        // Solo se draggea desde el header — el body permite pan del canvas.
-        dragHandle: ".department-drag-handle",
       };
       if (dp.divisionId) {
         node.parentId = dp.divisionId;
@@ -1659,6 +1661,15 @@ function OrgChartFlow() {
         .react-flow__node-employee {
           animation: flowos-node-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
+        /* Handles: ocultos por default, visibles en hover/selected. */
+        .orgchart-handle {
+          opacity: 0 !important;
+          transition: opacity 150ms ease;
+        }
+        .react-flow__node:hover .orgchart-handle,
+        .react-flow__node.selected .orgchart-handle {
+          opacity: 1 !important;
+        }
       `}</style>
       <ReactFlow
         nodes={dedupedNodes}
@@ -1679,6 +1690,9 @@ function OrgChartFlow() {
         proOptions={{ hideAttribution: true }}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={{ type: "bicolor" }}
+        nodesDraggable={!locked}
+        panOnDrag={[0, 1]}
+        panActivationKeyCode="Space"
         style={{ background: "#080B12" }}
       >
         <Background color="#1E2540" gap={32} size={1} />
@@ -1796,6 +1810,24 @@ function OrgChartFlow() {
                   }}
                 >
                   {showRoleBadges ? "🏷️ Badges ON" : "✕ Badges"}
+                </button>
+                <button
+                  onClick={() => {
+                    const next = !locked;
+                    setLocked(next);
+                    try { localStorage.setItem("flowos-orgchart-locked", String(next)); } catch {}
+                  }}
+                  title={locked
+                    ? "Layout bloqueado — drag en cualquier lado hace pan. Click para desbloquear."
+                    : "Layout desbloqueado — drag mueve nodos. Click para bloquear y navegar libremente."}
+                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  style={{
+                    background: locked ? "rgba(244,63,94,0.1)" : "rgba(122,139,173,0.1)",
+                    color: locked ? "#F43F5E" : "#7A8BAD",
+                    border: `1px solid ${locked ? "rgba(244,63,94,0.3)" : "#1E2540"}`,
+                  }}
+                >
+                  {locked ? "🔒 Bloqueado" : "🔓 Editable"}
                 </button>
               </div>
               {searchOpen && (

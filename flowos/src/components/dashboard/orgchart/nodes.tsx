@@ -51,26 +51,21 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
           padding: `${headerHeight + 16}px 16px ${showFooter ? footerHeight + 12 : 16}px 16px`,
           position: "relative",
           boxSizing: "border-box",
-          // El body del wrapper NO captura pointer events → los clicks atraviesan
-          // al canvas debajo y disparan pan. Los children (header, handles, employees
-          // hijos visuales que son hermanos en el DOM) tienen pointer-events:auto
-          // para mantener su funcionalidad.
-          pointerEvents: "none",
         }}
       >
         {data.isConnectable !== false && (
           <>
             <Handle type="target" position={Position.Top}
+              className="orgchart-handle"
               style={{
-                background: selected ? data.color : `${data.color}aa`,
+                background: data.color,
                 width: 9, height: 9, border: "none", top: -3, zIndex: 6,
-                opacity: 1, pointerEvents: "auto",
               }} />
             <Handle type="source" position={Position.Bottom}
+              className="orgchart-handle"
               style={{
-                background: selected ? data.color : `${data.color}aa`,
+                background: data.color,
                 width: 9, height: 9, border: "none", bottom: -3, zIndex: 6,
-                opacity: 1, pointerEvents: "auto",
               }} />
           </>
         )}
@@ -211,22 +206,18 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
         onResize={(_, { width, height }) => data.onResizeLive?.(id, width, height)}
         onResizeEnd={(_, { width, height }) => data.onResize?.(id, width, height)}
       />
-      {/* Handles del depto: discretos por default, color completo al seleccionar.
-          pointer-events: auto para que sean clickeables incluso si el body del
-          depto tiene pointer-events: none. */}
+      {/* Handles del depto: visibles solo en hover/selected (CSS global) */}
       <Handle type="target" position={Position.Top}
-        className="dept-handle"
+        className="orgchart-handle"
         style={{
-          background: selected ? data.color : `${data.color}aa`,
+          background: data.color,
           width: 8, height: 8, border: "none", top: -3, zIndex: 6,
-          opacity: 1, pointerEvents: "auto",
         }} />
       <Handle type="source" position={Position.Bottom}
-        className="dept-handle"
+        className="orgchart-handle"
         style={{
-          background: selected ? data.color : `${data.color}aa`,
+          background: data.color,
           width: 8, height: 8, border: "none", bottom: -3, zIndex: 6,
-          opacity: 1, pointerEvents: "auto",
         }} />
       <div
         style={{
@@ -243,9 +234,6 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
           padding: "34px 10px 10px 10px",
           position: "relative",
           boxSizing: "border-box",
-          // Body del depto NO captura pointer events → clicks atraviesan al canvas (pan).
-          // Header/empleados internos tienen pointer-events: auto explícito.
-          pointerEvents: "none",
         }}
       >
         <div
@@ -341,10 +329,10 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
       {/* Header del card — info del puesto principal */}
       <div className="flex items-center gap-2" style={{ padding: cardPad }}>
         <Handle type="target" position={Position.Top}
+          className="orgchart-handle"
           style={{
-            background: selected ? data.color : "transparent",
+            background: data.color,
             width: 8, height: 8, border: "none", top: -3,
-            opacity: selected ? 1 : 0,
           }} />
         <div
           className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
@@ -428,10 +416,10 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
         </span>
       )}
       <Handle type="source" position={Position.Bottom}
+        className="orgchart-handle"
         style={{
-          background: selected ? data.color : "transparent",
+          background: data.color,
           width: 8, height: 8, border: "none", bottom: -3,
-          opacity: selected ? 1 : 0,
         }} />
     </div>
   );
