@@ -107,6 +107,83 @@ function OrgChartFlow() {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("flowos-orgchart-locked") === "true";
   });
+
+  // ── Undo / Redo (solo posiciones de nodes) ────────────────────────────────
+  // Stack de operaciones de movimiento. Cada vez que un node termina de draggar,
+  // se registra { entityType, id, fromPos, toPos }. Undo aplica fromPos, redo toPos.
+  // Limitado a 50 entradas para no consumir memoria.
+  type MoveOp = {
+    entityType: "employee" | "division" | "department";
+    id: string;
+    fromX: number; fromY: number;
+    toX: number; toY: number;
+  };
+  const [undoStack, setUndoStack] = useState<MoveOp[]>([]);
+  const [redoStack, setRedoStack] = useState<MoveOp[]>([]);
+  const recordMove = useCallback((op: MoveOp) => {
+    setUndoStack(prev => {
+      const next = [...prev, op];
+      return next.length > 50 ? next.slice(-50) : next;
+    });
+    setRedoStack([]); // nueva acción → invalida el redo
+  }, []);
+  const applyMove = useCallback((op: MoveOp, useFromPos: boolean) => {
+    const x = useFromPos ? op.fromX : op.toX;
+    const y = useFromPos ? op.fromY : op.toY;
+    if (op.entityType === "employee") {
+      fetch(`/api/employees/${op.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ positionX: x, positionY: y, manualPosition: true }),
+      }).catch(() => {});
+      updateEmployeeRef.current(op.id, { positionX: x, positionY: y, manualPosition: true }).catch(() => {});
+    } else if (op.entityType === "division") {
+      fetch(`/api/divisions/${op.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ positionX: x, positionY: y }),
+      }).catch(() => {});
+      setDivisions(prev => prev.map(d => d.id === op.id ? { ...d, positionX: x, positionY: y } : d));
+    } else if (op.entityType === "department") {
+      fetch(`/api/departments/${op.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ positionX: x, positionY: y }),
+      }).catch(() => {});
+      setDepartments(prev => prev.map(d => d.id === op.id ? { ...d, positionX: x, positionY: y } : d));
+    }
+  }, []);
+  const doUndo = useCallback(() => {
+    setUndoStack(prev => {
+      if (prev.length === 0) return prev;
+      const op = prev[prev.length - 1];
+      applyMove(op, true);
+      setRedoStack(r => [...r, op]);
+      return prev.slice(0, -1);
+    });
+  }, [applyMove]);
+  const doRedo = useCallback(() => {
+    setRedoStack(prev => {
+      if (prev.length === 0) return prev;
+      const op = prev[prev.length - 1];
+      applyMove(op, false);
+      setUndoStack(u => [...u, op]);
+      return prev.slice(0, -1);
+    });
+  }, [applyMove]);
+  // Ctrl+Z / Ctrl+Shift+Z atajos
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        doUndo();
+      } else if ((key === "z" && e.shiftKey) || key === "y") {
+        e.preventDefault();
+        doRedo();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [doUndo, doRedo]);
   // Nodos que están recibiendo un cambio programático de tamaño/posición y necesitan animar.
   // Se vacía solo ~350ms después de marcar para no animar drags posteriores.
   const [syncingNodeIds, setSyncingNodeIds] = useState<Set<string>>(new Set());
@@ -1051,11 +1128,21 @@ function OrgChartFlow() {
             }).catch(() => {});
           } else {
             // Drop en vacío → marca manualPosition=true para respetar la posición.
+            const fromX = node.position.x;
+            const fromY = node.position.y;
             updateEmployeeRef.current(change.id, {
               positionX: change.position.x,
               positionY: change.position.y,
               manualPosition: true,
             }).catch(() => {});
+            // Solo registramos undo si efectivamente se movió
+            if (fromX !== change.position.x || fromY !== change.position.y) {
+              recordMove({
+                entityType: "employee", id: change.id,
+                fromX, fromY,
+                toX: change.position.x, toY: change.position.y,
+              });
+            }
           }
         } else if (node.type === "division") {
           // Snap-or-decouple: dropping near another division couples them; dropping far away decouples
@@ -1083,6 +1170,15 @@ function OrgChartFlow() {
             body: JSON.stringify({ positionX: nextX, positionY: nextY, couplingGroup: nextGroup }),
           }).catch(() => {});
           setDivisions(prev => prev.map(d => d.id === change.id ? { ...d, positionX: nextX, positionY: nextY, couplingGroup: nextGroup } : d));
+          // Registrar move para undo
+          const divFrom = divisions.find(d => d.id === change.id);
+          if (divFrom && (divFrom.positionX !== nextX || divFrom.positionY !== nextY)) {
+            recordMove({
+              entityType: "division", id: change.id,
+              fromX: divFrom.positionX ?? 0, fromY: divFrom.positionY ?? 0,
+              toX: nextX, toY: nextY,
+            });
+          }
         } else if (node.type === "department") {
           const dSnap = computeDepartmentSnap(change.id, change.position.x, change.position.y);
           const nx = dSnap?.x ?? change.position.x;
@@ -1095,10 +1191,19 @@ function OrgChartFlow() {
             body: JSON.stringify({ positionX: nx, positionY: ny }),
           }).catch(() => {});
           setDepartments(prev => prev.map(d => d.id === change.id ? { ...d, positionX: nx, positionY: ny } : d));
+          // Registrar move para undo
+          const dpFrom = departments.find(d => d.id === change.id);
+          if (dpFrom && (dpFrom.positionX !== nx || dpFrom.positionY !== ny)) {
+            recordMove({
+              entityType: "department", id: change.id,
+              fromX: dpFrom.positionX ?? 0, fromY: dpFrom.positionY ?? 0,
+              toX: nx, toY: ny,
+            });
+          }
         }
       }
     });
-  }, [nodes, divisions, computeDivisionSnap, computeDepartmentSnap]);
+  }, [nodes, divisions, departments, computeDivisionSnap, computeDepartmentSnap, recordMove]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     setEdges(eds => {
@@ -1661,36 +1766,28 @@ function OrgChartFlow() {
         .react-flow__node-employee {
           animation: flowos-node-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-        /* Handles: prácticamente invisibles por default. Sólo se notan al hacer
-           hover DIRECTAMENTE encima de ellos (no del nodo completo). Para crear
-           una conexión, el usuario apunta cerca del borde y aparece el handle. */
+        /* Handles: visibles siempre, color sólido (estilo original) */
         .orgchart-handle {
-          opacity: 0 !important;
-          transition: opacity 120ms ease, transform 120ms ease;
+          opacity: 1;
+          transition: transform 120ms ease;
         }
-        /* El nodo selected sí muestra handles claramente (visual feedback) */
-        .react-flow__node.selected .orgchart-handle {
-          opacity: 0.9 !important;
-        }
-        /* Hover SOBRE el handle propio: aparece y se agranda */
         .orgchart-handle:hover {
-          opacity: 1 !important;
-          transform: scale(1.4);
+          transform: scale(1.3);
         }
 
         /* LOCK MODE: nodes dejan pasar clicks al canvas → pan funciona donde sea.
-           Handles y resizer se mantienen interactivos en caso de necesitarlos. */
-        .flowos-locked .react-flow__node {
+           Selector con especificidad ALTA para sobrescribir CSS interno de ReactFlow. */
+        div.react-flow.flowos-locked .react-flow__node,
+        div.react-flow.flowos-locked .react-flow__node *,
+        div.react-flow.flowos-locked .react-flow__nodes,
+        div.react-flow.flowos-locked .react-flow__node-resizer {
           pointer-events: none !important;
         }
-        .flowos-locked .react-flow__node * {
-          pointer-events: none !important;
+        div.react-flow.flowos-locked .react-flow__pane {
+          cursor: grab !important;
         }
-        .flowos-locked .react-flow__pane {
-          cursor: grab;
-        }
-        .flowos-locked .react-flow__pane:active {
-          cursor: grabbing;
+        div.react-flow.flowos-locked .react-flow__pane:active {
+          cursor: grabbing !important;
         }
       `}</style>
       <ReactFlow
@@ -1853,6 +1950,34 @@ function OrgChartFlow() {
                   }}
                 >
                   {locked ? "🔒 Bloqueado" : "🔓 Editable"}
+                </button>
+                <button
+                  onClick={doUndo}
+                  disabled={undoStack.length === 0}
+                  title="Deshacer último movimiento (Ctrl+Z)"
+                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  style={{
+                    background: "rgba(122,139,173,0.1)",
+                    color: undoStack.length === 0 ? "#3A4560" : "#C4CFEA",
+                    border: "1px solid #1E2540",
+                    cursor: undoStack.length === 0 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  ↶ Deshacer
+                </button>
+                <button
+                  onClick={doRedo}
+                  disabled={redoStack.length === 0}
+                  title="Rehacer (Ctrl+Shift+Z)"
+                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  style={{
+                    background: "rgba(122,139,173,0.1)",
+                    color: redoStack.length === 0 ? "#3A4560" : "#C4CFEA",
+                    border: "1px solid #1E2540",
+                    cursor: redoStack.length === 0 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  ↷ Rehacer
                 </button>
               </div>
               {searchOpen && (
