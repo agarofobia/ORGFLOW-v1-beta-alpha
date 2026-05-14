@@ -364,6 +364,20 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
     onUpdated(updatedEmp);
   };
 
+  // Drag-and-drop reorder de items de onboarding
+  const reorderOnboarding = async (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return;
+    const next = [...onboarding];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    const updatedEmp = { ...local, metadata: { ...local.metadata, onboarding: next } };
+    setLocal(updatedEmp);
+    await fetch(`/api/employees/${local.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ metadata: updatedEmp.metadata }) });
+    onUpdated(updatedEmp);
+  };
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
   return (
     <div style={{ position: "fixed", right: 0, top: 0, height: "100vh", width: 500, backgroundColor: "#0E1220", borderLeft: "1px solid #1E2540", boxShadow: "-4px 0 32px rgba(0,0,0,0.5)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Header */}
@@ -467,15 +481,59 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {onboarding.map(item => (
-                <div key={item.id} onClick={() => toggleOnboarding(item.id)}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", backgroundColor: item.done ? "#10D9A008" : "#141928", border: `1px solid ${item.done ? "#10D9A030" : "#1E2540"}`, borderRadius: 6, cursor: "pointer" }}>
-                  <div style={{ width: 18, height: 18, borderRadius: 4, border: item.done ? "none" : "2px solid #1E2540", backgroundColor: item.done ? "#10D9A0" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    {item.done && <Check size={11} color="#080B12" strokeWidth={3} />}
+              {onboarding.map((item, idx) => {
+                const isDragging = dragIdx === idx;
+                const isDragOver = dragOverIdx === idx && dragIdx !== null && dragIdx !== idx;
+                return (
+                  <div
+                    key={item.id}
+                    draggable={isAdmin}
+                    onDragStart={() => setDragIdx(idx)}
+                    onDragOver={e => { e.preventDefault(); if (dragOverIdx !== idx) setDragOverIdx(idx); }}
+                    onDragLeave={() => setDragOverIdx(null)}
+                    onDrop={e => {
+                      e.preventDefault();
+                      if (dragIdx !== null) reorderOnboarding(dragIdx, idx);
+                      setDragIdx(null); setDragOverIdx(null);
+                    }}
+                    onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+                    onClick={() => toggleOnboarding(item.id)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px",
+                      backgroundColor: item.done ? "#10D9A008" : "#141928",
+                      border: `1px solid ${isDragOver ? "#3D7EFF" : item.done ? "#10D9A030" : "#1E2540"}`,
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      opacity: isDragging ? 0.4 : 1,
+                      transform: isDragOver ? "translateY(2px)" : "translateY(0)",
+                      transition: "transform 120ms ease, opacity 120ms ease, border 120ms ease",
+                    }}
+                  >
+                    {isAdmin && (
+                      <div
+                        onMouseDown={e => e.stopPropagation()}
+                        style={{
+                          display: "flex", flexDirection: "column", gap: 2,
+                          padding: "0 2px",
+                          cursor: "grab",
+                          color: "#3A4560",
+                          flexShrink: 0,
+                        }}
+                        title="Arrastrá para reordenar"
+                      >
+                        <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor" }} />
+                        <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor" }} />
+                        <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor" }} />
+                      </div>
+                    )}
+                    <div style={{ width: 18, height: 18, borderRadius: 4, border: item.done ? "none" : "2px solid #1E2540", backgroundColor: item.done ? "#10D9A0" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {item.done && <Check size={11} color="#080B12" strokeWidth={3} />}
+                    </div>
+                    <span style={{ fontSize: 13, color: item.done ? "#7A8BAD" : "#E2E8F8", textDecoration: item.done ? "line-through" : "none", flex: 1 }}>{item.label}</span>
                   </div>
-                  <span style={{ fontSize: 13, color: item.done ? "#7A8BAD" : "#E2E8F8", textDecoration: item.done ? "line-through" : "none" }}>{item.label}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {isAdmin && (
               <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
