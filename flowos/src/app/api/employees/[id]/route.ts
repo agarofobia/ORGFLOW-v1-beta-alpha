@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { employees, departments, divisions } from "@/db/schema";
+import { employees, departments, divisions, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -30,9 +30,24 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { orgId, orgRole } = await auth();
+  const { orgId, orgRole, userId: clerkUserId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const isAdmin = orgRole === "org:admin";
+
+  // Detectar si el empleado a editar es el "propio" del usuario logueado.
+  // Cualquiera puede modificar SU propia foto; los admins pueden modificar la de cualquiera.
+  let isOwnEmployee = false;
+  if (!isAdmin && clerkUserId) {
+    const userRow = (await db.select().from(users)
+      .where(eq(users.clerkId, clerkUserId)).limit(1))[0];
+    if (userRow) {
+      const empRow = (await db.select().from(employees)
+        .where(and(eq(employees.id, id), eq(employees.organizationId, orgId)))
+        .limit(1))[0];
+      if (empRow?.userId === userRow.id) isOwnEmployee = true;
+    }
+  }
+  const canEditImage = isAdmin || isOwnEmployee;
 
   try {
     const body = await req.json();
@@ -57,9 +72,9 @@ export async function PUT(
     if (body.manualPosition !== undefined) updates.manualPosition = Boolean(body.manualPosition);
     if (body.role !== undefined) updates.role = body.role ?? null;
     if (body.unitId !== undefined) updates.unitId = body.unitId ?? null;
-    // imageUrl: solo admins pueden cambiarla (evita abuso de empleados modificándose
-    // su propia foto o la de otros). Si no-admin lo manda, se ignora silenciosamente.
-    if (body.imageUrl !== undefined && isAdmin) updates.imageUrl = body.imageUrl ?? null;
+    // imageUrl: cualquiera puede cambiar SU propia foto; los admins pueden cambiar
+    // la de cualquier empleado. Si alguien no autorizado lo manda, se ignora silencioso.
+    if (body.imageUrl !== undefined && canEditImage) updates.imageUrl = body.imageUrl ?? null;
 
     const result = await db
       .update(employees)

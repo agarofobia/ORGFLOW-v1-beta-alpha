@@ -574,42 +574,33 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
 
             <div><label style={labelStyle}>Fecha de ingreso</label><input style={inputStyle} type="date" value={local.startDate ? local.startDate.slice(0, 10) : ""} onChange={e => setLocal({ ...local, startDate: e.target.value })} /></div>
 
-            {/* Foto del empleado (URL pública) — solo admins pueden modificar.
-                No-admins ven la foto pero no el input (evita que un empleado se ponga
-                gracioso con su propia foto u otra ajena). */}
+            {/* Foto del empleado (URL pública).
+                Cualquiera puede cambiar SU propia foto; los admins pueden cambiar la
+                de cualquiera. La autorización efectiva la hace el servidor (PUT /api/employees/:id):
+                si alguien no autorizado manda imageUrl, se ignora silenciosamente. */}
             <div>
               <label style={labelStyle}>Foto del puesto</label>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <Avatar name={local.fullName} color={local.color} size={42} imageUrl={local.imageUrl} />
-                {isAdmin ? (
-                  <>
-                    <input
-                      style={{ ...inputStyle, flex: 1 }}
-                      type="url"
-                      value={local.imageUrl || ""}
-                      onChange={e => setLocal({ ...local, imageUrl: e.target.value || null })}
-                      placeholder="https://… (URL pública de la imagen)"
-                    />
-                    {local.imageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setLocal({ ...local, imageUrl: null })}
-                        style={{ padding: "8px 10px", backgroundColor: "transparent", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD", cursor: "pointer" }}
-                        title="Quitar foto"
-                      ><X size={13} /></button>
-                    )}
-                  </>
-                ) : (
-                  <p style={{ flex: 1, fontSize: 12, color: "#7A8BAD", fontStyle: "italic", margin: 0 }}>
-                    Solo administradores pueden modificar la foto del puesto.
-                  </p>
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  type="url"
+                  value={local.imageUrl || ""}
+                  onChange={e => setLocal({ ...local, imageUrl: e.target.value || null })}
+                  placeholder="https://… (URL pública de la imagen)"
+                />
+                {local.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setLocal({ ...local, imageUrl: null })}
+                    style={{ padding: "8px 10px", backgroundColor: "transparent", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD", cursor: "pointer" }}
+                    title="Quitar foto"
+                  ><X size={13} /></button>
                 )}
               </div>
-              {isAdmin && (
-                <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
-                  Pegá una URL pública (Gmail avatar, LinkedIn, imgur, etc.). Subida directa en próxima versión.
-                </p>
-              )}
+              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+                Pegá una URL pública (Gmail avatar, LinkedIn, imgur, etc.). Los admins pueden cambiar la foto de cualquier empleado.
+              </p>
             </div>
 
             <div>
