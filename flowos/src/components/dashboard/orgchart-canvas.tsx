@@ -1604,6 +1604,28 @@ function OrgChartFlow() {
     }
   };
 
+  // Dedup defensivo justo antes del render. Si por algún motivo (HMR, race en
+  // setState, applyNodeChanges añadiendo duplicados, etc.) llegan dos nodes/edges
+  // con el mismo id, React falla con "Each child in a list should have a unique
+  // 'key' prop". Esto lo previene siempre.
+  const dedupedNodes = useMemo(() => {
+    const seen = new Set<string>();
+    return nodes.filter(n => {
+      if (seen.has(n.id)) return false;
+      seen.add(n.id);
+      return true;
+    });
+  }, [nodes]);
+  const dedupedEdges = useMemo(() => {
+    const seen = new Set<string>();
+    const all = [...edges, ...directorSyntheticEdges];
+    return all.filter(e => {
+      if (seen.has(e.id)) return false;
+      seen.add(e.id);
+      return true;
+    });
+  }, [edges, directorSyntheticEdges]);
+
   if (error) {
     return (
       <div className="flex h-full flex-col items-center justify-center" style={{ background: "#080B12" }}>
@@ -1639,8 +1661,8 @@ function OrgChartFlow() {
         }
       `}</style>
       <ReactFlow
-        nodes={nodes}
-        edges={[...edges, ...directorSyntheticEdges]}
+        nodes={dedupedNodes}
+        edges={dedupedEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
