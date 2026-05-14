@@ -70,8 +70,10 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
           </>
         )}
 
-        {/* Header centrado al tope */}
+        {/* Header centrado al tope — único punto draggeable de la división.
+            Esto deja que el body permita pan del canvas (drag-to-pan). */}
         <div
+          className="division-drag-handle"
           style={{
             position: "absolute", top: 0, left: 0, right: 0,
             height: headerHeight,
@@ -82,7 +84,7 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
             borderTopRightRadius: Math.max(0, radius.topRight - 1),
             background: `linear-gradient(180deg, ${data.color}28 0%, ${data.color}10 100%), #0A0F1C`,
             borderBottom: `1px solid ${data.color}40`,
-            pointerEvents: "none",
+            cursor: "grab",
             padding: "0 12px",
             zIndex: 5,
           }}
@@ -237,6 +239,7 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
         }}
       >
         <div
+          className="department-drag-handle"
           style={{
             position: "absolute", top: 0, left: 0, right: 0,
             height: 28,
@@ -244,16 +247,13 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
             padding: "0 6px",
             borderTopLeftRadius: Math.max(0, radius.topLeft - 1),
             borderTopRightRadius: Math.max(0, radius.topRight - 1),
-            // Fondo 100% opaco. Antes el gradient tenía alpha y los edges
-            // se veían a través. Ahora dos capas opacas: tint del color (mezclado)
-            // sobre el color base de fondo de la app.
+            // Fondo 100% opaco para que edges no se vean atrás del header.
             background: `linear-gradient(180deg,
               color-mix(in srgb, ${data.color} 18%, #0A0F1C) 0%,
               color-mix(in srgb, ${data.color} 8%, #0A0F1C) 100%)`,
             borderBottom: `1px solid ${data.color}40`,
-            pointerEvents: "none",
-            // zIndex alto para asegurar que ni edges ni nada se vea atrás.
-            // Combinado con isolation:isolate del padre, queda encima de todo el contenido interno.
+            cursor: "grab",
+            // zIndex alto + isolation del padre: queda encima de contenido interno.
             zIndex: 10,
           }}
         >

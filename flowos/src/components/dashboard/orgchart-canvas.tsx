@@ -730,6 +730,8 @@ function OrgChartFlow() {
         },
         draggable: true,
         selectable: true,
+        // Solo se draggea desde el header — el body permite pan del canvas.
+        dragHandle: ".division-drag-handle",
       });
     });
 
@@ -799,6 +801,8 @@ function OrgChartFlow() {
         },
         draggable: true,
         selectable: true,
+        // Solo se draggea desde el header — el body permite pan del canvas.
+        dragHandle: ".department-drag-handle",
       };
       if (dp.divisionId) {
         node.parentId = dp.divisionId;
