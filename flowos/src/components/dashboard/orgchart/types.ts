@@ -17,6 +17,10 @@ export type Department = {
   positionX: number | null; positionY: number | null;
   sizeWidth: number | null; sizeHeight: number | null;
   headEmployeeId: string | null;
+  // Si true, el head se promueve arriba del depto. Si false, queda adentro.
+  promoteHead?: boolean;
+  // "vertical" | "compact" | "manual"
+  layoutMode?: string;
 };
 
 // ─── React Flow node data shapes ─────────────────────────────────────────────
@@ -30,6 +34,11 @@ export type EmployeeNodeData = {
   // como pasa con los directores promovidos). BicolorEdge lo usa para decidir
   // si la edge entre dos empleados es "interna del depto" (L-line) o externa.
   departmentId?: string | null;
+  // Si true, la tarjeta se renderiza en modo compacto (más chica, menos padding).
+  // Lo determina el layoutMode del depto contenedor.
+  compact?: boolean;
+  // Si true, muestra el badge DIR/ENC. Controlado por toggle global del usuario.
+  showRoleBadge?: boolean;
 };
 
 export type DivisionNodeData = {

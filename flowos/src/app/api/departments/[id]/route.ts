@@ -20,6 +20,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.sizeWidth !== undefined) updates.sizeWidth = body.sizeWidth;
     if (body.sizeHeight !== undefined) updates.sizeHeight = body.sizeHeight;
     if (body.headEmployeeId !== undefined) updates.headEmployeeId = body.headEmployeeId ?? null;
+    if (body.promoteHead !== undefined) updates.promoteHead = Boolean(body.promoteHead);
+    if (body.layoutMode !== undefined) updates.layoutMode = String(body.layoutMode);
 
     const result = await db
       .update(departments)

@@ -222,12 +222,17 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
             padding: "0 6px",
             borderTopLeftRadius: Math.max(0, radius.topLeft - 1),
             borderTopRightRadius: Math.max(0, radius.topRight - 1),
-            // Base sólida #0A0F1C + tint del color para que los edges no
-            // se vean a través del header.
-            background: `linear-gradient(180deg, ${data.color}26 0%, ${data.color}10 100%), #0A0F1C`,
+            // Fondo 100% opaco. Antes el gradient tenía alpha y los edges
+            // se veían a través. Ahora dos capas opacas: tint del color (mezclado)
+            // sobre el color base de fondo de la app.
+            background: `linear-gradient(180deg,
+              color-mix(in srgb, ${data.color} 18%, #0A0F1C) 0%,
+              color-mix(in srgb, ${data.color} 8%, #0A0F1C) 100%)`,
             borderBottom: `1px solid ${data.color}40`,
             pointerEvents: "none",
-            zIndex: 5,
+            // zIndex alto para asegurar que ni edges ni nada se vea atrás.
+            // Combinado con isolation:isolate del padre, queda encima de todo el contenido interno.
+            zIndex: 10,
           }}
         >
           <FolderPlus size={10} style={{ color: data.color, flexShrink: 0 }} />
@@ -259,6 +264,8 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
 
 export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
   const isVacant = data.fullName === "[Puesto vacante]";
+  const isCompact = data.compact === true;
+  const showBadge = data.showRoleBadge === true;
   const initials = isVacant
     ? "?"
     : data.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
@@ -267,19 +274,27 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
   // hacerlos ilegibles.
   const sideBorderColor = selected ? data.color : (isVacant ? data.color + "66" : data.color + "55");
   const sideBorderStyle = isVacant ? "dashed" : "solid";
-  // Borde más grueso para directores/encargados — jerarquía visual sin agrandar el card.
+  // Border weights por rol (solo aplican si showBadge=true; sino todos iguales)
   const isDirector = data.role === "director";
   const isManager = data.role === "manager";
-  const borderWeight = selected ? "2px" : isDirector ? "2px" : "1px";
+  const borderWeight = selected ? "2px" : (showBadge && isDirector) ? "2px" : "1px";
   const sideBorder = `${borderWeight} ${sideBorderStyle} ${sideBorderColor}`;
-  const leftBorderWeight = isDirector ? "5px" : isManager ? "4px" : "3px";
-  const roleBadge = isDirector ? "DIR" : isManager ? "ENC" : null;
+  const leftBorderWeight = showBadge
+    ? (isDirector ? "5px" : isManager ? "4px" : "3px")
+    : "3px";
+  const roleBadge = showBadge ? (isDirector ? "DIR" : isManager ? "ENC" : null) : null;
+
+  // Modo compact: avatar más chico, menos padding, sin segundo line del jobTitle
+  const cardPad = isCompact ? 6 : 10;
+  const avatarSize = isCompact ? 26 : 36;
+  const fontSizeName = isCompact ? 11 : 14;
+
   return (
     <div
-      className="flex items-center gap-3 transition-shadow hover:shadow-lg"
+      className="flex items-center gap-2 transition-shadow hover:shadow-lg"
       style={{
         width: 200,
-        padding: 10,
+        padding: cardPad,
         background: isVacant ? "#0E122099" : "#0E1220",
         borderTop: sideBorder,
         borderRight: sideBorder,
@@ -292,18 +307,31 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
     >
       <Handle type="target" position={Position.Top} style={{ background: data.color, width: 8, height: 8, border: "none" }} />
       <div
-        className="flex h-9 w-9 flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
-        style={{ background: isVacant ? "#7A8BAD" : data.color, borderRadius: 6 }}
+        className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
+        style={{
+          background: isVacant ? "#7A8BAD" : data.color,
+          borderRadius: 6,
+          width: avatarSize, height: avatarSize,
+          fontSize: isCompact ? 9 : 12,
+        }}
       >
         {initials}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium" style={{ color: isVacant ? "#7A8BAD" : "#E2E8F8" }}>
+        <div className="truncate font-medium" style={{ color: isVacant ? "#7A8BAD" : "#E2E8F8", fontSize: fontSizeName, lineHeight: 1.15 }}>
           {isVacant ? "Puesto vacante" : data.fullName}
         </div>
-        <div className="truncate text-xs" style={{ color: "#7A8BAD" }}>
-          {data.jobTitle}
-        </div>
+        {!isCompact && (
+          <div className="truncate text-xs" style={{ color: "#7A8BAD" }}>
+            {data.jobTitle}
+          </div>
+        )}
+        {/* En modo compact, el jobTitle va inline mini debajo del nombre — solo si vacante */}
+        {isCompact && isVacant && (
+          <div className="truncate" style={{ color: "#7A8BAD", fontSize: 9 }}>
+            {data.jobTitle}
+          </div>
+        )}
       </div>
       {roleBadge && (
         <span style={{

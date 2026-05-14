@@ -95,6 +95,12 @@ function OrgChartFlow() {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("flowos-orgchart-linked-resize") !== "false";
   });
+  // Toggle: mostrar badges DIR/ENC sobre las tarjetas. Por default OFF — la jerarquía
+  // se infiere por la posición + líneas. Si el usuario lo prende, aparecen los badges.
+  const [showRoleBadges, setShowRoleBadges] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("flowos-orgchart-show-badges") === "true";
+  });
   // Nodos que están recibiendo un cambio programático de tamaño/posición y necesitan animar.
   // Se vacía solo ~350ms después de marcar para no animar drags posteriores.
   const [syncingNodeIds, setSyncingNodeIds] = useState<Set<string>>(new Set());
@@ -435,12 +441,13 @@ function OrgChartFlow() {
     return map;
   }, [divisions]);
 
-  // Set de empleados que son "head" de un departamento (directores).
-  // Esos puestos NO se renderizan dentro del depto; van "promovidos" arriba.
+  // Set de empleados que son "head" de un departamento Y cuyo depto tiene
+  // `promoteHead` activado. Solo esos se renderizan promovidos arriba del depto.
+  // Si el depto tiene promoteHead=false, el head queda como un puesto más adentro.
   const directorEmployeeIds = useMemo(() => {
     const s = new Set<string>();
     for (const dp of departments) {
-      if (dp.headEmployeeId) s.add(dp.headEmployeeId);
+      if (dp.headEmployeeId && (dp.promoteHead ?? true)) s.add(dp.headEmployeeId);
     }
     return s;
   }, [departments]);
@@ -484,52 +491,62 @@ function OrgChartFlow() {
     return out;
   }, [departments, employees]);
 
-  // Motor de layout interno por departamento: ENC → equipo.
-  // Excluye al director (queda promovido arriba del depto, no adentro).
-  // Construye un Map<empleadoId, {x, y}> para puestos NO marcados manualPosition.
-  // Si manualPosition === true, respeta positionX/Y; si false, lo posiciona aquí.
+  // Motor de layout interno por departamento — respeta el layoutMode del depto:
+  //   - "vertical": stack vertical con indent por nivel (modo default, clásico)
+  //   - "compact": stack vertical SIN indent, gap menor, cards más chicas (mostradas vía empCompact)
+  //   - "manual": no auto-posiciona nada, respeta lo que el usuario dragueó
+  // Si promoteHead=true, el head queda excluido del layout interno (va promovido arriba).
+  // Si promoteHead=false, el head se incluye normal en el layout.
   const deptInternalLayout = useMemo(() => {
     const positions = new Map<string, { x: number; y: number }>();
-    const COL_X = 16;          // PADDING
-    const TOP_Y = 34 + 12;     // header del dept + padding
-    const EMP_HEIGHT = 70 + 12; // EMP_H + EMP_GAP
+    const COL_X = 16;
+    const TOP_Y = 34 + 12;
 
     departments.forEach(dept => {
-      // empleados del depto, EXCLUYENDO al director (que va arriba), no-manual
+      const mode = dept.layoutMode ?? "vertical";
+      if (mode === "manual") return; // no auto-posiciona — drag manual rules
+
+      const isPromoted = (dept.promoteHead ?? true) && !!dept.headEmployeeId;
       const empsInDept = (employees ?? []).filter(e =>
         e.departmentId === dept.id &&
-        e.id !== dept.headEmployeeId &&
+        (!isPromoted || e.id !== dept.headEmployeeId) &&
         e.manualPosition !== true
       );
       if (empsInDept.length === 0) return;
 
+      // Altura de paso por modo: compact usa cards más chicas → menos espacio vertical
+      const STEP = mode === "compact" ? (44 + 6) : (70 + 12); // EMP_H + EMP_GAP
+      const INDENT = mode === "compact" ? 0 : 20;
+
       const visited = new Set<string>();
       let y = TOP_Y;
-      const INDENT = 20; // px por nivel de profundidad
       const place = (empId: string, depth: number = 0) => {
         if (visited.has(empId)) return;
         const emp = empsInDept.find(e => e.id === empId);
         if (!emp) return;
         visited.add(empId);
         positions.set(empId, { x: COL_X + depth * INDENT, y });
-        y += EMP_HEIGHT;
-        // Subordinados recursivos (los que reportan a este)
+        y += STEP;
         empsInDept
           .filter(e => e.managerId === empId)
           .forEach(sub => place(sub.id, depth + 1));
       };
 
-      // 1. Subordinados directos del director — top-level del depto interno
-      if (dept.headEmployeeId) {
+      // Top-level: si el head NO está promovido, arrancar con él
+      if (!isPromoted && dept.headEmployeeId && empsInDept.some(e => e.id === dept.headEmployeeId)) {
+        place(dept.headEmployeeId, 0);
+      }
+      // Si el head SÍ está promovido, top-level = sus subordinados directos
+      if (isPromoted && dept.headEmployeeId) {
         empsInDept
           .filter(e => e.managerId === dept.headEmployeeId)
           .forEach(e => place(e.id, 0));
       }
-      // 2. Empleados sin manager (huérfanos top-level que no reportan al director)
+      // Empleados sin manager top-level
       empsInDept
         .filter(e => !e.managerId && !visited.has(e.id))
         .forEach(e => place(e.id, 0));
-      // 3. Empleados con manager fuera del depto / referencia inválida
+      // Huérfanos
       empsInDept.forEach(e => { if (!visited.has(e.id)) place(e.id, 0); });
     });
 
@@ -665,9 +682,11 @@ function OrgChartFlow() {
     // Departments — child of division if has divisionId; skip if parent division is collapsed
     departments.forEach(dp => {
       if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
-      // empCount excluye al director — ese va promovido arriba del depto.
+      // empCount: si promoteHead=true, excluye al director (va arriba del depto).
+      // Si promoteHead=false, lo incluye (queda adentro).
+      const isHeadPromoted = (dp.promoteHead ?? true) && !!dp.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
-        e.departmentId === dp.id && e.id !== dp.headEmployeeId
+        e.departmentId === dp.id && (!isHeadPromoted || e.id !== dp.headEmployeeId)
       ).length;
       const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
       const dAdj = deptAdjacency.get(dp.id) ?? { left: false, right: false };
@@ -675,7 +694,9 @@ function OrgChartFlow() {
       // Auto-height: crece para contener todos sus empleados.
       // Fórmula: header(34) + top-pad(12) + n*EMP_STEP + bot-pad(16)
       const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
-      const EMP_STEP = EMP_H + EMP_GAP; // 82px por empleado
+      // EMP_STEP depende del modo de layout: compact usa cards 50% más chicas.
+      const dpLayoutMode = dp.layoutMode ?? "vertical";
+      const EMP_STEP = dpLayoutMode === "compact" ? (44 + 6) : (EMP_H + EMP_GAP);
       const neededH = DEPT_HDR + DEPT_TOP_PAD + empCount * EMP_STEP + DEPT_BOT_PAD;
       const deptH = Math.max(dp.sizeHeight ?? DEPT_H, neededH);
       // Ancho mínimo = COL_X(16) + maxIndent(3 niveles×20=60) + cardWidth(200) + rightPad(14) = 290
@@ -752,6 +773,9 @@ function OrgChartFlow() {
             status: emp.status,
             role: effectiveRole,
             departmentId: emp.departmentId,
+            showRoleBadge: showRoleBadges,
+            // Director promovido NO se renderiza compact (es la figura principal del depto)
+            compact: false,
           },
         };
         // Parent = división del depto si existe; si no, queda standalone.
@@ -769,6 +793,11 @@ function OrgChartFlow() {
       const autoPos = !emp.manualPosition ? deptInternalLayout.get(emp.id) : undefined;
       const pos = autoPos
         ?? { x: emp.positionX ?? ((idx % 4) * 220 + 20), y: emp.positionY ?? (Math.floor(idx / 4) * 80 + 80) };
+
+      // Modo compact heredado del depto contenedor (si el dept tiene layoutMode='compact')
+      const empDept = emp.departmentId ? departments.find(d => d.id === emp.departmentId) : undefined;
+      const isCompactMode = empDept?.layoutMode === "compact";
+
       const node: EmployeeNode = {
         id: emp.id,
         type: "employee",
@@ -780,6 +809,8 @@ function OrgChartFlow() {
           status: emp.status,
           role: effectiveRole,
           departmentId: emp.departmentId,
+          showRoleBadge: showRoleBadges,
+          compact: isCompactMode,
         },
       };
       if (emp.departmentId && departments.some(d => d.id === emp.departmentId)) {
@@ -794,7 +825,7 @@ function OrgChartFlow() {
 
     return result;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, directorEmployeeIds, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive]);
+  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, directorEmployeeIds, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive]);
 
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
@@ -1642,6 +1673,22 @@ function OrgChartFlow() {
                   }}
                 >
                   {linkedResize ? "🔗 Tamaño vinc." : "✕ Tamaño libre"}
+                </button>
+                <button
+                  onClick={() => {
+                    const next = !showRoleBadges;
+                    setShowRoleBadges(next);
+                    try { localStorage.setItem("flowos-orgchart-show-badges", String(next)); } catch {}
+                  }}
+                  title={showRoleBadges ? "Badges de rol visibles (DIR / ENC)" : "Badges de rol ocultos"}
+                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  style={{
+                    background: showRoleBadges ? "rgba(245,158,11,0.1)" : "rgba(122,139,173,0.1)",
+                    color: showRoleBadges ? "#F59E0B" : "#7A8BAD",
+                    border: `1px solid ${showRoleBadges ? "rgba(245,158,11,0.3)" : "#1E2540"}`,
+                  }}
+                >
+                  {showRoleBadges ? "🏷️ Badges ON" : "✕ Badges"}
                 </button>
               </div>
               {searchOpen && (

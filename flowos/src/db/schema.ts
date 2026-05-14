@@ -131,6 +131,12 @@ export const departments = pgTable(
     sizeWidth: doublePrecision("size_width").default(360),
     sizeHeight: doublePrecision("size_height").default(240),
     headEmployeeId: uuid("head_employee_id"),
+    // Si true (default), el head del depto se renderiza promovido arriba del depto
+    // como tarjeta independiente. Si false, queda adentro como un puesto más.
+    promoteHead: boolean("promote_head").notNull().default(true),
+    // Modo de layout interno: "vertical" (stack vertical con indent por nivel),
+    // "compact" (cards 50% altura, sin indent), "manual" (respeta drag manual).
+    layoutMode: text("layout_mode").notNull().default("vertical"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({

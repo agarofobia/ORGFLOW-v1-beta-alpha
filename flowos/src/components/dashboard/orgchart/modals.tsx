@@ -554,6 +554,8 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
   const [name, setName] = useState(department.name);
   const [color, setColor] = useState(department.color ?? "#C8902C");
   const [headId, setHeadId] = useState<string | null>(department.headEmployeeId ?? null);
+  const [promoteHead, setPromoteHead] = useState<boolean>(department.promoteHead ?? true);
+  const [layoutMode, setLayoutMode] = useState<string>(department.layoutMode ?? "vertical");
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -564,7 +566,13 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await onSave({ name: name.trim(), color, headEmployeeId: headId });
+      await onSave({
+        name: name.trim(),
+        color,
+        headEmployeeId: headId,
+        promoteHead,
+        layoutMode,
+      });
       onClose();
     } finally { setSaving(false); }
   };
@@ -617,6 +625,33 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
               Aparece en el header del departamento
             </p>
           </div>
+
+          {/* Promover head: si está activo, el head se renderiza como tarjeta arriba del depto */}
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: "#C4CFEA", fontSize: 13 }}>
+              <input type="checkbox" checked={promoteHead} onChange={e => setPromoteHead(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: color }} />
+              Mostrar al head arriba del departamento
+            </label>
+            <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0 24px", fontFamily: "monospace" }}>
+              Apagado: el head queda como un puesto más adentro del depto.
+            </p>
+          </div>
+
+          {/* Modo de layout interno */}
+          <div>
+            <label style={labelStyle}>Modo de layout interno</label>
+            <select value={layoutMode} onChange={e => setLayoutMode(e.target.value)}
+              style={{ ...fieldStyle, cursor: "pointer" }}>
+              <option value="vertical">Vertical — clásico, indent por nivel</option>
+              <option value="compact">Compacto — tarjetas chicas, sin indent</option>
+              <option value="manual">Manual — sin auto-posición, drag libre</option>
+            </select>
+            <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+              Cambia cómo se acomodan los puestos dentro del depto.
+            </p>
+          </div>
+
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>
               Cancelar
