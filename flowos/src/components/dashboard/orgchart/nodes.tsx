@@ -12,14 +12,14 @@ import type { DivisionNode, DepartmentNode, EmployeeNode } from "./types";
 
 export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>) {
   const fineBorder = `1px solid ${selected ? data.color : data.color + "55"}`;
-  const noBorder = "none";
   const subtitle = data.subtitle ?? "";
   const showFooter = !!data.showFooter && !!data.footerText?.trim();
   const headerHeight = 64;
   const footerHeight = 40;
-  // When adjacent to another division, hide that border so they look fused
-  const borderLeftStyle = data.adjLeft ? noBorder : fineBorder;
-  const borderRightStyle = data.adjRight ? noBorder : fineBorder;
+  // Frontera entre divisiones adyacentes: ambos lados mantienen su borde del
+  // propio color → divider bicolor de 2px que muestra los colores de cada lado.
+  const borderLeftStyle = fineBorder;
+  const borderRightStyle = fineBorder;
   const radius = {
     topLeft: data.adjLeft ? 0 : 12,
     topRight: data.adjRight ? 0 : 12,
@@ -56,9 +56,17 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
         {data.isConnectable !== false && (
           <>
             <Handle type="target" position={Position.Top}
-              style={{ background: `${data.color}88`, width: 7, height: 7, border: "none", top: -3, zIndex: 6 }} />
+              style={{
+                background: selected ? data.color : "transparent",
+                width: 9, height: 9, border: "none", top: -3, zIndex: 6,
+                opacity: selected ? 1 : 0,
+              }} />
             <Handle type="source" position={Position.Bottom}
-              style={{ background: `${data.color}88`, width: 7, height: 7, border: "none", bottom: -3, zIndex: 6 }} />
+              style={{
+                background: selected ? data.color : "transparent",
+                width: 9, height: 9, border: "none", bottom: -3, zIndex: 6,
+                opacity: selected ? 1 : 0,
+              }} />
           </>
         )}
 
@@ -174,9 +182,11 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
 
 export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentNode>) {
   const fineBorder = `1px solid ${selected ? data.color : data.color + "44"}`;
-  const noBorder = "none";
-  const borderLeftStyle = data.adjLeft ? noBorder : fineBorder;
-  const borderRightStyle = data.adjRight ? noBorder : fineBorder;
+  // Frontera entre depts adyacentes: en vez de invisible, dejamos una línea
+  // del propio color del depto. Combinado con el borde del vecino → divider
+  // bicolor (1px de cada lado) que muestra los dos colores.
+  const borderLeftStyle = fineBorder;
+  const borderRightStyle = fineBorder;
   const radius = {
     topLeft: data.adjLeft ? 0 : 8,
     topRight: data.adjRight ? 0 : 8,
@@ -193,10 +203,22 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
         onResize={(_, { width, height }) => data.onResizeLive?.(id, width, height)}
         onResizeEnd={(_, { width, height }) => data.onResize?.(id, width, height)}
       />
+      {/* Handles del depto: invisibles por default, visibles en hover/selected.
+          Evita el "punto flotante" entre depts adyacentes. */}
       <Handle type="target" position={Position.Top}
-        style={{ background: `${data.color}88`, width: 6, height: 6, border: "none", top: -3, zIndex: 6 }} />
+        className="dept-handle"
+        style={{
+          background: selected ? data.color : "transparent",
+          width: 8, height: 8, border: "none", top: -3, zIndex: 6,
+          opacity: selected ? 1 : 0,
+        }} />
       <Handle type="source" position={Position.Bottom}
-        style={{ background: `${data.color}88`, width: 6, height: 6, border: "none", bottom: -3, zIndex: 6 }} />
+        className="dept-handle"
+        style={{
+          background: selected ? data.color : "transparent",
+          width: 8, height: 8, border: "none", bottom: -3, zIndex: 6,
+          opacity: selected ? 1 : 0,
+        }} />
       <div
         style={{
           width: "100%", height: "100%",
@@ -308,7 +330,11 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
       {/* Header del card — info del puesto principal */}
       <div className="flex items-center gap-2" style={{ padding: cardPad }}>
         <Handle type="target" position={Position.Top}
-          style={{ background: `${data.color}88`, width: 6, height: 6, border: "none", top: -3 }} />
+          style={{
+            background: selected ? data.color : "transparent",
+            width: 8, height: 8, border: "none", top: -3,
+            opacity: selected ? 1 : 0,
+          }} />
         <div
           className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
           style={{
@@ -391,7 +417,11 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
         </span>
       )}
       <Handle type="source" position={Position.Bottom}
-        style={{ background: `${data.color}88`, width: 6, height: 6, border: "none", bottom: -3 }} />
+        style={{
+          background: selected ? data.color : "transparent",
+          width: 8, height: 8, border: "none", bottom: -3,
+          opacity: selected ? 1 : 0,
+        }} />
     </div>
   );
 }
