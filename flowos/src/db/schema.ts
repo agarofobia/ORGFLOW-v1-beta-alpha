@@ -204,6 +204,8 @@ export const employees = pgTable(
     unitId: uuid("unit_id"),
     status: employeeStatusEnum("status").notNull().default("active"),
     color: text("color").default("#1A1814"),
+    // URL pública de la foto del empleado. Si null, se usan las iniciales sobre color.
+    imageUrl: text("image_url"),
     positionX: doublePrecision("position_x").default(0),
     positionY: doublePrecision("position_y").default(0),
     // Si true, respeta positionX/Y. Si false, layout jerárquico auto (DIR→ENC→team)

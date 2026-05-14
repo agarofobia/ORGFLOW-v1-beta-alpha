@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
         manualPosition: body.manualPosition ?? false,
         role: body.role ?? null,
         unitId: body.unitId ?? null,
+        imageUrl: body.imageUrl ?? null,
         metadata: body.metadata ?? {},
       })
       .returning();

@@ -22,6 +22,7 @@ interface Employee {
   salary?: number;
   status: "active" | "inactive" | "on_leave";
   color?: string;
+  imageUrl?: string | null;
   startDate?: string;
   departmentId?: string;
   divisionId?: string;
@@ -70,11 +71,31 @@ function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
 }
 
-function Avatar({ name, color, size = 40 }: { name: string; color?: string; size?: number }) {
+function Avatar({ name, color, size = 40, imageUrl }: { name: string; color?: string; size?: number; imageUrl?: string | null }) {
   const bg = color || "#3D7EFF";
+  const [imageError, setImageError] = useState(false);
+  const hasImage = imageUrl && !imageError;
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", backgroundColor: bg + "33", border: `2px solid ${bg}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: size * 0.35, fontWeight: 600, color: bg }}>
-      {getInitials(name)}
+    <div style={{
+      width: size, height: size, borderRadius: "50%",
+      backgroundColor: bg + "33",
+      border: `2px solid ${bg}`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      flexShrink: 0,
+      fontSize: size * 0.35, fontWeight: 600, color: bg,
+      overflow: "hidden",
+    }}>
+      {hasImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl!}
+          alt={name}
+          onError={() => setImageError(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+      ) : (
+        getInitials(name)
+      )}
     </div>
   );
 }
@@ -283,6 +304,98 @@ function StatusDropdown({ value, onChange }: {
   );
 }
 
+// ─── Filter Dropdown (generic, custom dark theme) ───────────────────────────
+
+function FilterDropdown<T extends string>({ value, onChange, options, label, accentColor }: {
+  value: T;
+  onChange: (v: T) => void;
+  options: Array<{ v: T; label: string; color?: string }>;
+  label: string; // label corto mostrado cuando value === "" (sin filtro)
+  accentColor?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = options.find(o => o.v === value);
+  const isActive = value !== ("" as T) && value !== ("all" as T);
+  const accent = accentColor ?? "#3D7EFF";
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: isActive ? `${accent}15` : "#0E1220",
+          border: `1px solid ${isActive ? `${accent}50` : "#1E2540"}`,
+          borderRadius: 20,
+          color: isActive ? accent : "#7A8BAD",
+          fontSize: 11, fontWeight: 500,
+          padding: "5px 12px",
+          cursor: "pointer",
+          outline: "none",
+        }}
+      >
+        {current?.color && (
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: current.color }} />
+        )}
+        {isActive && current ? current.label : label}
+        <ChevronDown size={11} style={{ transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 150ms" }} />
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0,
+          backgroundColor: "#0E1220",
+          border: "1px solid #1E2540",
+          borderRadius: 8,
+          minWidth: 180,
+          maxHeight: 260,
+          overflowY: "auto",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          padding: 4,
+          zIndex: 100,
+        }}>
+          {options.map(opt => (
+            <button
+              key={opt.v}
+              type="button"
+              onClick={() => { onChange(opt.v); setOpen(false); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                width: "100%",
+                background: opt.v === value ? "#1E2540" : "transparent",
+                border: "none",
+                borderRadius: 4,
+                color: opt.color || "#E2E8F8",
+                fontSize: 12,
+                padding: "6px 10px",
+                cursor: "pointer",
+                textAlign: "left",
+                fontWeight: opt.v === value ? 600 : 400,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = "#1E2540")}
+              onMouseLeave={e => (e.currentTarget.style.background = opt.v === value ? "#1E2540" : "transparent")}
+            >
+              {opt.color && <span style={{ width: 6, height: 6, borderRadius: "50%", background: opt.color }} />}
+              {opt.label}
+              {opt.v === value && <Check size={11} style={{ marginLeft: "auto", color: opt.color ?? accent }} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Employee Panel (drawer overlay) ─────────────────────────────────────────
 
 function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
@@ -383,7 +496,7 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
       {/* Header */}
       <div style={{ padding: "20px 24px 0", borderBottom: "1px solid #1E2540" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
-          <Avatar name={local.fullName} color={local.color} size={52} />
+          <Avatar name={local.fullName} color={local.color} size={52} imageUrl={local.imageUrl} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <input style={{ background: "none", border: "none", outline: "none", color: "#E2E8F8", fontSize: 18, fontWeight: 700, width: "100%", padding: 0, marginBottom: 2 }}
               value={local.fullName} onChange={e => setLocal({ ...local, fullName: e.target.value })} placeholder="Nombre completo" />
@@ -443,6 +556,32 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
             </div>
 
             <div><label style={labelStyle}>Fecha de ingreso</label><input style={inputStyle} type="date" value={local.startDate ? local.startDate.slice(0, 10) : ""} onChange={e => setLocal({ ...local, startDate: e.target.value })} /></div>
+
+            {/* Foto del empleado (URL pública) */}
+            <div>
+              <label style={labelStyle}>Foto (URL)</label>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <Avatar name={local.fullName} color={local.color} size={42} imageUrl={local.imageUrl} />
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  type="url"
+                  value={local.imageUrl || ""}
+                  onChange={e => setLocal({ ...local, imageUrl: e.target.value || null })}
+                  placeholder="https://… (URL pública de la imagen)"
+                />
+                {local.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setLocal({ ...local, imageUrl: null })}
+                    style={{ padding: "8px 10px", backgroundColor: "transparent", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD", cursor: "pointer" }}
+                    title="Quitar foto"
+                  ><X size={13} /></button>
+                )}
+              </div>
+              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+                Pegá una URL pública (Gmail avatar, LinkedIn, imgur, etc.). Subida directa en próxima versión.
+              </p>
+            </div>
 
             <div>
               <label style={labelStyle}>Descripción del puesto</label>
@@ -590,8 +729,12 @@ export default function EmployeesPage() {
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"active" | "all">("active");
   const [groupBy, setGroupBy] = useState<"none" | "division" | "dept">("division");
+  // Filtros granulares (combinables con search). Por default sin filtro de estado:
+  // muestra todos. El usuario activa el filtro que quiera.
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "on_leave">("all");
+  const [divFilter, setDivFilter] = useState<string>("");
+  const [deptFilter, setDeptFilter] = useState<string>("");
   const [selected, setSelected] = useState<Employee | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<Employee | null>(null);
@@ -599,23 +742,38 @@ export default function EmployeesPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const url = filter === "all" ? "/api/employees?includeInactive=true" : "/api/employees";
+      // Siempre traemos todos los empleados; el filtro por estado se aplica del lado cliente
+      // vía statusFilter ('all' | 'active' | 'inactive' | 'on_leave').
       const [empRes, divRes, deptRes] = await Promise.all([
-        fetch(url), fetch("/api/divisions"), fetch("/api/departments"),
+        fetch("/api/employees?includeInactive=true"), fetch("/api/divisions"), fetch("/api/departments"),
       ]);
       if (empRes.ok) setEmployees(await empRes.json());
       if (divRes.ok) setDivisions(await divRes.json());
       if (deptRes.ok) setAllDepartments(await deptRes.json());
     } finally { setLoading(false); }
-  }, [filter]);
+  }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const filtered = employees.filter(e =>
-    e.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    (e.jobTitle || "").toLowerCase().includes(search.toLowerCase()) ||
-    (e.email || "").toLowerCase().includes(search.toLowerCase())
-  );
+  // Filtros aplicados: search (libre) + status set + divisionId + departmentId
+  const filtered = employees.filter(e => {
+    // Búsqueda textual
+    const q = search.toLowerCase();
+    if (q) {
+      const matchSearch =
+        e.fullName.toLowerCase().includes(q) ||
+        (e.jobTitle || "").toLowerCase().includes(q) ||
+        (e.email || "").toLowerCase().includes(q);
+      if (!matchSearch) return false;
+    }
+    // Estado (si activo el filtro 'all' incluye todos; sino filtra al set elegido)
+    if (statusFilter !== "all" && e.status !== statusFilter) return false;
+    // División específica
+    if (divFilter && e.divisionId !== divFilter) return false;
+    // Departamento específico
+    if (deptFilter && e.departmentId !== deptFilter) return false;
+    return true;
+  });
 
   const handleUpdated = (updated: Employee) => {
     setEmployees(prev => prev.map(e => e.id === updated.id ? updated : e));
@@ -668,17 +826,52 @@ export default function EmployeesPage() {
               <input style={{ ...inputStyle, paddingLeft: 30, fontSize: 12 }} placeholder="Buscar empleado..." value={search} onChange={e => setSearch(e.target.value)} />
               {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#7A8BAD", cursor: "pointer" }}><X size={12} /></button>}
             </div>
-            {/* Status filter */}
-            <div style={{ display: "flex", gap: 3, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 20, padding: 3 }}>
-              {(["active", "all"] as const).map(f => (
-                <button key={f} onClick={() => setFilter(f)} style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500, border: "none", cursor: "pointer", background: filter === f ? "#3D7EFF" : "transparent", color: filter === f ? "#fff" : "#7A8BAD" }}>
-                  {f === "active" ? "Activos" : "Todos"}
-                </button>
-              ))}
-            </div>
-            {/* Group by */}
-            <div style={{ display: "flex", gap: 3, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 20, padding: 3 }}>
-              {([["none", "Sin grupo"], ["division", "División"], ["dept", "Departamento"]] as [typeof groupBy, string][]).map(([val, lbl]) => (
+            {/* Estado: filtro detallado */}
+            <FilterDropdown
+              value={statusFilter}
+              onChange={v => setStatusFilter(v)}
+              label="Estado"
+              accentColor={STATUS_COLORS[statusFilter] ?? "#3D7EFF"}
+              options={[
+                { v: "all",       label: "Todos los estados", color: "#7A8BAD" },
+                { v: "active",    label: "Activo",    color: STATUS_COLORS.active },
+                { v: "inactive",  label: "Inactivo",  color: STATUS_COLORS.inactive },
+                { v: "on_leave",  label: "Licencia",  color: STATUS_COLORS.on_leave },
+              ]}
+            />
+            {/* División: filtro por una específica */}
+            <FilterDropdown
+              value={divFilter}
+              onChange={setDivFilter}
+              label="División"
+              options={[
+                { v: "", label: "Todas las divisiones" },
+                ...divisions.map(d => ({ v: d.id, label: d.name, color: "#3D7EFF" })),
+              ]}
+            />
+            {/* Departamento: filtro por uno específico */}
+            <FilterDropdown
+              value={deptFilter}
+              onChange={setDeptFilter}
+              label="Departamento"
+              options={[
+                { v: "", label: "Todos los departamentos" },
+                ...allDepartments.map(d => ({ v: d.id, label: d.name, color: "#C8902C" })),
+              ]}
+            />
+            {/* Limpiar filtros (visible solo si hay alguno activo) */}
+            {(statusFilter !== "all" || divFilter || deptFilter || search) && (
+              <button
+                onClick={() => { setStatusFilter("all"); setDivFilter(""); setDeptFilter(""); setSearch(""); }}
+                style={{ padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 500, border: "1px solid #F43F5E40", background: "transparent", color: "#F43F5E", cursor: "pointer" }}
+              >
+                Limpiar filtros
+              </button>
+            )}
+            {/* Group by — secundario, separado */}
+            <div style={{ marginLeft: "auto", display: "flex", gap: 3, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 20, padding: 3 }}>
+              <span style={{ padding: "3px 8px", fontSize: 10, color: "#7A8BAD", fontFamily: "monospace", textTransform: "uppercase", display: "flex", alignItems: "center" }}>Agrupar:</span>
+              {([["none", "—"], ["division", "División"], ["dept", "Depto"]] as [typeof groupBy, string][]).map(([val, lbl]) => (
                 <button key={val} onClick={() => setGroupBy(val)} style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500, border: "none", cursor: "pointer", background: groupBy === val ? "#1E2540" : "transparent", color: groupBy === val ? "#E2E8F8" : "#7A8BAD" }}>
                   {lbl}
                 </button>
@@ -708,7 +901,7 @@ export default function EmployeesPage() {
                 return (
                   <div key={emp.id} onClick={() => setSelected(isSelected ? null : emp)}
                     style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 32px", cursor: "pointer", backgroundColor: isSelected ? "#141928" : "transparent", borderLeft: isSelected ? "3px solid #3D7EFF" : "3px solid transparent", borderBottom: "1px solid #1E254040", transition: "background 0.15s" }}>
-                    <Avatar name={emp.fullName} color={emp.color} size={38} />
+                    <Avatar name={emp.fullName} color={emp.color} size={38} imageUrl={emp.imageUrl} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ color: "#E2E8F8", fontSize: 14, fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.fullName}</p>
                       <p style={{ color: "#7A8BAD", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.jobTitle || "Sin puesto definido"}</p>
