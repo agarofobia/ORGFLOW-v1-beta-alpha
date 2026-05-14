@@ -362,19 +362,29 @@ function OrgChartFlow() {
       return { w: 320, h: HEADER_H + 60 + footerH };
     }
 
-    // Bounding box from actual stored child positions — grows with real layout, not theory.
+    // Bounding box. Cada depto crece según sus empleados (excluyendo head promovido)
+    // Y todos los hermanos de la división comparten el mismo alto (el max) para que
+    // la división se vea uniforme sin huecos.
     let maxChildX = 0;
     let maxChildY = 0;
+    // Pre-cálculo de altura needed por depto
+    const heights: number[] = [];
     childDepts.forEach(dept => {
-      // empCount excluye al director (que va promovido arriba del depto, no adentro)
+      const isHeadPromoted = (dept.promoteHead ?? true) && !!dept.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
-        e.departmentId === dept.id && e.id !== dept.headEmployeeId
+        e.departmentId === dept.id &&
+        (!isHeadPromoted || e.id !== dept.headEmployeeId)
       ).length;
-      const neededH = 34 + 12 + empCount * (EMP_H + EMP_GAP) + 16;
-      const dH = Math.max(dept.sizeHeight ?? DEPT_H, neededH);
+      const mode = dept.layoutMode ?? "vertical";
+      const step = mode === "compact" ? (44 + 6) : (EMP_H + EMP_GAP);
+      const needed = 34 + 12 + empCount * step + 16;
+      heights.push(Math.max(dept.sizeHeight ?? DEPT_H, needed));
+    });
+    const maxDeptH = heights.length > 0 ? Math.max(...heights) : DEPT_H;
+    childDepts.forEach(dept => {
       const dW = Math.max(dept.sizeWidth ?? DEPT_W, 290);
       const x = (dept.positionX ?? PADDING) + dW;
-      const y = (dept.positionY ?? HEADER_H + PADDING) + dH;
+      const y = (dept.positionY ?? HEADER_H + PADDING) + maxDeptH;
       if (x > maxChildX) maxChildX = x;
       if (y > maxChildY) maxChildY = y;
     });
@@ -723,13 +733,34 @@ function OrgChartFlow() {
       });
     });
 
+    // Pre-cálculo: altura needed de cada depto, y max por división.
+    // Esto permite que todos los depts hermanos en una división compartan el mismo
+    // alto → la división se llena prolijo sin huecos.
+    const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
+    const deptNeededHeight = new Map<string, number>();
+    for (const dp of departments) {
+      const isHeadPromoted = (dp.promoteHead ?? true) && !!dp.headEmployeeId;
+      const empCount = (employees ?? []).filter(e =>
+        e.departmentId === dp.id &&
+        (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
+        !absorption.absorbedIds.has(e.id)
+      ).length;
+      const mode = dp.layoutMode ?? "vertical";
+      const step = mode === "compact" ? (44 + 6) : (EMP_H + EMP_GAP);
+      const needed = DEPT_HDR + DEPT_TOP_PAD + empCount * step + DEPT_BOT_PAD;
+      deptNeededHeight.set(dp.id, Math.max(dp.sizeHeight ?? DEPT_H, needed));
+    }
+    const divisionMaxDeptHeight = new Map<string, number>();
+    for (const dp of departments) {
+      if (!dp.divisionId) continue;
+      const cur = divisionMaxDeptHeight.get(dp.divisionId) ?? 0;
+      const h = deptNeededHeight.get(dp.id) ?? DEPT_H;
+      if (h > cur) divisionMaxDeptHeight.set(dp.divisionId, h);
+    }
+
     // Departments — child of division if has divisionId; skip if parent division is collapsed
     departments.forEach(dp => {
       if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
-      // empCount para auto-height: cuenta cards visibles dentro del depto.
-      // Excluye:
-      //   - el director si está promovido (va arriba del depto)
-      //   - empleados absorbidos por su manager (renderizados inline en otro card)
       const isHeadPromoted = (dp.promoteHead ?? true) && !!dp.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
         e.departmentId === dp.id &&
@@ -739,14 +770,12 @@ function OrgChartFlow() {
       const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
       const dAdj = deptAdjacency.get(dp.id) ?? { left: false, right: false };
       const isSyncingDept = syncingNodeIds.has(dp.id);
-      // Auto-height: crece para contener todos sus empleados.
-      // Fórmula: header(34) + top-pad(12) + n*EMP_STEP + bot-pad(16)
-      const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
-      // EMP_STEP depende del modo de layout: compact usa cards 50% más chicas.
       const dpLayoutMode = dp.layoutMode ?? "vertical";
-      const EMP_STEP = dpLayoutMode === "compact" ? (44 + 6) : (EMP_H + EMP_GAP);
-      const neededH = DEPT_HDR + DEPT_TOP_PAD + empCount * EMP_STEP + DEPT_BOT_PAD;
-      const deptH = Math.max(dp.sizeHeight ?? DEPT_H, neededH);
+      // Altura: el depto crece para contener sus empleados, Y se iguala al hermano
+      // más alto de su división para que no queden huecos vacíos visualmente.
+      const ownH = deptNeededHeight.get(dp.id) ?? DEPT_H;
+      const siblingsMaxH = dp.divisionId ? (divisionMaxDeptHeight.get(dp.divisionId) ?? ownH) : ownH;
+      const deptH = Math.max(ownH, siblingsMaxH);
       // Ancho mínimo = COL_X(16) + maxIndent(3 niveles×20=60) + cardWidth(200) + rightPad(14) = 290
       const neededW = 290;
       const deptW = Math.max(dp.sizeWidth ?? DEPT_W, neededW);

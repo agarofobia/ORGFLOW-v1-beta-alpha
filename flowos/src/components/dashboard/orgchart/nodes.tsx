@@ -56,9 +56,9 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
         {data.isConnectable !== false && (
           <>
             <Handle type="target" position={Position.Top}
-              style={{ background: data.color, width: 10, height: 10, border: "none", top: -1, zIndex: 6 }} />
+              style={{ background: `${data.color}88`, width: 7, height: 7, border: "none", top: -3, zIndex: 6 }} />
             <Handle type="source" position={Position.Bottom}
-              style={{ background: data.color, width: 10, height: 10, border: "none", bottom: -1, zIndex: 6 }} />
+              style={{ background: `${data.color}88`, width: 7, height: 7, border: "none", bottom: -3, zIndex: 6 }} />
           </>
         )}
 
@@ -194,9 +194,9 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
         onResizeEnd={(_, { width, height }) => data.onResize?.(id, width, height)}
       />
       <Handle type="target" position={Position.Top}
-        style={{ background: data.color, width: 8, height: 8, border: "none", top: -10, zIndex: 6 }} />
+        style={{ background: `${data.color}88`, width: 6, height: 6, border: "none", top: -3, zIndex: 6 }} />
       <Handle type="source" position={Position.Bottom}
-        style={{ background: data.color, width: 8, height: 8, border: "none", bottom: -1, zIndex: 6 }} />
+        style={{ background: `${data.color}88`, width: 6, height: 6, border: "none", bottom: -3, zIndex: 6 }} />
       <div
         style={{
           width: "100%", height: "100%",
@@ -301,12 +301,14 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
         borderRadius: 6,
         opacity: isVacant && !hasSubsInside ? 0.85 : 1,
         position: "relative",
-        overflow: "hidden",
+        // overflow visible para que los handles no queden cortados a la mitad.
+        // El border-radius lo respetamos solo en el header con clip-path implícito.
       }}
     >
       {/* Header del card — info del puesto principal */}
       <div className="flex items-center gap-2" style={{ padding: cardPad }}>
-        <Handle type="target" position={Position.Top} style={{ background: data.color, width: 8, height: 8, border: "none" }} />
+        <Handle type="target" position={Position.Top}
+          style={{ background: `${data.color}88`, width: 6, height: 6, border: "none", top: -3 }} />
         <div
           className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
           style={{
@@ -336,6 +338,8 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
           borderTop: `1px dashed ${data.color}44`,
           background: "rgba(20, 25, 40, 0.4)",
           padding: "4px 6px 6px 6px",
+          borderBottomLeftRadius: 4,
+          borderBottomRightRadius: 4,
         }}>
           {subordinates.map(sub => {
             const subInitials = sub.isVacant
@@ -386,7 +390,8 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
           {roleBadge}
         </span>
       )}
-      <Handle type="source" position={Position.Bottom} style={{ background: data.color, width: 8, height: 8, border: "none" }} />
+      <Handle type="source" position={Position.Bottom}
+        style={{ background: `${data.color}88`, width: 6, height: 6, border: "none", bottom: -3 }} />
     </div>
   );
 }
