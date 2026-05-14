@@ -26,6 +26,10 @@ export type EmployeeNodeData = {
   // Rol efectivo computado en computedNodes (auto-detect + override).
   // Solo se renderiza badge cuando es "director" o "manager".
   role?: "director" | "manager" | "member";
+  // departmentId real del empleado (incluso si visualmente está en otro parent,
+  // como pasa con los directores promovidos). BicolorEdge lo usa para decidir
+  // si la edge entre dos empleados es "interna del depto" (L-line) o externa.
+  departmentId?: string | null;
 };
 
 export type DivisionNodeData = {

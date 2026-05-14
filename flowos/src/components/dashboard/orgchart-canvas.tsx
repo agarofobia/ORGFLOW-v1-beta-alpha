@@ -445,15 +445,17 @@ function OrgChartFlow() {
     return s;
   }, [departments]);
 
-  // Edges sintéticas: cada director → su departamento, generadas automáticamente.
-  // No se persisten, no son editables, no entran al state `edges`.
-  // Se concatenan al render de ReactFlow vía `displayEdges`.
+  // Edges sintéticas — generadas automáticamente, no se persisten ni son editables:
+  //   1. director → su departamento (__sync_dir_<deptId>)
+  //   2. manager → subordinado para cada empleado con managerId (__sync_mgr_<empId>)
+  // El usuario ve la jerarquía completa sin tener que dibujar líneas a mano.
   const directorSyntheticEdges = useMemo<Edge[]>(() => {
     const out: Edge[] = [];
+    const empIds = new Set((employees ?? []).map(e => e.id));
+
+    // 1. Director → Departamento
     for (const dp of departments) {
-      if (!dp.headEmployeeId) continue;
-      // Solo si el director y el depto existen como empleados/departamentos válidos
-      if (!(employees ?? []).some(e => e.id === dp.headEmployeeId)) continue;
+      if (!dp.headEmployeeId || !empIds.has(dp.headEmployeeId)) continue;
       out.push({
         id: `__sync_dir_${dp.id}`,
         source: dp.headEmployeeId,
@@ -464,6 +466,21 @@ function OrgChartFlow() {
         focusable: false,
       });
     }
+
+    // 2. Manager → Subordinado (managerId chain)
+    for (const e of employees ?? []) {
+      if (!e.managerId || !empIds.has(e.managerId)) continue;
+      out.push({
+        id: `__sync_mgr_${e.id}`,
+        source: e.managerId,
+        target: e.id,
+        type: "bicolor",
+        selectable: false,
+        deletable: false,
+        focusable: false,
+      });
+    }
+
     return out;
   }, [departments, employees]);
 
@@ -734,6 +751,7 @@ function OrgChartFlow() {
             color: emp.color || "#3D7EFF",
             status: emp.status,
             role: effectiveRole,
+            departmentId: emp.departmentId,
           },
         };
         // Parent = división del depto si existe; si no, queda standalone.
@@ -761,6 +779,7 @@ function OrgChartFlow() {
           color: emp.color || "#3D7EFF",
           status: emp.status,
           role: effectiveRole,
+          departmentId: emp.departmentId,
         },
       };
       if (emp.departmentId && departments.some(d => d.id === emp.departmentId)) {

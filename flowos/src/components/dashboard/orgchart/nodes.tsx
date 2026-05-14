@@ -342,17 +342,20 @@ export const BicolorEdge = ({
   const gradientId = `bg-${id.replace(/[^a-zA-Z0-9-]/g, "-")}`;
 
   // L-lines (ángulos rectos puros) cuando:
-  //   a) ambos nodos son empleados del mismo parent (jerarquía interna del depto)
-  //   b) la edge es sintética director→depto (id empieza con __sync_dir_)
-  // Para conexiones externas (división→director, edges user-defined) se mantiene
-  // el smoothstep curvado clásico.
-  const isInternalEmpEdge =
+  //   a) ambos nodos son empleados del MISMO depto (incluso si parent visual difiere,
+  //      como pasa con un director promovido conectando a un encargado interno)
+  //   b) la edge es sintética director→depto o manager→subordinado (__sync_*)
+  // Para conexiones externas (división→director sin parent común, edges manuales)
+  // se mantiene el smoothstep curvado clásico.
+  const sourceDeptId = (sourceNode?.data as { departmentId?: string | null })?.departmentId;
+  const targetDeptId = (targetNode?.data as { departmentId?: string | null })?.departmentId;
+  const isSameDeptEmpEdge =
     sourceNode?.type === "employee" &&
     targetNode?.type === "employee" &&
-    !!sourceNode.parentId &&
-    sourceNode.parentId === targetNode.parentId;
-  const isSyntheticDirectorEdge = id.startsWith("__sync_dir_");
-  const useStraightCorners = isInternalEmpEdge || isSyntheticDirectorEdge;
+    !!sourceDeptId &&
+    sourceDeptId === targetDeptId;
+  const isSyntheticEdge = id.startsWith("__sync_");
+  const useStraightCorners = isSameDeptEmpEdge || isSyntheticEdge;
 
   const [edgePath] = getSmoothStepPath({
     sourceX, sourceY, sourcePosition,
