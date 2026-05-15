@@ -1,21 +1,21 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { X, Loader2, Trash2 } from "lucide-react";
 import type { Employee } from "@/db/schema";
 import type { Division, Department } from "./types";
 import { ColorPicker } from "./ColorPicker";
 
-// Hook: cierra el modal solo si el usuario hizo mousedown Y mouseup sobre el backdrop.
-// Evita el bug donde seleccionar texto en un input (mousedown adentro → mouseup afuera)
-// dispara el cierre del modal porque el click event tiene target=backdrop.
-function useBackdropClose(onClose: () => void) {
-  const downRef = useRef<EventTarget | null>(null);
+// Helper: handler que cierra el modal SOLO si el mousedown empezó directamente
+// sobre el backdrop (no en un child como un input).
+// Evita el bug: seleccionar texto en un input → mouseup termina en backdrop → onClick
+// se disparaba con e.target=backdrop → modal cerraba.
+// Con onMouseDown, el evento sólo se dispara cuando el press inicial cae sobre el
+// elemento (no sube por bubbling de inputs).
+function backdropClose(onClose: () => void) {
   return {
-    onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => { downRef.current = e.target; },
-    onMouseUp: (e: React.MouseEvent<HTMLDivElement>) => {
-      if (downRef.current === e.currentTarget && e.target === e.currentTarget) onClose();
-      downRef.current = null;
+    onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.target === e.currentTarget) onClose();
     },
   };
 }
@@ -47,7 +47,7 @@ export function PersonPickerModal({ employees, onPick, onClose, onClearAssignmen
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      onClick={onClose}>
+      {...backdropClose(onClose)}>
       <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, width: 480, maxHeight: "75vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: "14px 16px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>Asignar persona al puesto</p>
@@ -232,7 +232,7 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
   return (
     <>
       <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
-        {...useBackdropClose(onClose)}>
+        {...backdropClose(onClose)}>
         <div style={{
           width: "100%", maxWidth: 520, maxHeight: "88vh",
           background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
@@ -441,7 +441,7 @@ export function DivisionEditModal({ division, employees, onSave, onDelete, onClo
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      {...useBackdropClose(onClose)}>
+      {...backdropClose(onClose)}>
       <div style={{
         width: "100%", maxWidth: 480,
         background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
@@ -602,7 +602,7 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      {...useBackdropClose(onClose)}>
+      {...backdropClose(onClose)}>
       <div style={{ width: "100%", maxWidth: 420, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}
         onClick={e => e.stopPropagation()}>
         <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -716,7 +716,7 @@ export function QuickPromptModal({ title, placeholder, initialValue, onConfirm, 
   };
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      onClick={onClose}>
+      {...backdropClose(onClose)}>
       <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 20, width: 380 }} onClick={e => e.stopPropagation()}>
         <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: "0 0 12px" }}>{title}</p>
         <input autoFocus value={value} onChange={e => setValue(e.target.value)}

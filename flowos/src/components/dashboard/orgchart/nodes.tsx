@@ -329,10 +329,21 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
       {/* Header del card — info del puesto principal */}
       <div className="flex items-center gap-2" style={{ padding: cardPad }}>
         <Handle type="target" position={Position.Top}
+          id="top"
           className="orgchart-handle"
           style={{
             background: data.color,
             width: 6, height: 6, border: "none", top: -3,
+          }} />
+        {/* Handle lateral izquierdo — usado por edges sintéticas manager→subordinado
+            para que las líneas internas del depto vayan por el costado (más limpio
+            visualmente que entrar siempre por arriba). */}
+        <Handle type="target" position={Position.Left}
+          id="left"
+          className="orgchart-handle"
+          style={{
+            background: data.color,
+            width: 6, height: 6, border: "none", left: -3,
           }} />
         {data.imageUrl && !isVacant ? (
           // eslint-disable-next-line @next/next/no-img-element

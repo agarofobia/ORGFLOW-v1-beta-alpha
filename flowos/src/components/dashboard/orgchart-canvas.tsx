@@ -611,6 +611,9 @@ function OrgChartFlow() {
 
     // 2. Manager → Subordinado (managerId chain)
     // EXCEPTO si el subordinado fue absorbido inline en el card del manager.
+    // targetHandle='left' → la línea sale por debajo del manager y entra al
+    // subordinado por su lateral izquierdo. Esto da un routing en L más limpio
+    // que entrar siempre por arriba (que cruzaría visualmente con otros nodos).
     for (const e of employees ?? []) {
       if (!e.managerId || !empIds.has(e.managerId)) continue;
       if (absorption.absorbedIds.has(e.id)) continue;
@@ -618,6 +621,7 @@ function OrgChartFlow() {
         id: `__sync_mgr_${e.id}`,
         source: e.managerId,
         target: e.id,
+        targetHandle: "left",
         type: "bicolor",
         selectable: false,
         deletable: false,
