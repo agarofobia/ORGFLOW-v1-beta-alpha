@@ -214,11 +214,20 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
     } finally { setSaving(false); }
   };
 
-  const parentLabel = parent
-    ? parent.kind === "division" ? `División · ${parent.name}`
-      : parent.kind === "department" ? `Departamento · ${parent.name}`
-      : `Reporta a · ${parent.fullName} (${parent.jobTitle})`
-    : "Sin contenedor (suelto)";
+  // Label contextual: muestra exactamente DÓNDE va a quedar el puesto nuevo.
+  // Distingue: suelto, en división, en depto dentro de división, en depto suelto, o subordinado.
+  const parentLabel = (() => {
+    if (!parent) return "📍 Suelto, sin contenedor";
+    if (parent.kind === "division") return `📍 Dentro de la división "${parent.name}"`;
+    if (parent.kind === "department") {
+      const dept = departments.find(d => d.id === parent.id);
+      if (dept?.divisionId) {
+        return `📍 Dentro del depto "${parent.name}" (en una división)`;
+      }
+      return `📍 Dentro del depto "${parent.name}" (suelto)`;
+    }
+    return `📍 Reporta a · ${parent.fullName} (${parent.jobTitle})`;
+  })();
 
   return (
     <>

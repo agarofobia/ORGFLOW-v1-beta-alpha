@@ -1747,14 +1747,19 @@ function OrgChartFlow() {
     });
   }, [nodes]);
   const dedupedEdges = useMemo(() => {
+    // Solo emitimos una edge si AMBOS source y target están presentes como nodes
+    // en el state local. Evita el bug visual del primer render donde las edges
+    // sintéticas se renderizaban contra nodes con posiciones intermedias / faltantes.
+    const nodeIds = new Set(nodes.map(n => n.id));
     const seen = new Set<string>();
     const all = [...edges, ...directorSyntheticEdges];
     return all.filter(e => {
       if (seen.has(e.id)) return false;
+      if (!nodeIds.has(e.source) || !nodeIds.has(e.target)) return false;
       seen.add(e.id);
       return true;
     });
-  }, [edges, directorSyntheticEdges]);
+  }, [edges, directorSyntheticEdges, nodes]);
 
   if (error) {
     return (
