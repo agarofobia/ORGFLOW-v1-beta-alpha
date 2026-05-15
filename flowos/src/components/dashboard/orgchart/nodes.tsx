@@ -520,6 +520,7 @@ export const BicolorEdge = ({
         path={edgePath}
         markerEnd={markerEnd}
         style={{ stroke: `url(#${gradientId})`, strokeWidth: 1.5 }}
+        interactionWidth={28}
       />
     </>
   );

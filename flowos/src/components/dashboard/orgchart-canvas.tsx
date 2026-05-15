@@ -1780,15 +1780,9 @@ function OrgChartFlow() {
           filter: brightness(1.1);
           transform: translateY(-1px);
         }
-        @keyframes flowos-node-fade-in {
-          from { opacity: 0; transform: scale(0.96); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .react-flow__node-division,
-        .react-flow__node-department,
-        .react-flow__node-employee {
-          animation: flowos-node-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        /* Animación de fade-in removida: el transform: scale(0.96) inicial
+           descolocaba los handles (que están en top:-3) durante los ~200ms
+           del fade. Los nodos ahora aparecen sin animación. */
         /* Handles: visibles siempre, color sólido (estilo original) */
         .orgchart-handle {
           opacity: 1;
