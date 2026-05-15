@@ -1289,6 +1289,14 @@ function OrgChartFlow() {
     else if (node.type === "department") setContextMenu({ kind: "department", id: node.id, x: e.clientX, y: e.clientY });
   }, [divisions, manualSizeDivs, collapsedDivs]);
 
+  // Click derecho en una conexión → menú con opción Eliminar.
+  // Las edges sintéticas (__sync_*) muestran info pero no permiten eliminar.
+  const onEdgeContextMenu = useCallback((e: React.MouseEvent, edge: Edge) => {
+    e.preventDefault();
+    const isSynthetic = typeof edge.id === "string" && edge.id.startsWith("__sync_");
+    setContextMenu({ kind: "edge", id: edge.id, x: e.clientX, y: e.clientY, isSynthetic });
+  }, []);
+
   // ── Create employee ───────────────────────────────────────────────────────
   const handleAddEmployee = async (jobTitle: string, fullName: string, color: string, parent?: { kind: "division" | "department"; id: string }, extras?: { description?: string; salary?: string; email?: string; phone?: string; startDate?: string; managerId?: string; role?: string; }) => {
     const allEmps = employeesRef.current ?? [];
@@ -1440,6 +1448,18 @@ function OrgChartFlow() {
   const handleCtxAction = async (action: string) => {
     if (!contextMenu) return;
     const t = contextMenu;
+
+    // Acciones sobre una conexión (edge)
+    if (t.kind === "edge") {
+      if (action === "delete-edge" && !t.isSynthetic) {
+        setEdges(prev => {
+          const next = prev.filter(e => e.id !== t.id);
+          saveEdges(next);
+          return next;
+        });
+      }
+      return;
+    }
 
     if (t.kind === "canvas") {
       // Convert screen coords (where the user right-clicked) to flow coords
@@ -1804,6 +1824,7 @@ function OrgChartFlow() {
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
         nodeTypes={nodeTypes}
         fitView
         deleteKeyCode="Delete"

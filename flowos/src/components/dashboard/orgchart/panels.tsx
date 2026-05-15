@@ -203,7 +203,8 @@ export type CtxTarget =
   | { kind: "canvas"; x: number; y: number }
   | { kind: "division"; id: string; x: number; y: number; isConnectable: boolean; autoSize: boolean; collapsed: boolean }
   | { kind: "department"; id: string; x: number; y: number }
-  | { kind: "employee"; id: string; x: number; y: number };
+  | { kind: "employee"; id: string; x: number; y: number }
+  | { kind: "edge"; id: string; x: number; y: number; isSynthetic: boolean };
 
 export function ContextMenu({ target, onAction, onClose }: {
   target: CtxTarget;
@@ -233,6 +234,19 @@ export function ContextMenu({ target, onAction, onClose }: {
       { label: "Renombrar", icon: <Edit3 size={13} />, action: "rename" },
       { label: "Eliminar departamento", icon: <Trash2 size={13} />, action: "delete", danger: true },
     ];
+    if (target.kind === "edge") {
+      // Edges sintéticas (jerarquía director→depto, manager→subordinado) no se
+      // pueden eliminar manualmente — se derivan de headEmployeeId/managerId.
+      if (target.isSynthetic) {
+        return [
+          { label: "Conexión automática (no eliminable)", icon: <Layers size={13} />, action: "noop" },
+          { label: "Para quitarla: cambiá manager/director del puesto", icon: <Edit3 size={13} />, action: "noop" },
+        ];
+      }
+      return [
+        { label: "Eliminar conexión", icon: <Trash2 size={13} />, action: "delete-edge", danger: true },
+      ];
+    }
     return [
       { label: "Nuevo subordinado", icon: <UserPlus size={13} />, action: "new-subordinate" },
       { label: "Editar", icon: <Edit3 size={13} />, action: "edit" },

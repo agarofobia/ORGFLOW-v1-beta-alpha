@@ -32,7 +32,7 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
         minWidth={320} minHeight={160}
         isVisible={selected && !data.collapsed}
         lineStyle={{ borderColor: data.color + "80" }}
-        handleStyle={{ background: data.color, width: 8, height: 8, borderRadius: 4, border: "none" }}
+        handleStyle={{ background: data.color, width: 6, height: 6, borderRadius: 4, border: "none" }}
         onResize={(_, { width, height }) => data.onResizeLive?.(id, width, height)}
         onResizeEnd={(_, { width, height }) => data.onResize?.(id, width, height)}
       />
@@ -59,13 +59,13 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
               className="orgchart-handle"
               style={{
                 background: data.color,
-                width: 9, height: 9, border: "none", top: -3, zIndex: 6,
+                width: 6, height: 6, border: "none", top: -3, zIndex: 6,
               }} />
             <Handle type="source" position={Position.Bottom}
               className="orgchart-handle"
               style={{
                 background: data.color,
-                width: 9, height: 9, border: "none", bottom: -3, zIndex: 6,
+                width: 6, height: 6, border: "none", bottom: -3, zIndex: 6,
               }} />
           </>
         )}
@@ -211,13 +211,13 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
         className="orgchart-handle"
         style={{
           background: data.color,
-          width: 8, height: 8, border: "none", top: -3, zIndex: 6,
+          width: 6, height: 6, border: "none", top: -3, zIndex: 6,
         }} />
       <Handle type="source" position={Position.Bottom}
         className="orgchart-handle"
         style={{
           background: data.color,
-          width: 8, height: 8, border: "none", bottom: -3, zIndex: 6,
+          width: 6, height: 6, border: "none", bottom: -3, zIndex: 6,
         }} />
       <div
         style={{
@@ -332,7 +332,7 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
           className="orgchart-handle"
           style={{
             background: data.color,
-            width: 8, height: 8, border: "none", top: -3,
+            width: 6, height: 6, border: "none", top: -3,
           }} />
         {data.imageUrl && !isVacant ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -452,7 +452,7 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
         className="orgchart-handle"
         style={{
           background: data.color,
-          width: 8, height: 8, border: "none", bottom: -3,
+          width: 6, height: 6, border: "none", bottom: -3,
         }} />
     </div>
   );
