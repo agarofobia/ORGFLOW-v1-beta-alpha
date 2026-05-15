@@ -140,7 +140,7 @@ function ProjectDetailModal({ project, onClose, onUpdated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.65)" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="flex flex-col rounded-xl w-full" style={{ maxWidth: 600, maxHeight: "88vh", background: "#0E1220", border: "1px solid #1E2540" }}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#1E2540" }}>

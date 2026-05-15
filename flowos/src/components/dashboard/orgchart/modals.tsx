@@ -1,10 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { X, Loader2, Trash2 } from "lucide-react";
 import type { Employee } from "@/db/schema";
 import type { Division, Department } from "./types";
 import { ColorPicker } from "./ColorPicker";
+
+// Hook: cierra el modal solo si el usuario hizo mousedown Y mouseup sobre el backdrop.
+// Evita el bug donde seleccionar texto en un input (mousedown adentro → mouseup afuera)
+// dispara el cierre del modal porque el click event tiene target=backdrop.
+function useBackdropClose(onClose: () => void) {
+  const downRef = useRef<EventTarget | null>(null);
+  return {
+    onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => { downRef.current = e.target; },
+    onMouseUp: (e: React.MouseEvent<HTMLDivElement>) => {
+      if (downRef.current === e.currentTarget && e.target === e.currentTarget) onClose();
+      downRef.current = null;
+    },
+  };
+}
 
 // Estilos compartidos entre modales (formularios oscuros)
 const fieldStyle: React.CSSProperties = {
@@ -209,7 +223,7 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
   return (
     <>
       <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
-        onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+        {...useBackdropClose(onClose)}>
         <div style={{
           width: "100%", maxWidth: 520, maxHeight: "88vh",
           background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
@@ -418,7 +432,7 @@ export function DivisionEditModal({ division, employees, onSave, onDelete, onClo
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      {...useBackdropClose(onClose)}>
       <div style={{
         width: "100%", maxWidth: 480,
         background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
@@ -579,7 +593,7 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      {...useBackdropClose(onClose)}>
       <div style={{ width: "100%", maxWidth: 420, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}
         onClick={e => e.stopPropagation()}>
         <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>

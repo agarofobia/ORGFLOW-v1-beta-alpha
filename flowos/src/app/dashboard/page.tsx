@@ -286,7 +286,7 @@ function WidgetDetailModal({ widget, value, onClose }: {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{
         background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
         width: "100%", maxWidth: 720, maxHeight: "90vh",
@@ -363,7 +363,7 @@ function AddWidgetPicker({ usedKeys, onAdd, onClose }: {
 }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{
         background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
         width: "100%", maxWidth: 540, maxHeight: "80vh", overflow: "auto",
