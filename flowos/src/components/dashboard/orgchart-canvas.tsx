@@ -243,6 +243,27 @@ function OrgChartFlow() {
   useEffect(() => { departmentsRef.current = departments; }, [departments]);
   useEffect(() => { linkedResizeRef.current = linkedResize; }, [linkedResize]);
 
+  // Fix del bug visual al cargar: las edges en el primer paint apuntan a nodes
+  // que aún no tienen sus dimensiones medidas por ReactFlow → los handles aparecen
+  // descolocados de la línea. Solución pragmática: después de cargar los datos,
+  // forzar un re-paint a través de fitView+touch del state nodes. El primer click
+  // del usuario hacía esto involuntariamente, pero queremos que pase automático.
+  const didInitialPaint = useRef(false);
+  useEffect(() => {
+    if (didInitialPaint.current) return;
+    if (divisions.length === 0 && departments.length === 0 && (employees ?? []).length === 0) return;
+    // Datos cargados — un tick después, forzamos un re-render leve para que
+    // ReactFlow recompute las posiciones de los handles con dimensiones reales.
+    didInitialPaint.current = true;
+    const t = setTimeout(() => {
+      setNodes(prev => [...prev]);
+      requestAnimationFrame(() => {
+        try { fitView({ duration: 0, padding: 0.15 }); } catch { /* ignore */ }
+      });
+    }, 200);
+    return () => clearTimeout(t);
+  }, [divisions, departments, employees, fitView]);
+
   const handleDivisionResize = useCallback((id: string, w: number, h: number) => {
     const newW = Math.round(w);
     const newH = Math.round(h);
