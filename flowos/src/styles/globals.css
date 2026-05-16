@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @layer base {
   :root {
     /* OrgFlow Dark Design System
@@ -112,6 +116,24 @@
   html.light [style*="color:#7A8BAD"] { color: #64748B !important; }
   html.light [style*="color: #4A5568"] { color: #94A3B8 !important; }
   html.light [style*="color: #1E2540"] { color: #CBD5E1 !important; } /* used as muted dividers */
+
+  /* Background variants del sprint (stats section, modals) */
+  html.light [style*="background: #1E2540"],
+  html.light [style*="background:#1E2540"] { background-color: #E2E8F0 !important; }
+  html.light [style*="background: #2A3356"],
+  html.light [style*="background:#2A3356"] { background-color: #CBD5E1 !important; }
+
+  /* Stroke/fill SVG (recharts grid lines) */
+  html.light [stroke="#1E2540"] { stroke: #CBD5E1 !important; }
+
+  /* Box shadows dark */
+  html.light [style*="boxShadow"][style*="rgba(0,0,0,0.5)"],
+  html.light [style*="box-shadow"][style*="rgba(0,0,0,0.5)"] { box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important; }
+  html.light [style*="boxShadow"][style*="rgba(0,0,0,0.6)"],
+  html.light [style*="box-shadow"][style*="rgba(0,0,0,0.6)"] { box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important; }
+
+  /* Placeholder text */
+  html.light [style*="color: #3A4560"] { color: #94A3B8 !important; }
 
   /* Tailwind classes that hardcode colors */
   html.light .bg-\[\#080B12\] { background-color: #F8FAFC !important; }

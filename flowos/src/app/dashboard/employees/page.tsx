@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOrganization } from "@clerk/nextjs";
-import { Plus, Search, X, Check, Archive, Save, ExternalLink, ChevronDown } from "lucide-react";
+import { Plus, Search, X, Check, Archive, Save, ExternalLink, ChevronDown, Upload } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -422,6 +422,31 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
   const [tab, setTab] = useState<"perfil" | "onboarding" | "procesos">("perfil");
   const [local, setLocal] = useState<Employee>(employee);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    setUploadingPhoto(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 256;
+        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+        setLocal(prev => ({ ...prev, imageUrl: dataUrl }));
+        setUploadingPhoto(false);
+      };
+      img.src = ev.target!.result as string;
+    };
+    reader.readAsDataURL(file);
+  }, []);
   const [newCheckItem, setNewCheckItem] = useState("");
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
@@ -574,20 +599,44 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
 
             <div><label style={labelStyle}>Fecha de ingreso</label><input style={inputStyle} type="date" value={local.startDate ? local.startDate.slice(0, 10) : ""} onChange={e => setLocal({ ...local, startDate: e.target.value })} /></div>
 
-            {/* Foto del empleado (URL pública).
-                Cualquiera puede cambiar SU propia foto; los admins pueden cambiar la
-                de cualquiera. La autorización efectiva la hace el servidor (PUT /api/employees/:id):
-                si alguien no autorizado manda imageUrl, se ignora silenciosamente. */}
+            {/* Foto del empleado — upload local o URL pública */}
             <div>
               <label style={labelStyle}>Foto del puesto</label>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={e => { if (e.target.files?.[0]) handlePhotoUpload(e.target.files[0]); e.target.value = ""; }}
+              />
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <Avatar name={local.fullName} color={local.color} size={42} imageUrl={local.imageUrl} />
+                {/* Avatar clickeable como zona de upload */}
+                <div
+                  onClick={() => photoInputRef.current?.click()}
+                  title="Clic para subir foto"
+                  style={{ position: "relative", cursor: "pointer", flexShrink: 0 }}
+                >
+                  <Avatar name={local.fullName} color={local.color} size={48} imageUrl={uploadingPhoto ? null : local.imageUrl} />
+                  <div style={{
+                    position: "absolute", inset: 0, borderRadius: "50%",
+                    background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center",
+                    justifyContent: "center", opacity: 0, transition: "opacity 0.15s",
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
+                  >
+                    {uploadingPhoto
+                      ? <div style={{ width: 14, height: 14, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                      : <Upload size={14} color="#fff" />
+                    }
+                  </div>
+                </div>
                 <input
                   style={{ ...inputStyle, flex: 1 }}
                   type="url"
-                  value={local.imageUrl || ""}
+                  value={local.imageUrl?.startsWith("data:") ? "" : (local.imageUrl || "")}
                   onChange={e => setLocal({ ...local, imageUrl: e.target.value || null })}
-                  placeholder="https://… (URL pública de la imagen)"
+                  placeholder="https://… o hacé clic en el avatar para subir"
                 />
                 {local.imageUrl && (
                   <button
@@ -599,7 +648,7 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
                 )}
               </div>
               <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
-                Pegá una URL pública (Gmail avatar, LinkedIn, imgur, etc.). Los admins pueden cambiar la foto de cualquier empleado.
+                Subí una foto (clic en el avatar) o pegá una URL pública. Se guarda al hacer clic en Guardar.
               </p>
             </div>
 

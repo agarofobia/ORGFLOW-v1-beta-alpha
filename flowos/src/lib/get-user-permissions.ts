@@ -1,33 +1,56 @@
 // ─── Server-side permission resolver ─────────────────────────────────────────
 // Consulta la DB y devuelve el PermissionsMap efectivo del usuario en la org.
-// Agrupa: asignaciones directas (user/employee) + de su departamento + división.
+// Reglas de resolución:
+//  1. org:admin → preset admin completo (sin consultar DB)
+//  2. org:member → merge de assignments directos (user/employee/dept/división)
 
 import { db } from "@/db";
-import { employees, permissionAssignments, permissionGroups } from "@/db/schema";
+import { users, employees, permissionAssignments, permissionGroups } from "@/db/schema";
 import { and, eq, inArray, or } from "drizzle-orm";
-import { mergePermissions, PermissionsMap } from "./permissions";
+import { mergePermissions, PRESETS, PermissionsMap } from "./permissions";
 
 export async function getUserPermissions(
   orgId: string,
-  clerkUserId: string
+  clerkUserId: string,
+  clerkOrgRole?: string | null
 ): Promise<PermissionsMap> {
-  // 1. Buscar employee del usuario en la org
-  const empRows = await db
-    .select({
-      id: employees.id,
-      departmentId: employees.departmentId,
-      divisionId: employees.divisionId,
-    })
-    .from(employees)
-    .where(and(eq(employees.organizationId, orgId)))
-    .limit(50); // todos los employees de la org para después filtrar
+  // 1. org:admin → acceso total inmediato
+  if (clerkOrgRole === "org:admin") {
+    return PRESETS.admin.modules;
+  }
 
-  // Busca el employee cuyo userId corresponde (userId es uuid, clerkUserId es text)
-  // En este modelo userId es uuid interno, no el clerk id — se resuelve via asignación directa por subject_type='user' y subjectId=clerkUserId
-  const employeeRow = empRows[0]; // fallback — en prod filtrar por userId linked a clerkUserId
+  // 2. Resolver el empleado ligado al usuario de Clerk
+  //    Clerk userId → users.clerkId → users.id → employees.userId
+  const userRow = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.clerkId, clerkUserId))
+    .limit(1);
 
-  // 2. Construir lista de sujetos del usuario
-  type SubjectCondition = { type: string; id: string };
+  const internalUserId = userRow[0]?.id ?? null;
+
+  // 3. Buscar el empleado activo en la org
+  let employeeRow: { id: string; departmentId: string | null; divisionId: string | null } | null = null;
+  if (internalUserId) {
+    const rows = await db
+      .select({
+        id: employees.id,
+        departmentId: employees.departmentId,
+        divisionId: employees.divisionId,
+      })
+      .from(employees)
+      .where(
+        and(
+          eq(employees.organizationId, orgId),
+          eq(employees.userId, internalUserId)
+        )
+      )
+      .limit(1);
+    employeeRow = rows[0] ?? null;
+  }
+
+  // 4. Construir lista de sujetos
+  type SubjectCondition = { type: "user" | "employee" | "department" | "division"; id: string };
   const subjects: SubjectCondition[] = [
     { type: "user", id: clerkUserId },
   ];
@@ -39,7 +62,7 @@ export async function getUserPermissions(
       subjects.push({ type: "division", id: employeeRow.divisionId });
   }
 
-  // 3. Buscar assignments que matcheen alguno de los sujetos
+  // 5. Buscar assignments que matcheen alguno de los sujetos
   const assignments = await db
     .select({ groupId: permissionAssignments.groupId })
     .from(permissionAssignments)
@@ -49,7 +72,7 @@ export async function getUserPermissions(
         or(
           ...subjects.map((s) =>
             and(
-              eq(permissionAssignments.subjectType, s.type as "user" | "employee" | "department" | "division"),
+              eq(permissionAssignments.subjectType, s.type),
               eq(permissionAssignments.subjectId, s.id)
             )
           )
@@ -59,7 +82,7 @@ export async function getUserPermissions(
 
   if (!assignments.length) return {};
 
-  // 4. Cargar los grupos y hacer merge de sus modules
+  // 6. Cargar los grupos y hacer merge de sus modules
   const groupIds = [...new Set(assignments.map((a) => a.groupId))];
   const groups = await db
     .select({ modules: permissionGroups.modules })
