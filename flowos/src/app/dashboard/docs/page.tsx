@@ -527,20 +527,22 @@ export default function DocsPage() {
                   </div>
                 ))}
                 {/* Archivos */}
-                {files.map((f: Doc) => {
+                {files.map((rawFile) => {
+                  const f = rawFile as Doc;
                   const fc = f.content as FileContent;
                   const isImage = fc.fileType.startsWith("image/");
+                  const fId = f.id;
                   return (
                     <div
-                      key={f.id}
+                      key={fId}
                       className="group relative"
                       onClick={() => setSelectedDoc(f)}
                       style={{
-                        background: "#0E1220", border: `1px solid ${selectedDoc?.id === f.id ? "#3D7EFF" : "#1E2540"}`,
+                        background: "#0E1220", border: `1px solid ${selectedDoc?.id === fId ? "#3D7EFF" : "#1E2540"}`,
                         borderRadius: 10, padding: 14, cursor: "pointer", transition: "border-color 0.15s",
                       }}
-                      onMouseEnter={e => { if (selectedDoc?.id !== f.id) e.currentTarget.style.borderColor = "#3D7EFF44"; }}
-                      onMouseLeave={e => { if (selectedDoc?.id !== f.id) e.currentTarget.style.borderColor = "#1E2540"; }}
+                      onMouseEnter={e => { if (selectedDoc?.id !== fId) e.currentTarget.style.borderColor = "#3D7EFF44"; }}
+                      onMouseLeave={e => { if (selectedDoc?.id !== fId) e.currentTarget.style.borderColor = "#1E2540"; }}
                     >
                       {isImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
