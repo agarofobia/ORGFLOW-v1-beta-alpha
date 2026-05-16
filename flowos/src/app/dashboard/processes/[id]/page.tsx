@@ -32,6 +32,8 @@ import {
   GitBranch,
   X,
   ChevronDown,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import type { ProcessDefinition } from "@/db/schema";
 import type { ProcessNode, ProcessEdge } from "@/lib/bpm";
@@ -814,7 +816,16 @@ export default function ProcessDesignerPage({
   const [editingName, setEditingName] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [environment, setEnvironment] = useState<"test" | "production">("production");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Escape para salir de fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setIsFullscreen(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isFullscreen]);
 
   useEffect(() => {
     fetch(`/api/processes/${processId}`)
@@ -920,7 +931,15 @@ export default function ProcessDesignerPage({
       : "#7A8BAD";
 
   return (
-    <div className="flex h-full flex-col" style={{ background: "#080B12" }}>
+    <div
+      className="flex flex-col"
+      style={{
+        background: "#080B12",
+        ...(isFullscreen
+          ? { position: "fixed", inset: 0, zIndex: 60, height: "100vh" }
+          : { height: "100%" }),
+      }}
+    >
       {/* Top bar */}
       <div
         className="flex flex-shrink-0 items-center gap-3 px-4 py-3"
@@ -1021,6 +1040,17 @@ export default function ProcessDesignerPage({
             ✓ Guardado
           </span>
         )}
+
+        <button
+          onClick={() => setIsFullscreen(v => !v)}
+          title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
+          className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs transition-all hover:bg-[#141928]"
+          style={{ color: isFullscreen ? "#3D7EFF" : "#7A8BAD", border: "1px solid #1E2540" }}
+        >
+          {isFullscreen
+            ? <Minimize2 className="h-3.5 w-3.5" />
+            : <Maximize2 className="h-3.5 w-3.5" />}
+        </button>
 
         {definition.status === "active" && (
           <button

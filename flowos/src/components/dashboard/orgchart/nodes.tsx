@@ -292,7 +292,7 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
 
   const initials = isVacant
     ? "?"
-    : data.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+    : (data.fullName ?? "").split(" ").map((n) => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
 
   const sideBorderColor = selected ? data.color : (isVacant ? data.color + "66" : data.color + "55");
   const sideBorderStyle = "solid" as const;
@@ -397,7 +397,7 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
           {subordinates.map(sub => {
             const subInitials = sub.isVacant
               ? "?"
-              : sub.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
+              : (sub.fullName ?? "").split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
             return (
               <div key={sub.id} className="flex items-center gap-2" style={{
                 padding: "3px 4px",

@@ -17,11 +17,12 @@ import {
   ReactFlowProvider,
   Panel,
   useReactFlow,
+  useNodesInitialized,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
   UserPlus, X, Loader2, Save, Layers, FolderPlus, Users, Briefcase,
-  Trash2, Edit3, Sparkles, Search, ChevronDown, ChevronRight,
+  Trash2, Edit3, Sparkles, Search, ChevronDown, ChevronRight, Download,
 } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee, type Unit } from "@/db/schema";
@@ -65,6 +66,7 @@ function OrgChartFlow() {
   const { membership } = useOrganization();
   const isAdmin = membership?.role === "org:admin";
   const { screenToFlowPosition, getViewport, fitView } = useReactFlow();
+  const nodesInitialized = useNodesInitialized();
 
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -81,7 +83,9 @@ function OrgChartFlow() {
   const [quickPrompt, setQuickPrompt] = useState<{ title: string; placeholder?: string; onConfirm: (v: string) => Promise<void> | void } | null>(null);
   const [editingDivision, setEditingDivision] = useState<Division | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [movingEmployeeId, setMovingEmployeeId] = useState<string | null>(null);
   const [autoLayoutPending, setAutoLayoutPending] = useState(false);
+  const [exportingPng, setExportingPng] = useState(false);
   // Divisions in this set use stored sizeWidth/Height (manual) instead of auto-computed natural size
   const [manualSizeDivs, setManualSizeDivs] = useState<Set<string>>(new Set());
   const [collapsedDivs, setCollapsedDivs] = useState<Set<string>>(new Set());
@@ -243,26 +247,18 @@ function OrgChartFlow() {
   useEffect(() => { departmentsRef.current = departments; }, [departments]);
   useEffect(() => { linkedResizeRef.current = linkedResize; }, [linkedResize]);
 
-  // Fix del bug visual al cargar: las edges en el primer paint apuntan a nodes
-  // que aún no tienen sus dimensiones medidas por ReactFlow → los handles aparecen
-  // descolocados de la línea. Solución pragmática: después de cargar los datos,
-  // forzar un re-paint a través de fitView+touch del state nodes. El primer click
-  // del usuario hacía esto involuntariamente, pero queremos que pase automático.
+  // Fix del bug visual al cargar: edges apuntan a handles sin dimensiones medidas.
+  // useNodesInitialized() devuelve true solo cuando ReactFlow midió TODOS los nodos
+  // en el DOM — esa es la señal real, no un timeout arbitrario.
   const didInitialPaint = useRef(false);
   useEffect(() => {
+    if (!nodesInitialized) return;
     if (didInitialPaint.current) return;
-    if (divisions.length === 0 && departments.length === 0 && (employees ?? []).length === 0) return;
-    // Datos cargados — un tick después, forzamos un re-render leve para que
-    // ReactFlow recompute las posiciones de los handles con dimensiones reales.
     didInitialPaint.current = true;
-    const t = setTimeout(() => {
-      setNodes(prev => [...prev]);
-      requestAnimationFrame(() => {
-        try { fitView({ duration: 0, padding: 0.15 }); } catch { /* ignore */ }
-      });
-    }, 200);
-    return () => clearTimeout(t);
-  }, [divisions, departments, employees, fitView]);
+    requestAnimationFrame(() => {
+      try { fitView({ duration: 0, padding: 0.15 }); } catch { /* ignore */ }
+    });
+  }, [nodesInitialized, fitView]);
 
   const handleDivisionResize = useCallback((id: string, w: number, h: number) => {
     const newW = Math.round(w);
@@ -1122,8 +1118,14 @@ function OrgChartFlow() {
       }
       return change;
     });
-    // Apply (possibly clamped) changes locally for smooth dragging
-    setNodes(prev => applyNodeChanges(clamped, prev) as AnyNode[]);
+    // Apply (possibly clamped) changes locally for smooth dragging.
+    // Dedup defensivo: applyNodeChanges + parent-child nodes en concurrent mode
+    // puede producir IDs duplicados transientemente → React avisa de key prop.
+    setNodes(prev => {
+      const next = applyNodeChanges(clamped, prev) as AnyNode[];
+      const seen = new Set<string>();
+      return next.filter(n => !seen.has(n.id) && (seen.add(n.id), true));
+    });
 
     // For drag-end (position with !dragging), persist to API and snap divisions
     clamped.forEach(change => {
@@ -1570,6 +1572,9 @@ function OrgChartFlow() {
         });
         setOpenNewPosition(true);
       }
+      if (action === "move-to-department") {
+        setMovingEmployeeId(t.id);
+      }
       if (action === "vacate") {
         // Vaciar = mantener el nodo, sólo limpiar la persona asignada.
         // El backend pone fullName="[Puesto vacante]" y borra email/phone/salary.
@@ -1742,6 +1747,27 @@ function OrgChartFlow() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [divisions, departments, edges, coupledSizes]);
 
+  const handleExportPng = useCallback(async () => {
+    setExportingPng(true);
+    try {
+      fitView({ duration: 0, padding: 0.1 });
+      // Esperar a que fitView se aplique y el DOM se repinte
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const el = document.querySelector(".react-flow") as HTMLElement | null;
+      if (!el) return;
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(el, { backgroundColor: "#080B12", pixelRatio: 2 });
+      const a = document.createElement("a");
+      a.download = "organigrama.png";
+      a.href = dataUrl;
+      a.click();
+    } catch (err) {
+      console.error("Export PNG error:", err);
+    } finally {
+      setExportingPng(false);
+    }
+  }, [fitView]);
+
   const handleRename = async (newName: string) => {
     if (!renaming) return;
     if (renaming.kind === "division") {
@@ -1850,7 +1876,6 @@ function OrgChartFlow() {
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         nodeTypes={nodeTypes}
-        fitView
         deleteKeyCode="Delete"
         multiSelectionKeyCode="Control"
         selectionKeyCode="Shift"
@@ -1908,6 +1933,20 @@ function OrgChartFlow() {
                     ? <Loader2 className="h-3 w-3 animate-spin" />
                     : <Sparkles className="h-3 w-3" />}
                   {autoLayoutPending ? "Layouteando..." : "Auto-layout"}
+                </button>
+                <button
+                  onClick={handleExportPng}
+                  disabled={exportingPng}
+                  title="Exportar organigrama como PNG"
+                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  style={{
+                    background: "rgba(16,217,160,0.1)", color: "#10D9A0",
+                    border: "1px solid rgba(16,217,160,0.3)",
+                    opacity: exportingPng ? 0.6 : 1,
+                  }}
+                >
+                  {exportingPng ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                  {exportingPng ? "Exportando..." : "Exportar PNG"}
                 </button>
                 <button
                   onClick={() => { setPendingCreatePos(null); setShowAddGroup("division"); setShowAddEmp(false); }}
@@ -2153,6 +2192,70 @@ function OrgChartFlow() {
           onSave={handleSaveDepartment}
           onClose={() => setEditingDepartment(null)}
         />
+      )}
+
+      {/* Move employee to department picker */}
+      {movingEmployeeId && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          onMouseDown={e => { if (e.target === e.currentTarget) setMovingEmployeeId(null); }}
+        >
+          <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#E2E8F8" }}>Mover a departamento</p>
+              <button onClick={() => setMovingEmployeeId(null)} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div style={{ overflowY: "auto", padding: 8 }}>
+              {departments.length === 0 ? (
+                <p style={{ color: "#7A8BAD", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos</p>
+              ) : departments.map(dept => {
+                const emp = (employees ?? []).find(e => e.id === movingEmployeeId);
+                const isCurrent = emp?.departmentId === dept.id;
+                const parentDiv = divisions.find(d => d.id === dept.divisionId);
+                return (
+                  <button
+                    key={dept.id}
+                    disabled={isCurrent}
+                    onClick={async () => {
+                      await updateEmployeeRef.current(movingEmployeeId, {
+                        departmentId: dept.id,
+                        divisionId: dept.divisionId ?? null,
+                        managerId: null,
+                        manualPosition: false,
+                        positionX: 30,
+                        positionY: 80,
+                      });
+                      setMovingEmployeeId(null);
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      width: "100%", padding: "10px 12px", borderRadius: 8,
+                      border: "none", cursor: isCurrent ? "default" : "pointer",
+                      background: isCurrent ? "rgba(61,126,255,0.08)" : "transparent",
+                      opacity: isCurrent ? 0.6 : 1,
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = "#141928"; }}
+                    onMouseLeave={e => { if (!isCurrent) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "#3D7EFF", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {dept.name}
+                      </p>
+                      {parentDiv && (
+                        <p style={{ margin: "1px 0 0", fontSize: 10, color: "#7A8BAD" }}>{parentDiv.name}</p>
+                      )}
+                    </div>
+                    {isCurrent && <span style={{ fontSize: 10, color: "#3D7EFF", flexShrink: 0 }}>actual</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

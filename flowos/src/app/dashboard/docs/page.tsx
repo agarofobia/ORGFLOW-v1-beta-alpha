@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Upload, Folder, FolderOpen, FileText, File, Image as ImageIcon,
   Table, FileCode, Trash2, Search, X, Download, Eye,
-  EyeOff, ChevronRight, Plus, Loader2, Share2,
+  EyeOff, ChevronRight, Plus, Loader2, Share2, LayoutGrid, List,
 } from "lucide-react";
 import { useOrganization } from "@clerk/nextjs";
 import ShareModal from "./ShareModal";
@@ -76,6 +76,7 @@ export default function DocsPage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [sharingDoc, setSharingDoc] = useState<Doc | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -206,7 +207,7 @@ export default function DocsPage() {
   });
 
   const folders = visibleDocs.filter((d) => d.content.type === "folder");
-  const files = visibleDocs.filter((d) => d.content.type === "file");
+  const files = visibleDocs.filter((d) => d.content.type === "file") as Doc[];
 
   // Breadcrumb path
   const buildPath = (folderId: string | null): Doc[] => {
@@ -443,6 +444,30 @@ export default function DocsPage() {
               </button>
             </span>
           ))}
+          <div className="ml-auto flex gap-1" style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6, padding: 2 }}>
+            <button
+              onClick={() => { setViewMode("list"); setSelectedDoc(null); }}
+              title="Vista lista"
+              style={{
+                padding: "4px 7px", borderRadius: 4, border: "none", cursor: "pointer",
+                background: viewMode === "list" ? "#1E2540" : "transparent",
+                color: viewMode === "list" ? "#E2E8F8" : "#7A8BAD",
+              }}
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => { setViewMode("grid"); setSelectedDoc(null); }}
+              title="Vista tarjetas"
+              style={{
+                padding: "4px 7px", borderRadius: 4, border: "none", cursor: "pointer",
+                background: viewMode === "grid" ? "#1E2540" : "transparent",
+                color: viewMode === "grid" ? "#E2E8F8" : "#7A8BAD",
+              }}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Drop zone highlight */}
@@ -458,7 +483,98 @@ export default function DocsPage() {
           </div>
         )}
 
-        {selectedDoc ? (
+        {viewMode === "grid" && !selectedDoc ? (
+          /* Grid view */
+          <div className="flex-1 overflow-y-auto p-6">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#3D7EFF" }} />
+              </div>
+            ) : folders.length === 0 && files.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-16 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <div className="flex flex-col items-center gap-3 rounded-xl p-10" style={{ border: "2px dashed #1E2540" }}>
+                  <Upload className="h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
+                  <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>Arrastrá archivos o hacé click para subir</p>
+                  <p className="text-xs" style={{ color: "#7A8BAD" }}>Word, Excel, PDF, imágenes · Máximo 5 MB</p>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+                {/* Carpetas */}
+                {folders.map(f => (
+                  <div
+                    key={f.id}
+                    className="group relative"
+                    onDoubleClick={() => { setCurrentFolder(f.id); setSelectedDoc(null); setSearch(""); }}
+                    style={{
+                      background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10,
+                      padding: 14, cursor: "pointer", transition: "border-color 0.15s",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = "#F59E0B55")}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = "#1E2540")}
+                  >
+                    <FolderOpen className="mb-3 h-9 w-9" style={{ color: "#F59E0B" }} strokeWidth={1.5} />
+                    <p className="truncate text-xs font-medium" style={{ color: "#E2E8F8" }}>{f.title}</p>
+                    {isAdmin && (
+                      <button
+                        onClick={e => { e.stopPropagation(); deleteDoc(f); }}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1"
+                        style={{ background: "rgba(244,63,94,0.1)", color: "#F43F5E" }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {/* Archivos */}
+                {files.map((f: Doc) => {
+                  const fc = f.content as FileContent;
+                  const isImage = fc.fileType.startsWith("image/");
+                  return (
+                    <div
+                      key={f.id}
+                      className="group relative"
+                      onClick={() => setSelectedDoc(f)}
+                      style={{
+                        background: "#0E1220", border: `1px solid ${selectedDoc?.id === f.id ? "#3D7EFF" : "#1E2540"}`,
+                        borderRadius: 10, padding: 14, cursor: "pointer", transition: "border-color 0.15s",
+                      }}
+                      onMouseEnter={e => { if (selectedDoc?.id !== f.id) e.currentTarget.style.borderColor = "#3D7EFF44"; }}
+                      onMouseLeave={e => { if (selectedDoc?.id !== f.id) e.currentTarget.style.borderColor = "#1E2540"; }}
+                    >
+                      {isImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={fc.base64}
+                          alt={f.title}
+                          style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6, marginBottom: 10 }}
+                        />
+                      ) : (
+                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: "#141928" }}>
+                          {fileIcon(fc.fileType)}
+                        </div>
+                      )}
+                      <p className="truncate text-xs font-medium" style={{ color: "#E2E8F8" }}>{f.title}</p>
+                      <p className="mt-0.5 text-[10px]" style={{ color: "#7A8BAD" }}>{formatSize(fc.fileSize)}</p>
+                      {fc.visibility === "admin_only" && (
+                        <EyeOff className="absolute top-2 left-2 h-3 w-3" style={{ color: "#F59E0B" }} />
+                      )}
+                      {isAdmin && (
+                        <button
+                          onClick={e => { e.stopPropagation(); deleteDoc(f); }}
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1"
+                          style={{ background: "rgba(244,63,94,0.1)", color: "#F43F5E" }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : selectedDoc ? (
           /* Preview panel */
           <div className="flex flex-1 flex-col overflow-hidden">
             <div

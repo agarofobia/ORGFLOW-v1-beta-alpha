@@ -9,6 +9,10 @@ import {
   Settings2, Loader2, Sparkles, Maximize2,
   type LucideIcon,
 } from "lucide-react";
+import {
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, Legend,
+} from "recharts";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -478,6 +482,142 @@ function WidgetCard({ widget, value, loading, editing, onRemove, onClick }: {
   );
 }
 
+// ─── Stats section ───────────────────────────────────────────────────────────
+
+const STATUS_COLORS: Record<string, string> = {
+  active:   "#10D9A0",
+  vacation: "#3D7EFF",
+  leave:    "#F59E0B",
+  inactive: "#7A8BAD",
+};
+const STATUS_LABELS: Record<string, string> = {
+  active:   "Activos",
+  vacation: "Vacaciones",
+  leave:    "Licencia",
+  inactive: "Inactivos",
+};
+
+interface EmpRow { status: string; departmentId: string | null; }
+interface DeptRow { id: string; name: string; }
+
+function StatsSection() {
+  const [emps, setEmps] = useState<EmpRow[]>([]);
+  const [depts, setDepts] = useState<DeptRow[]>([]);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [e, d] = await Promise.all([
+        fetchJson<EmpRow[]>("/api/employees?includeInactive=true"),
+        fetchJson<DeptRow[]>("/api/departments"),
+      ]);
+      if (!cancelled) {
+        setEmps(Array.isArray(e) ? e : []);
+        setDepts(Array.isArray(d) ? d : []);
+        setStatsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const statusData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    emps.forEach(e => { counts[e.status] = (counts[e.status] ?? 0) + 1; });
+    return Object.entries(counts)
+      .map(([status, value]) => ({ name: STATUS_LABELS[status] ?? status, value, status }))
+      .sort((a, b) => b.value - a.value);
+  }, [emps]);
+
+  const deptData = useMemo(() => {
+    const deptMap = new Map(depts.map(d => [d.id, d.name]));
+    const counts: Record<string, number> = {};
+    emps.forEach(e => {
+      if (!e.departmentId) return;
+      const name = deptMap.get(e.departmentId) ?? "Sin depto";
+      counts[name] = (counts[name] ?? 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name: name.length > 14 ? name.slice(0, 13) + "…" : name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [emps, depts]);
+
+  if (statsLoading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "32px 0" }}>
+        <Loader2 size={20} className="animate-spin" style={{ color: "#3D7EFF" }} />
+      </div>
+    );
+  }
+
+  if (emps.length === 0) return null;
+
+  const tooltipStyle = {
+    background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8,
+    fontSize: 12, color: "#E2E8F8",
+  };
+
+  return (
+    <section style={{ marginTop: 36 }}>
+      <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 14px", fontFamily: "monospace" }}>
+        Análisis
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,2fr)", gap: 12, alignItems: "start" }}>
+
+        {/* Pie: empleados por estado */}
+        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: "16px 12px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "#7A8BAD", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "monospace" }}>
+            Empleados por estado
+          </p>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie
+                data={statusData}
+                cx="50%"
+                cy="50%"
+                innerRadius={44}
+                outerRadius={72}
+                paddingAngle={3}
+                dataKey="value"
+              >
+                {statusData.map((entry, i) => (
+                  <Cell key={i} fill={STATUS_COLORS[entry.status] ?? "#3D7EFF"} stroke="transparent" />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "#E2E8F8" }} />
+              <Legend
+                iconType="circle"
+                iconSize={8}
+                formatter={(v) => <span style={{ fontSize: 11, color: "#7A8BAD" }}>{v}</span>}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Bar: empleados por departamento */}
+        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: "16px 12px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "#7A8BAD", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "monospace" }}>
+            Empleados por departamento
+          </p>
+          {deptData.length === 0 ? (
+            <p style={{ fontSize: 12, color: "#7A8BAD", textAlign: "center", padding: "24px 0" }}>Sin datos</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={deptData} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+                <XAxis type="number" tick={{ fontSize: 10, fill: "#7A8BAD" }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#C4CFEA" }} axisLine={false} tickLine={false} width={96} />
+                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "#E2E8F8" }} cursor={{ fill: "rgba(61,126,255,0.07)" }} />
+                <Bar dataKey="value" name="Empleados" fill="#3D7EFF" radius={[0, 4, 4, 0]} maxBarSize={18} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function DashboardHome() {
@@ -626,6 +766,8 @@ export default function DashboardHome() {
           </div>
         )}
       </section>
+
+      <StatsSection />
 
       {/* Quick actions */}
       <section style={{ marginTop: 36 }}>
