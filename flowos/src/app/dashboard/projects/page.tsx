@@ -797,10 +797,22 @@ export default function ProjectsPage() {
 
   // Sections legacy — texto libre. Persisten por compatibilidad con tareas viejas.
   // Las tareas nuevas se asignan a hitos (milestoneId), no a secciones de string.
+  // Si no hay secciones custom Y hay tareas sin sección, mostramos un único bucket
+  // "Todas las tareas" en vez del fantasma "Sin sección".
   const getSections = (): string[] => {
-    const sectionSet = new Set<string>(["Sin sección"]);
-    tasks.forEach(t => { if (t.sectionName && t.sectionName !== "Sin sección") sectionSet.add(t.sectionName); });
-    return Array.from(sectionSet);
+    const sectionSet = new Set<string>();
+    let hasUngrouped = false;
+    tasks.forEach(t => {
+      if (t.sectionName && t.sectionName !== "Sin sección") sectionSet.add(t.sectionName);
+      else hasUngrouped = true;
+    });
+    const result = Array.from(sectionSet);
+    // Solo incluimos "Sin sección" cuando hay otras secciones (es residual).
+    if (hasUngrouped && result.length > 0) result.unshift("Sin sección");
+    // Caso "no hay secciones": damos un bucket vacío para que el render no falle
+    // pero mostramos "Todas las tareas" como label visual (manejado en render).
+    if (result.length === 0) result.push("Sin sección");
+    return result;
   };
 
   // Filtered: usado por el FilterBar y bulkActions
@@ -3510,7 +3522,7 @@ function BoardView({
               display: "flex", flexDirection: "column", justifyContent: "center",
             }}>
               <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {section}
+                {(section === "Sin sección" && sections.length === 1) ? "Todas las tareas" : section}
               </p>
               <p style={{ margin: "2px 0 0", fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
                 {sections.length > 1 ? visibleTasks.filter(t => (section === "Sin sección" ? (!t.sectionName || t.sectionName === "Sin sección") : t.sectionName === section)).length : visibleTasks.length} tareas
@@ -3648,6 +3660,9 @@ function ListView({
         {sections.map(section => {
           const sectionTasks = getTasksBySection(section);
           const isCollapsed = collapsedSections.has(section);
+          // Cuando "Sin sección" es el único bucket (no hay secciones custom),
+          // mostramos "Todas las tareas" como label — más natural que "Sin sección".
+          const displayLabel = (section === "Sin sección" && sections.length === 1) ? "Todas las tareas" : section;
           return (
             <div key={section}>
               <div onClick={() => toggleSection(section)} style={{
@@ -3661,7 +3676,7 @@ function ListView({
                 {isCollapsed
                   ? <ChevronRight style={{ width: 16, height: 16, color: "#7A8BAD" }} />
                   : <ChevronDown style={{ width: 16, height: 16, color: "#7A8BAD" }} />}
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F8", letterSpacing: "0.01em" }}>{section}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F8", letterSpacing: "0.01em" }}>{displayLabel}</span>
                 <span style={{ fontSize: 11, color: "#7A8BAD", background: "#141928", borderRadius: 4, padding: "2px 8px", fontFamily: "monospace" }}>
                   {sectionTasks.length} tarea{sectionTasks.length !== 1 ? "s" : ""}
                 </span>
