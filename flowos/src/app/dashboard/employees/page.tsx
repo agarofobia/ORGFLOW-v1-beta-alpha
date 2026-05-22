@@ -1117,7 +1117,9 @@ export default function EmployeesPage() {
 
         {/* Footer */}
         <div style={{ padding: "10px 32px", borderTop: "1px solid #1E2540" }}>
-          <p style={{ color: "#7A8BAD", fontSize: 12, margin: 0 }}>{filtered.length} empleado{filtered.length !== 1 ? "s" : ""}</p>
+          <p style={{ color: "#7A8BAD", fontSize: 12, margin: 0 }}>
+            {loading ? "—" : `${filtered.length} empleado${filtered.length !== 1 ? "s" : ""}`}
+          </p>
         </div>
       </div>
 
