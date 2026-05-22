@@ -3744,7 +3744,7 @@ function ListView({
                     onMouseEnter={e => { e.currentTarget.style.background = "rgba(61,126,255,0.06)"; e.currentTarget.style.color = "#3D7EFF"; }}
                     onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#7A8BAD"; }}>
                       <Plus style={{ width: 14, height: 14 }} strokeWidth={2.5} />
-                      Agregar tarea a "{section}"
+                      Agregar tarea {section === "Sin sección" && sections.length === 1 ? "" : `a "${displayLabel}"`}
                     </button>
                   )}
                 </>
