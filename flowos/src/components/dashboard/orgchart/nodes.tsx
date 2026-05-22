@@ -399,10 +399,20 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
               ? "?"
               : (sub.fullName ?? "").split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
             return (
-              <div key={sub.id} className="flex items-center gap-2" style={{
-                padding: "3px 4px",
-                opacity: sub.isVacant ? 0.7 : 1,
-              }}>
+              <div
+                key={sub.id}
+                className="flex items-center gap-2 hover:bg-[rgba(61,126,255,0.08)]"
+                onMouseDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); data.onSubClick?.(sub.id); }}
+                style={{
+                  padding: "3px 4px",
+                  opacity: sub.isVacant ? 0.7 : 1,
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  transition: "background 120ms ease",
+                }}
+                title="Click para editar este puesto"
+              >
                 {sub.imageUrl && !sub.isVacant ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -440,10 +450,65 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
                     </div>
                   )}
                 </div>
+                {sub.unit && (
+                  <button
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); data.onUnitClick?.(sub.unit!.id); }}
+                    title={`Unidad: ${sub.unit.name}${sub.unit.isHead ? " (jefe)" : ""} — click para editar`}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 3,
+                      padding: "1px 5px",
+                      borderRadius: 8,
+                      border: `1px ${sub.unit.isHead ? "solid" : "dashed"} ${(sub.unit.color ?? sub.color) + (sub.unit.isHead ? "AA" : "55")}`,
+                      background: (sub.unit.color ?? sub.color) + (sub.unit.isHead ? "1F" : "10"),
+                      color: sub.unit.color ?? sub.color,
+                      fontSize: 8, fontWeight: 600, letterSpacing: "0.03em",
+                      textTransform: "uppercase" as const,
+                      cursor: "pointer",
+                      fontFamily: "monospace",
+                      flexShrink: 0,
+                      maxWidth: 70,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      opacity: sub.unit.isHead ? 1 : 0.85,
+                    }}
+                  >
+                    <span style={{ fontSize: 7 }}>⬡</span>
+                    {sub.unit.name}
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* Chip de unidad — visible para todos los miembros; head con borde sólido, miembros con dashed */}
+      {data.unit && (
+        <button
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); data.onUnitClick?.(data.unit!.id); }}
+          style={{
+            display: "flex", alignItems: "center", gap: 4,
+            margin: "0 8px 6px",
+            padding: "2px 7px",
+            borderRadius: 10,
+            border: `1px ${data.unit.isHead ? "solid" : "dashed"} ${(data.unit.color ?? data.color) + (data.unit.isHead ? "AA" : "55")}`,
+            background: (data.unit.color ?? data.color) + (data.unit.isHead ? "1F" : "10"),
+            color: data.unit.color ?? data.color,
+            fontSize: 9, fontWeight: 600, letterSpacing: "0.04em",
+            textTransform: "uppercase" as const,
+            cursor: "pointer",
+            fontFamily: "monospace",
+            width: "calc(100% - 16px)",
+            textAlign: "left" as const,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            opacity: data.unit.isHead ? 1 : 0.85,
+          }}
+          title={`Unidad: ${data.unit.name}${data.unit.isHead ? " (jefe)" : ""} — click para editar`}
+        >
+          <span style={{ fontSize: 8, flexShrink: 0 }}>⬡</span>
+          {data.unit.name}
+        </button>
       )}
 
       {roleBadge && (

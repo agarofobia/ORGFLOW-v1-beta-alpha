@@ -228,6 +228,18 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   description: text("description"),
   ownerId: uuid("owner_id").references(() => users.id),
+  // VFP del proyecto: la declaración "qué es estar terminado". Sin esto un proyecto
+  // es backlog basura. Se gatean las tareas hasta tener VFP escrita.
+  // Shape: { producto, para, quien, aDiferenciaDe, terminadoCuando } — todos strings.
+  vfp: jsonb("vfp"),
+  // Owner = posición del orgchart, no persona. Si la persona en esa posición cambia,
+  // el proyecto sigue ownership por puesto, no por nombre.
+  ownerEmployeeId: uuid("owner_employee_id").references(() => employees.id, { onDelete: "set null" }),
+  // planning / activo / pausado / completado / cancelado
+  status: text("status").notNull().default("activo"),
+  // Si fue auto-creado por una instancia de proceso BPM, queda linkeado acá.
+  // Esto cierra el loop entre módulo Procesos y módulo Proyectos.
+  processInstanceId: uuid("process_instance_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -244,6 +256,12 @@ export const tasks = pgTable(
     status: taskStatusEnum("status").notNull().default("todo"),
     priority: taskPriorityEnum("priority").notNull().default("medium"),
     assigneeId: uuid("assignee_id").references(() => users.id),
+    // Assignee correlacionado al orgchart: la tarea sigue a la posición, no a la persona.
+    // Si Pedro entra al puesto que tenía María, las tareas de María (asignadas via posición) pasan a Pedro.
+    assigneeEmployeeId: uuid("assignee_employee_id").references(() => employees.id, { onDelete: "set null" }),
+    // Tareas scopeadas a un milestone. Reemplaza el concepto "sectionName" (string libre).
+    // Null = tarea suelta del proyecto (backlog), no asociada a un entregable concreto.
+    milestoneId: uuid("milestone_id").references(() => projectMilestones.id, { onDelete: "set null" }),
     dueDate: timestamp("due_date", { withTimezone: true }),
     orderIndex: doublePrecision("order_index").default(0),
     sectionName: text("section_name").default("Sin sección"),
@@ -253,6 +271,7 @@ export const tasks = pgTable(
   (table) => ({
     projectIdx: index("tasks_project_idx").on(table.projectId),
     orgIdx: index("tasks_org_idx").on(table.organizationId),
+    milestoneIdx: index("tasks_milestone_idx").on(table.milestoneId),
   }),
 );
 
@@ -293,11 +312,145 @@ export const projectMilestones = pgTable(
     status: milestoneStatusEnum("status").notNull().default("pending"),
     dueDate: timestamp("due_date", { withTimezone: true }),
     assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
+    // Acceptance criteria: qué define que está terminado. Sin esto, "in_progress → done" es subjetivo.
+    acceptanceCriteria: text("acceptance_criteria"),
+    // Owner = posición del orgchart, no usuario Clerk
+    ownerEmployeeId: uuid("owner_employee_id").references(() => employees.id, { onDelete: "set null" }),
+    // Linkea este hito a un nodo del proceso BPM. Cuando el milestone pasa a "done",
+    // si el proyecto tiene processInstanceId y este campo está seteado, se avanza
+    // el nodo BPM correspondiente. Cierra el loop bidireccional BPM ↔ Proyectos.
+    bpmNodeId: text("bpm_node_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
     projectIdx: index("project_milestones_project_idx").on(table.projectId),
+  }),
+);
+
+// ─── Task comments — colaboración mínima en tareas ───────────────────────────
+
+export const taskComments = pgTable(
+  "task_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull(),
+    authorUserId: uuid("author_user_id").references(() => users.id, { onDelete: "set null" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    taskIdx: index("task_comments_task_idx").on(table.taskId),
+    orgIdx: index("task_comments_org_idx").on(table.organizationId),
+  }),
+);
+
+// ─── Task attachments — archivos adjuntos en tareas ──────────────────────────
+// Reusa Supabase Storage (bucket `org-files`). file_url es URL pública.
+
+export const taskAttachments = pgTable(
+  "task_attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull(),
+    fileName: text("file_name").notNull(),
+    fileUrl: text("file_url").notNull(),
+    fileType: text("file_type"),
+    fileSize: integer("file_size"),
+    uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    taskIdx: index("task_attachments_task_idx").on(table.taskId),
+    orgIdx: index("task_attachments_org_idx").on(table.organizationId),
+  }),
+);
+
+// ─── Project templates — proyectos clonables con VFP + hitos + tareas ────────
+// Killer feature: integración con BPM. Un proceso puede tener un template asociado,
+// y cada instancia del proceso genera un proyecto pre-armado.
+
+export const projectTemplates = pgTable(
+  "project_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    // structure: { vfp, milestones: [{ ..., tasks: [...] }] }
+    structure: jsonb("structure").notNull().default({}),
+    processDefinitionId: uuid("process_definition_id").references(() => processDefinitions.id, { onDelete: "set null" }),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdx: index("project_templates_org_idx").on(table.organizationId),
+    processIdx: index("project_templates_process_idx").on(table.processDefinitionId),
+  }),
+);
+
+// ─── Notifications — in-app notifications por usuario ────────────────────────
+// type: "task_assigned" | "comment_mention" | "milestone_due_soon" | "task_overdue"
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull(),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    linkUrl: text("link_url"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index("notifications_user_idx").on(table.userId, table.createdAt),
+  }),
+);
+
+// ─── Project activity — feed de eventos del proyecto ─────────────────────────
+// Type: "task_created" | "task_completed" | "task_assigned" | "milestone_created"
+//     | "milestone_completed" | "vfp_updated" | "comment_added" | "owner_changed"
+// Payload: JSONB con contexto: taskId, milestoneId, prevValue, newValue, etc.
+
+export const projectActivity = pgTable(
+  "project_activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    type: text("type").notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    projectIdx: index("project_activity_project_idx").on(table.projectId, table.createdAt),
+    orgIdx: index("project_activity_org_idx").on(table.organizationId),
+  }),
+);
+
+// ─── Milestone dependencies — DAG simple entre hitos ─────────────────────────
+// "Beta 2 depende de Beta 1" → semánticamente: no completar Beta 2 hasta cerrar Beta 1.
+// Usado por la timeline Gantt-lite para dibujar líneas de dependencia.
+
+export const milestoneDependencies = pgTable(
+  "milestone_dependencies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    milestoneId: uuid("milestone_id").notNull().references(() => projectMilestones.id, { onDelete: "cascade" }),
+    dependsOnId: uuid("depends_on_id").notNull().references(() => projectMilestones.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    milestoneIdx: index("milestone_deps_milestone_idx").on(table.milestoneId),
+    dependsOnIdx: index("milestone_deps_depends_on_idx").on(table.dependsOnId),
   }),
 );
 
@@ -389,11 +542,17 @@ export const processDefinitions = pgTable(
     edges: jsonb("edges").notNull().default([]),
     version: integer("version").notNull().default(1),
     environment: text("environment").notNull().default("production"), // "test" | "production"
+    // Si está seteado, cada vez que se inicia una instancia de este proceso se crea
+    // automáticamente un proyecto desde este template. Cierra el loop BPM ↔ Proyectos.
+    projectTemplateId: uuid("project_template_id"),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => ({ orgIdx: index("proc_def_org_idx").on(t.organizationId) })
+  (t) => ({
+    orgIdx: index("proc_def_org_idx").on(t.organizationId),
+    templateIdx: index("proc_def_template_idx").on(t.projectTemplateId),
+  })
 );
 
 export const processInstances = pgTable(

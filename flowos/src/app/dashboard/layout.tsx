@@ -1,5 +1,7 @@
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardTopbar } from "@/components/dashboard/topbar";
+import { ToastProvider } from "@/components/ui/toast";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function DashboardLayout({
   children,
@@ -7,12 +9,16 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#080B12" }}>
-      <DashboardSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <DashboardTopbar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+    <ToastProvider>
+      <div className="flex h-screen overflow-hidden" style={{ background: "#080B12" }}>
+        <DashboardSidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <DashboardTopbar />
+          <main className="flex-1 overflow-y-auto">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </main>
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

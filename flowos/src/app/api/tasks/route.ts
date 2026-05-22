@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { logActivity } from "@/lib/project-activity";
 
 export async function GET(req: NextRequest) {
   const { orgId } = await auth();
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { orgId } = await auth();
+  const { orgId, userId: clerkUserId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
@@ -44,8 +45,22 @@ export async function POST(req: NextRequest) {
         dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
         sectionName: body.sectionName || "Sin sección",
         assigneeName: body.assigneeName,
+        assigneeEmployeeId: body.assigneeEmployeeId,
+        milestoneId: body.milestoneId,
       })
       .returning();
+
+    // Log activity (best-effort)
+    if (result[0]) {
+      await logActivity({
+        projectId: result[0].projectId,
+        organizationId: orgId,
+        clerkUserId,
+        type: "task_created",
+        payload: { taskId: result[0].id, title: result[0].title },
+      });
+    }
+
     return NextResponse.json(result[0], { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

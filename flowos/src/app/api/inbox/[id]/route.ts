@@ -1,10 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { inboxTasks, processInstances, processDefinitions } from "@/db/schema";
+import { inboxTasks, processInstances, processDefinitions, documents } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { advanceInstance } from "@/lib/bpm";
 import { NextRequest, NextResponse } from "next/server";
 import type { ProcessNode } from "@/lib/bpm";
+import type { FormField } from "@/app/dashboard/processes/[id]/page";
 
 export async function GET(
   _req: NextRequest,
@@ -80,6 +81,53 @@ export async function PATCH(
 
     if (action === "complete") {
       const formData = body.formData ?? {};
+
+      // M8.5 — materializar campos tipo "file" como documentos en Docs
+      // Necesitamos los formFields del nodo para saber cuáles son file
+      try {
+        const [instance] = await db
+          .select({ processDefinitionId: processInstances.processDefinitionId })
+          .from(processInstances)
+          .where(eq(processInstances.id, task.instanceId))
+          .limit(1);
+
+        if (instance) {
+          const [def] = await db
+            .select({ nodes: processDefinitions.nodes })
+            .from(processDefinitions)
+            .where(eq(processDefinitions.id, instance.processDefinitionId))
+            .limit(1);
+
+          if (def) {
+            const nodes = def.nodes as unknown as ProcessNode[];
+            const node = Array.isArray(nodes) ? nodes.find((n) => n.id === task.nodeId) : null;
+            const formFields: FormField[] = (node as { formFields?: FormField[] } | null)?.formFields ?? [];
+
+            for (const field of formFields) {
+              if (field.type !== "file") continue;
+              const fileVal = formData[field.id] as { name?: string; data?: string; size?: number } | undefined;
+              if (!fileVal?.data) continue;
+
+              // Create document record
+              const title = fileVal.name ?? field.label ?? "Archivo adjunto";
+              await db.insert(documents).values({
+                organizationId: orgId,
+                title,
+                content: {
+                  type: "file",
+                  fileType: (fileVal.data as string).split(";")[0]?.replace("data:", "") ?? "application/octet-stream",
+                  size: fileVal.size ?? 0,
+                  data: fileVal.data,
+                  ...(field.autoFolder ? { folder: field.autoFolder } : {}),
+                },
+              });
+            }
+          }
+        }
+      } catch {
+        // Non-blocking — si falla la materialización, igual completamos la tarea
+      }
+
       await db
         .update(inboxTasks)
         .set({ status: "completed", formData, updatedAt: new Date() })

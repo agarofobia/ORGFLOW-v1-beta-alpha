@@ -36,6 +36,7 @@ import {
   Minimize2,
 } from "lucide-react";
 import type { ProcessDefinition } from "@/db/schema";
+import { useToast } from "@/components/ui/toast";
 import type { ProcessNode, ProcessEdge } from "@/lib/bpm";
 
 // ─── Node data type ───────────────────────────────────────────────────────────
@@ -47,8 +48,10 @@ export type FormField = {
   type: FormFieldType;
   label: string;
   required: boolean;
-  options?: string[]; // for select
+  options?: string[]; // for select — opciones manuales
+  source?: "departments" | "employees" | "divisions"; // para select dinámico desde la org
   placeholder?: string;
+  autoFolder?: string; // para file: carpeta destino en Docs
 };
 
 type BpmData = {
@@ -374,13 +377,45 @@ function FormFieldsEditor({
               </label>
             </div>
             {field.type === "select" && (
-              <input
-                value={(field.options ?? []).join(", ")}
-                onChange={(e) => updateField(field.id, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-                placeholder="Opción 1, Opción 2…"
-                className="mt-1.5 w-full rounded px-2 py-1 text-[10px] outline-none"
-                style={{ background: "#0E1220", border: "1px solid #1E2540", color: "#C4CFEA" }}
-              />
+              <div className="mt-1.5 flex flex-col gap-1">
+                {/* Toggle: manual vs dynamic */}
+                <div className="flex gap-1">
+                  {(["manual", "departments", "employees", "divisions"] as const).map((opt) => {
+                    const active = opt === "manual" ? !field.source : field.source === opt;
+                    const labels: Record<string, string> = { manual: "Manual", departments: "Depts", employees: "Empleados", divisions: "Divisiones" };
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => updateField(field.id, { source: opt === "manual" ? undefined : opt as "departments" | "employees" | "divisions" })}
+                        className="rounded px-1.5 py-0.5 text-[9px] transition-colors"
+                        style={{
+                          background: active ? "#3D7EFF22" : "#0E1220",
+                          border: `1px solid ${active ? "#3D7EFF" : "#1E2540"}`,
+                          color: active ? "#3D7EFF" : "#7A8BAD",
+                        }}
+                      >
+                        {labels[opt]}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Manual options input — only when no dynamic source */}
+                {!field.source && (
+                  <input
+                    value={(field.options ?? []).join(", ")}
+                    onChange={(e) => updateField(field.id, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+                    placeholder="Opción 1, Opción 2…"
+                    className="w-full rounded px-2 py-1 text-[10px] outline-none"
+                    style={{ background: "#0E1220", border: "1px solid #1E2540", color: "#C4CFEA" }}
+                  />
+                )}
+                {field.source && (
+                  <p className="text-[9px]" style={{ color: "#7A8BAD" }}>
+                    Opciones cargadas dinámicamente desde {field.source === "departments" ? "departamentos" : field.source === "employees" ? "empleados" : "divisiones"} de la org.
+                  </p>
+                )}
+              </div>
             )}
           </div>
         ))}
@@ -815,6 +850,15 @@ export default function ProcessDesignerPage({
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const toast = useToast();
+  // Templates de proyecto disponibles para asociar al proceso (cierra el loop BPM ↔ Proyectos)
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string }>>([]);
+  const [templateOpen, setTemplateOpen] = useState(false);
+  useEffect(() => {
+    fetch("/api/project-templates").then(r => r.ok ? r.json() : [])
+      .then(data => setTemplates(Array.isArray(data) ? data.map((t: { id: string; name: string }) => ({ id: t.id, name: t.name })) : []))
+      .catch(() => setTemplates([]));
+  }, []);
   const [environment, setEnvironment] = useState<"test" | "production">("production");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -894,9 +938,29 @@ export default function ProcessDesignerPage({
     });
     const data = await res.json();
     if (res.ok) {
-      alert(`Instancia iniciada: ${data.instanceId}`);
+      if (data.projectId) {
+        // Proyecto creado: toast con CTA implícito (la nav la maneja el user via /dashboard/projects)
+        toast.success("Instancia iniciada + proyecto creado", "Abrí Proyectos para ver la estructura armada.");
+        // Auto-redirect después de 1.5s para no quedar bloqueado
+        setTimeout(() => { window.location.href = `/dashboard/projects?id=${data.projectId}`; }, 1500);
+      } else {
+        toast.success("Instancia iniciada", `ID: ${String(data.instanceId).slice(0, 8)}`);
+      }
     } else {
-      alert(`Error: ${data.error}`);
+      toast.error("No se pudo iniciar", data.error);
+    }
+  };
+
+  // Cambiar template asociado al proceso
+  const handleTemplateChange = async (templateId: string | null) => {
+    const res = await fetch(`/api/processes/${processId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectTemplateId: templateId }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setDefinition(updated);
     }
   };
 
@@ -1008,6 +1072,56 @@ export default function ProcessDesignerPage({
                   style={{ color: "#C4CFEA" }}
                 >
                   {STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Template de proyecto asociado — cierra el loop BPM */}
+        <div className="relative">
+          <button
+            onClick={() => setTemplateOpen(v => !v)}
+            title="Template de proyecto que se instancia al iniciar este proceso"
+            className="flex items-center gap-1.5 rounded px-2.5 py-1 font-mono text-[10px] uppercase transition-colors hover:bg-[#141928]"
+            style={{
+              color: definition.projectTemplateId ? "#A855F7" : "#7A8BAD",
+              border: `1px solid ${definition.projectTemplateId ? "rgba(168,85,247,0.4)" : "#1E2540"}`,
+            }}
+          >
+            <span style={{ fontSize: 11 }}>⚐</span>
+            {definition.projectTemplateId
+              ? (templates.find(t => t.id === definition.projectTemplateId)?.name ?? "Template").slice(0, 20)
+              : "Sin template"}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {templateOpen && (
+            <div
+              className="absolute left-0 top-full z-20 mt-1 flex flex-col overflow-hidden rounded-lg py-1"
+              style={{ background: "#0E1220", border: "1px solid #1E2540", minWidth: 220, maxHeight: 260, overflowY: "auto" }}
+            >
+              <button
+                onClick={() => { handleTemplateChange(null); setTemplateOpen(false); }}
+                className="px-3 py-2 text-left text-xs hover:bg-[#141928]"
+                style={{ color: definition.projectTemplateId ? "#7A8BAD" : "#F43F5E", borderBottom: "1px solid #1E2540" }}
+              >
+                ✕ Sin template
+              </button>
+              {templates.length === 0 ? (
+                <p className="px-3 py-3 text-xs italic" style={{ color: "#7A8BAD" }}>
+                  Creá templates en /dashboard/projects
+                </p>
+              ) : templates.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => { handleTemplateChange(t.id); setTemplateOpen(false); }}
+                  className="px-3 py-2 text-left text-xs hover:bg-[#141928]"
+                  style={{
+                    color: definition.projectTemplateId === t.id ? "#A855F7" : "#C4CFEA",
+                    background: definition.projectTemplateId === t.id ? "rgba(168,85,247,0.08)" : "transparent",
+                  }}
+                >
+                  ⚐ {t.name}
                 </button>
               ))}
             </div>

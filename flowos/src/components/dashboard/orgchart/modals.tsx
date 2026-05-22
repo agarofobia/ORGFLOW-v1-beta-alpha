@@ -577,7 +577,7 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
   const [name, setName] = useState(department.name);
   const [color, setColor] = useState(department.color ?? "#C8902C");
   const [headId, setHeadId] = useState<string | null>(department.headEmployeeId ?? null);
-  const [promoteHead, setPromoteHead] = useState<boolean>(department.promoteHead ?? true);
+  const [promoteHead, setPromoteHead] = useState<boolean>(department.promoteHead ?? false);
   const [layoutMode, setLayoutMode] = useState<string>(department.layoutMode ?? "vertical");
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -657,7 +657,7 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
               Mostrar al head arriba del departamento
             </label>
             <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0 24px", fontFamily: "monospace" }}>
-              Apagado: el head queda como un puesto más adentro del depto.
+              Por defecto el director queda dentro del depto. Activar para promoverlo arriba.
             </p>
           </div>
 

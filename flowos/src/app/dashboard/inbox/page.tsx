@@ -13,9 +13,13 @@ import {
   Play,
   GitBranch,
   ExternalLink,
+  Eye,
+  Trash2,
+  XCircle,
 } from "lucide-react";
-import type { InboxTask, ProcessDefinition } from "@/db/schema";
+import type { InboxTask, ProcessDefinition, ProcessInstance } from "@/db/schema";
 import TaskRunnerModal from "./TaskRunnerModal";
+import { useToast } from "@/components/ui/toast";
 
 const PRIORITY_CONFIG = {
   low: { label: "Baja", color: "#7A8BAD" },
@@ -42,15 +46,27 @@ function formatDate(d: string | Date | null | undefined) {
   });
 }
 
+const INSTANCE_STATUS = {
+  running: { label: "En curso", color: "#3D7EFF" },
+  completed: { label: "Completado", color: "#10D9A0" },
+  cancelled: { label: "Cancelado", color: "#F43F5E" },
+  error: { label: "Error", color: "#F59E0B" },
+};
+
 export default function InboxPage() {
   const router = useRouter();
+  const toast = useToast();
+  const [mainTab, setMainTab] = useState<"tasks" | "tracking">("tasks");
   const [tasks, setTasks] = useState<InboxTask[]>([]);
   const [processes, setProcesses] = useState<ProcessDefinition[]>([]);
+  const [instances, setInstances] = useState<ProcessInstance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trackingLoading, setTrackingLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [runnerTaskId, setRunnerTaskId] = useState<string | null>(null);
   const [startingProcess, setStartingProcess] = useState<string | null>(null);
+  const [deletingInstance, setDeletingInstance] = useState<string | null>(null);
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -69,6 +85,31 @@ export default function InboxPage() {
     }
   }, [statusFilter]);
 
+  const fetchInstances = useCallback(async () => {
+    setTrackingLoading(true);
+    try {
+      const res = await fetch("/api/instances");
+      if (res.ok) setInstances(await res.json());
+    } finally {
+      setTrackingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mainTab === "tracking") fetchInstances();
+  }, [mainTab, fetchInstances]);
+
+  const deleteInstance = async (id: string) => {
+    if (!confirm("¿Cancelar y eliminar esta instancia? Se borrarán también sus tareas.")) return;
+    setDeletingInstance(id);
+    try {
+      await fetch(`/api/instances/${id}`, { method: "DELETE" });
+      setInstances(prev => prev.filter(i => i.id !== id));
+    } finally {
+      setDeletingInstance(null);
+    }
+  };
+
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
   const startProcess = async (id: string) => {
@@ -79,9 +120,10 @@ export default function InboxPage() {
       });
       if (res.ok) {
         await fetchTasks();
+        toast.success("Proceso iniciado");
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(`Error al iniciar proceso: ${data.error ?? "desconocido"}`);
+        toast.error("No se pudo iniciar el proceso", data.error ?? "desconocido");
       }
     } finally {
       setStartingProcess(null);
@@ -100,7 +142,7 @@ export default function InboxPage() {
         await fetchTasks();
       } else {
         const data = await res.json();
-        alert(`Error: ${data.error}`);
+        toast.error("Error", data.error ?? "No se pudo completar la acción");
       }
     } finally {
       setActionLoading(null);
@@ -127,6 +169,97 @@ export default function InboxPage() {
         </div>
       </div>
 
+      {/* Main tabs */}
+      <div className="mb-6 flex gap-1 rounded-lg p-1" style={{ background: "#0A0F1C", border: "1px solid #1E2540", width: "fit-content" }}>
+        {([
+          { key: "tasks", label: "Mis tareas", icon: <Inbox className="h-3.5 w-3.5" /> },
+          { key: "tracking", label: "Seguimiento", icon: <Eye className="h-3.5 w-3.5" /> },
+        ] as const).map(({ key, label, icon }) => (
+          <button
+            key={key}
+            onClick={() => setMainTab(key)}
+            className="flex items-center gap-2 rounded px-4 py-1.5 text-sm font-medium transition-all"
+            style={mainTab === key
+              ? { background: "rgba(61,126,255,0.15)", color: "#3D7EFF" }
+              : { color: "#7A8BAD" }
+            }
+          >
+            {icon} {label}
+          </button>
+        ))}
+      </div>
+
+      {mainTab === "tracking" && (
+        <div>
+          <p className="mb-4 text-sm" style={{ color: "#7A8BAD" }}>
+            Todas las instancias de proceso activas e históricas de la organización.
+          </p>
+          {trackingLoading ? (
+            <div className="flex items-center justify-center py-24">
+              <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#3D7EFF" }} />
+            </div>
+          ) : instances.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-lg py-24"
+              style={{ background: "#0E1220", border: "1px dashed #1E2540" }}>
+              <Eye className="mb-4 h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
+              <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>No hay instancias todavía</p>
+              <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>Las instancias aparecen al iniciar un proceso</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {instances.map(inst => {
+                const cfg = INSTANCE_STATUS[inst.status as keyof typeof INSTANCE_STATUS] ?? INSTANCE_STATUS.running;
+                const history = Array.isArray(inst.history) ? inst.history as { nodeId: string; completedAt: string }[] : [];
+                return (
+                  <div key={inst.id} className="rounded-lg p-4"
+                    style={{ background: "#0E1220", border: "1px solid #1E2540" }}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>{inst.processName}</p>
+                          <span className="rounded px-2 py-0.5 font-mono text-[10px] uppercase"
+                            style={{ background: `${cfg.color}18`, color: cfg.color }}>
+                            {cfg.label}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap gap-4">
+                          <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                            Nodo actual: <span style={{ color: "#C4CFEA" }}>{inst.currentNodeId}</span>
+                          </span>
+                          <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                            {history.length} pasos completados
+                          </span>
+                          <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                            Iniciado: {formatDate(inst.startedAt)}
+                          </span>
+                          {inst.completedAt && (
+                            <span className="font-mono text-[10px]" style={{ color: "#10D9A0" }}>
+                              Completado: {formatDate(inst.completedAt)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => deleteInstance(inst.id)}
+                        disabled={deletingInstance === inst.id}
+                        className="shrink-0 rounded p-1.5 transition-colors hover:bg-[#F43F5E20] disabled:opacity-50"
+                        style={{ color: "#7A8BAD" }}
+                        title="Eliminar instancia"
+                      >
+                        {deletingInstance === inst.id
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <Trash2 className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {mainTab === "tasks" && <>
       {/* Available processes */}
       <div className="mb-6">
         <p className="mb-2 font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
@@ -322,6 +455,8 @@ export default function InboxPage() {
           })}
         </div>
       )}
+
+      </>}
 
       {runnerTaskId && (
         <TaskRunnerModal

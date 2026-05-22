@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import {
   X, Loader2, UserPlus, FolderPlus, Layers, Edit3, Trash2, Sparkles, Search,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, ArrowUp, ArrowDown, LogOut,
 } from "lucide-react";
 import type { Employee } from "@/db/schema";
 import type { Division, Department } from "./types";
@@ -202,7 +202,7 @@ export function SearchPanel({ divisions, departments, employees, onNavigate, onC
 export type CtxTarget =
   | { kind: "canvas"; x: number; y: number }
   | { kind: "division"; id: string; x: number; y: number; isConnectable: boolean; autoSize: boolean; collapsed: boolean }
-  | { kind: "department"; id: string; x: number; y: number }
+  | { kind: "department"; id: string; x: number; y: number; divisionId: string | null }
   | { kind: "employee"; id: string; x: number; y: number }
   | { kind: "edge"; id: string; x: number; y: number; isSynthetic: boolean };
 
@@ -221,9 +221,12 @@ export function ContextMenu({ target, onAction, onClose }: {
       { label: "Editar división", icon: <Edit3 size={13} />, action: "edit" },
       { label: "Nuevo departamento aquí", icon: <FolderPlus size={13} />, action: "new-department-in" },
       { label: "Nuevo puesto aquí", icon: <UserPlus size={13} />, action: "new-position-in" },
+      { label: "Adoptar departamento…", icon: <FolderPlus size={13} />, action: "adopt-department" },
       { label: target.collapsed ? "Expandir ▶" : "Colapsar ▲", icon: target.collapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />, action: "toggle-collapse" },
       { label: target.autoSize ? "Fijar tamaño manual" : "Activar auto-tamaño ✓", icon: <Layers size={13} />, action: "toggle-autosize" },
       { label: target.isConnectable ? "Deshabilitar conexiones" : "Habilitar conexiones ✓", icon: <Layers size={13} />, action: "toggle-connectable" },
+      { label: "↑ Mover arriba", icon: <ArrowUp size={13} />, action: "move-up" },
+      { label: "↓ Mover abajo", icon: <ArrowDown size={13} />, action: "move-down" },
       { label: "Renombrar", icon: <Edit3 size={13} />, action: "rename" },
       { label: "Eliminar división", icon: <Trash2 size={13} />, action: "delete", danger: true },
     ];
@@ -231,6 +234,9 @@ export function ContextMenu({ target, onAction, onClose }: {
       { label: "Nuevo puesto aquí", icon: <UserPlus size={13} />, action: "new-position-in" },
       { label: "Reorganizar puestos (jerárquico)", icon: <Sparkles size={13} />, action: "reorganize-positions" },
       { label: "Editar departamento", icon: <Edit3 size={13} />, action: "edit" },
+      ...(target.divisionId ? [{ label: "Sacar de división", icon: <LogOut size={13} />, action: "unlink-division" }] : []),
+      { label: "↑ Mover arriba", icon: <ArrowUp size={13} />, action: "move-up" },
+      { label: "↓ Mover abajo", icon: <ArrowDown size={13} />, action: "move-down" },
       { label: "Renombrar", icon: <Edit3 size={13} />, action: "rename" },
       { label: "Eliminar departamento", icon: <Trash2 size={13} />, action: "delete", danger: true },
     ];

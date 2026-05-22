@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import React, { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, Check, Circle, CheckCircle2, Trash2,
-  Users, Flag, Calendar, ChevronDown,
+  Users, Flag, Calendar, ChevronDown, FileText, Upload, Download,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -286,9 +286,153 @@ function MembersTab({ projectId }: { projectId: string }) {
   );
 }
 
+// ─── Files tab ────────────────────────────────────────────────────────────────
+
+interface ProjectFileRow {
+  linkId: string;
+  addedAt: string;
+  id: string;
+  title: string;
+  content: { type: string; fileType: string; size: number; storageUrl?: string; data?: string };
+  createdAt: string;
+}
+
+function FilesTab({ projectId }: { projectId: string }) {
+  const [files, setFiles] = useState<ProjectFileRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/files`);
+      if (res.ok) setFiles(await res.json());
+    } finally { setLoading(false); }
+  }, [projectId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "org-files");
+
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { url: storageUrl } = await uploadRes.json();
+
+      const res = await fetch(`/api/projects/${projectId}/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: file.name, fileType: file.type, size: file.size, storageUrl }),
+      });
+      if (res.ok) { const newFile = await res.json(); setFiles((prev) => [newFile, ...prev]); }
+    } catch {
+      // silent — user sees no spinner change
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }, [projectId]);
+
+  const deleteFile = async (linkId: string, documentId: string) => {
+    await fetch(`/api/projects/${projectId}/files`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ linkId, documentId }),
+    });
+    setFiles((prev) => prev.filter((f) => f.linkId !== linkId));
+  };
+
+  const downloadFile = (file: ProjectFileRow) => {
+    const a = document.createElement("a");
+    a.href = file.content.storageUrl ?? file.content.data ?? "";
+    a.download = file.title;
+    a.target = "_blank";
+    a.click();
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  if (loading) return <p className="py-12 text-center text-sm" style={{ color: "#7A8BAD" }}>Cargando…</p>;
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm" style={{ color: "#7A8BAD" }}>{files.length} archivo{files.length !== 1 ? "s" : ""}</p>
+        <label
+          className="flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-white"
+          style={{ background: uploading ? "#2A3356" : "#3D7EFF" }}
+        >
+          {uploading ? (
+            <>
+              <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              Subiendo…
+            </>
+          ) : (
+            <>
+              <Upload className="h-3.5 w-3.5" /> Subir archivo
+            </>
+          )}
+          <input type="file" className="sr-only" onChange={handleFileSelect} disabled={uploading} />
+        </label>
+      </div>
+
+      {files.length === 0 ? (
+        <div className="rounded-lg p-10 text-center" style={{ background: "#0E1220", border: "1px dashed #1E2540" }}>
+          <FileText className="mx-auto mb-3 h-8 w-8" style={{ color: "#1E2540" }} />
+          <p className="text-sm" style={{ color: "#C4CFEA" }}>Sin archivos adjuntos</p>
+          <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>Subí archivos para vincularlos a este proyecto</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {files.map((f) => {
+            const isImage = f.content?.fileType?.startsWith("image/");
+            return (
+              <div key={f.linkId} className="flex items-center gap-3 rounded-lg px-4 py-3"
+                style={{ background: "#0E1220", border: "1px solid #1E2540" }}>
+                {isImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={f.content.data} alt={f.title} className="h-10 w-10 rounded object-cover shrink-0"
+                    style={{ border: "1px solid #1E2540" }} />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded"
+                    style={{ background: "#141928", border: "1px solid #1E2540" }}>
+                    <FileText className="h-5 w-5" style={{ color: "#7A8BAD" }} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: "#E2E8F8" }}>{f.title}</p>
+                  <p className="text-xs" style={{ color: "#7A8BAD" }}>
+                    {f.content?.fileType ?? "file"} · {formatSize(f.content?.size ?? 0)} · {new Date(f.addedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                  </p>
+                </div>
+                <button onClick={() => downloadFile(f)} className="rounded p-1.5 hover:bg-blue-500/10 transition-colors" style={{ color: "#7A8BAD" }} title="Descargar">
+                  <Download className="h-4 w-4" />
+                </button>
+                <button onClick={() => deleteFile(f.linkId, f.id)} className="rounded p-1.5 hover:bg-red-500/10 transition-colors" style={{ color: "#4A5568" }} title="Eliminar">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type Tab = "milestones" | "members";
+type Tab = "milestones" | "members" | "files";
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -322,6 +466,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "milestones", label: "Hitos", icon: <Flag className="h-3.5 w-3.5" /> },
     { key: "members", label: "Miembros", icon: <Users className="h-3.5 w-3.5" /> },
+    { key: "files", label: "Archivos", icon: <FileText className="h-3.5 w-3.5" /> },
   ];
 
   if (loading) return (
@@ -398,6 +543,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       {/* Tab content */}
       {tab === "milestones" && <MilestonesTab projectId={id} />}
       {tab === "members" && <MembersTab projectId={id} />}
+      {tab === "files" && <FilesTab projectId={id} />}
     </div>
   );
 }

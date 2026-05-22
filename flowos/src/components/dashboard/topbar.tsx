@@ -1,30 +1,68 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Bell, Search, CheckCheck } from "lucide-react";
 
-const MOCK_NOTIFICATIONS = [
-  { id: 1, title: "Bienvenido a FlowOS", body: "Tu workspace está listo para usar.", time: "Ahora", unread: true },
-];
+interface DbNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  linkUrl: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
 
 const PAGE_META: Record<string, { title: string; subtitle: string }> = {
-  "/dashboard": { title: "Dashboard", subtitle: "Overview of your organization" },
-  "/dashboard/orgchart": { title: "Org Chart", subtitle: "Visualizá la estructura de tu equipo" },
-  "/dashboard/employees": { title: "Empleados", subtitle: "Gestioná los miembros de tu org" },
-  "/dashboard/projects": { title: "Proyectos", subtitle: "Tablero kanban de tareas" },
+  "/dashboard": { title: "Inicio", subtitle: "Vista general de tu organización" },
+  "/dashboard/today": { title: "Mi día", subtitle: "Lo que tenés que hacer hoy" },
+  "/dashboard/inbox": { title: "Bandeja", subtitle: "Tareas pendientes de procesos BPM" },
+  "/dashboard/orgchart": { title: "Organigrama", subtitle: "Visualizá la estructura de tu equipo" },
+  "/dashboard/employees": { title: "Empleados", subtitle: "Gestioná los miembros de tu organización" },
+  "/dashboard/projects": { title: "Proyectos", subtitle: "Hub de proyectos del equipo" },
+  "/dashboard/processes": { title: "Procesos", subtitle: "Diseñá y ejecutá procesos BPM" },
+  "/dashboard/workload": { title: "Carga", subtitle: "Distribución de trabajo por persona / departamento" },
   "/dashboard/docs": { title: "Docs", subtitle: "Base de conocimiento del equipo" },
   "/dashboard/team": { title: "Equipo", subtitle: "Miembros y roles de tu organización" },
   "/dashboard/billing": { title: "Billing", subtitle: "Planes y facturación" },
-  "/dashboard/settings": { title: "Configuración", subtitle: "System configuration" },
+  "/dashboard/settings": { title: "Configuración", subtitle: "Ajustes del sistema" },
 };
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "ahora";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+}
 
 export function DashboardTopbar() {
   const pathname = usePathname();
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<DbNotification[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  const unreadCount = notifications.filter(n => !n.readAt).length;
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications?limit=30");
+      if (res.ok) setNotifications(await res.json());
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+    // Poll cada 60s — lo más simple. Más adelante: SSE / WebSocket.
+    const interval = setInterval(loadNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -36,7 +74,15 @@ export function DashboardTopbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [notifOpen]);
 
-  const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+  const markAllRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })));
+    await fetch("/api/notifications/read-all", { method: "POST" });
+  };
+
+  const markOneRead = async (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
+    await fetch(`/api/notifications/${id}/read`, { method: "POST" });
+  };
 
   const meta =
     PAGE_META[pathname] ??
@@ -106,28 +152,45 @@ export function DashboardTopbar() {
                   </button>
                 )}
               </div>
-              <div className="max-h-72 overflow-y-auto">
+              <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <p className="px-4 py-6 text-center text-sm" style={{ color: "#7A8BAD" }}>
-                    No hay notificaciones nuevas
+                    No hay notificaciones todavía
                   </p>
                 ) : (
-                  notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className="flex gap-3 px-4 py-3 transition-colors hover:bg-[#141928]"
-                      style={{ borderBottom: "1px solid #1E2540" }}
-                    >
-                      {n.unread && (
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: "#3D7EFF" }} />
-                      )}
-                      <div className={n.unread ? "" : "pl-5"}>
-                        <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>{n.title}</p>
-                        <p className="mt-0.5 text-xs" style={{ color: "#7A8BAD" }}>{n.body}</p>
-                        <p className="mt-1 text-xs" style={{ color: "#4A5568" }}>{n.time}</p>
+                  notifications.map((n) => {
+                    const unread = !n.readAt;
+                    const content = (
+                      <>
+                        {unread && (
+                          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: "#3D7EFF" }} />
+                        )}
+                        <div className={unread ? "flex-1" : "flex-1 pl-5"}>
+                          <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>{n.title}</p>
+                          {n.body && <p className="mt-0.5 text-xs" style={{ color: "#7A8BAD", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.body}</p>}
+                          <p className="mt-1 text-xs" style={{ color: "#4A5568" }}>{timeAgo(n.createdAt)}</p>
+                        </div>
+                      </>
+                    );
+                    if (n.linkUrl) {
+                      return (
+                        <Link key={n.id} href={n.linkUrl}
+                          onClick={() => { markOneRead(n.id); setNotifOpen(false); }}
+                          className="flex gap-3 px-4 py-3 transition-colors hover:bg-[#141928]"
+                          style={{ borderBottom: "1px solid #1E2540", textDecoration: "none" }}>
+                          {content}
+                        </Link>
+                      );
+                    }
+                    return (
+                      <div key={n.id}
+                        onClick={() => markOneRead(n.id)}
+                        className="flex gap-3 px-4 py-3 transition-colors hover:bg-[#141928] cursor-pointer"
+                        style={{ borderBottom: "1px solid #1E2540" }}>
+                        {content}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

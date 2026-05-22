@@ -5,6 +5,33 @@ import { X, CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
 import type { InboxTask } from "@/db/schema";
 import type { FormField, FormFieldType } from "@/app/dashboard/processes/[id]/page";
 
+// ─── Dynamic options hook ─────────────────────────────────────────────────────
+
+function useDynamicOptions(source: "departments" | "employees" | "divisions" | undefined) {
+  const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
+  useEffect(() => {
+    if (!source) return;
+    const endpoint = source === "departments"
+      ? "/api/departments"
+      : source === "employees"
+      ? "/api/employees"
+      : "/api/divisions";
+    fetch(endpoint)
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        if (!Array.isArray(data)) return;
+        setOptions(
+          (data as Record<string, unknown>[]).map((item) => ({
+            value: String(item.id ?? ""),
+            label: String(item.name ?? item.fullName ?? item.id ?? ""),
+          }))
+        );
+      })
+      .catch(() => {});
+  }, [source]);
+  return options;
+}
+
 // ─── Field renderer ───────────────────────────────────────────────────────────
 
 function FieldInput({
@@ -18,6 +45,7 @@ function FieldInput({
 }) {
   const base = "w-full rounded px-3 py-2 text-sm outline-none";
   const style = { background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" };
+  const dynamicOptions = useDynamicOptions(field.source);
 
   if (field.type === "textarea") {
     return (
@@ -33,6 +61,9 @@ function FieldInput({
     );
   }
   if (field.type === "select") {
+    const opts = field.source
+      ? dynamicOptions
+      : (field.options ?? []).map((o) => ({ value: o, label: o }));
     return (
       <select
         value={(value as string) ?? ""}
@@ -42,8 +73,8 @@ function FieldInput({
         style={{ ...style, color: value ? "#E2E8F8" : "#7A8BAD" }}
       >
         <option value="">— Seleccionar —</option>
-        {(field.options ?? []).map((opt) => (
-          <option key={opt} value={opt}>{opt}</option>
+        {opts.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
     );

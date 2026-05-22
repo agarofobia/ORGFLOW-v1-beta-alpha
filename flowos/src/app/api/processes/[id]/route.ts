@@ -40,17 +40,19 @@ export async function PUT(
 
   try {
     const body = await req.json();
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.description !== undefined) updates.description = body.description;
+    if (body.category !== undefined) updates.category = body.category;
+    if (body.status !== undefined) updates.status = body.status;
+    if (body.nodes !== undefined) updates.nodes = body.nodes;
+    if (body.edges !== undefined) updates.edges = body.edges;
+    if ("parentId" in body) updates.parentId = body.parentId; // allow null to move to root
+    if ("projectTemplateId" in body) updates.projectTemplateId = body.projectTemplateId; // null permitido para desvincular
+
     const [result] = await db
       .update(processDefinitions)
-      .set({
-        name: body.name,
-        description: body.description,
-        category: body.category,
-        status: body.status,
-        nodes: body.nodes,
-        edges: body.edges,
-        updatedAt: new Date(),
-      })
+      .set(updates)
       .where(
         and(
           eq(processDefinitions.id, id),

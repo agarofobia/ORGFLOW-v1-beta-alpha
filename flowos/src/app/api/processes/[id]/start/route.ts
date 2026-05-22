@@ -22,6 +22,7 @@ export async function POST(
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
+    // result = { instanceId, projectId? } — projectId presente si la definition tenía template asociado
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { departments } from "@/db/schema";
+import { departments, employees } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -41,6 +41,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const { id } = await params;
+    // M8.1 — correlación: null-out departmentId en empleados del dept eliminado
+    await db
+      .update(employees)
+      .set({ departmentId: null })
+      .where(and(eq(employees.departmentId, id), eq(employees.organizationId, orgId)));
     await db
       .delete(departments)
       .where(and(eq(departments.id, id), eq(departments.organizationId, orgId)));

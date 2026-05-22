@@ -18,6 +18,8 @@ import {
   Panel,
   useReactFlow,
   useNodesInitialized,
+  getNodesBounds,
+  getViewportForBounds,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
@@ -45,7 +47,7 @@ import {
   AddPositionPanel, AddGroupPanel, SearchPanel,
   ContextMenu, type CtxTarget,
 } from "./orgchart/panels";
-import { NodeInfoPanel, type EmployeeWithSection } from "./orgchart/NodeInfoPanel";
+import { NodeInfoPanel, UnitEditPanel, type EmployeeWithSection } from "./orgchart/NodeInfoPanel";
 import { getEffectiveRole } from "./orgchart/roles";
 
 
@@ -65,7 +67,7 @@ function OrgChartFlow() {
   const { employees, addEmployee, updateEmployee, deleteEmployee, error } = useEmployees();
   const { membership } = useOrganization();
   const isAdmin = membership?.role === "org:admin";
-  const { screenToFlowPosition, getViewport, fitView } = useReactFlow();
+  const { screenToFlowPosition, getViewport, setViewport, fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
 
   const [divisions, setDivisions] = useState<Division[]>([]);
@@ -84,12 +86,14 @@ function OrgChartFlow() {
   const [editingDivision, setEditingDivision] = useState<Division | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [movingEmployeeId, setMovingEmployeeId] = useState<string | null>(null);
+  const [adoptingDivisionId, setAdoptingDivisionId] = useState<string | null>(null);
   const [autoLayoutPending, setAutoLayoutPending] = useState(false);
   const [exportingPng, setExportingPng] = useState(false);
   // Divisions in this set use stored sizeWidth/Height (manual) instead of auto-computed natural size
   const [manualSizeDivs, setManualSizeDivs] = useState<Set<string>>(new Set());
   const [collapsedDivs, setCollapsedDivs] = useState<Set<string>>(new Set());
   const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [globalConnectable, setGlobalConnectable] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("flowos-orgchart-global-connectable") !== "false";
@@ -219,7 +223,11 @@ function OrgChartFlow() {
   const updateEmployeeRef = useRef(updateEmployee);
   const divisionsRef = useRef<Division[]>([]);
   const departmentsRef = useRef<Department[]>([]);
+  const unitsRef = useRef<Unit[]>([]);
   const linkedResizeRef = useRef<boolean>(true);
+  // Right-click drag tracking
+  const rightDragRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressCtxMenuRef = useRef(false);
   useEffect(() => { employeesRef.current = employees; }, [employees]);
   useEffect(() => { updateEmployeeRef.current = updateEmployee; }, [updateEmployee]);
 
@@ -245,6 +253,7 @@ function OrgChartFlow() {
   useEffect(() => { reloadGroups(); }, [reloadGroups]);
   useEffect(() => { divisionsRef.current = divisions; }, [divisions]);
   useEffect(() => { departmentsRef.current = departments; }, [departments]);
+  useEffect(() => { unitsRef.current = units; }, [units]);
   useEffect(() => { linkedResizeRef.current = linkedResize; }, [linkedResize]);
 
   // Fix del bug visual al cargar: edges apuntan a handles sin dimensiones medidas.
@@ -470,7 +479,7 @@ function OrgChartFlow() {
     // Pre-cálculo de altura needed por depto
     const heights: number[] = [];
     childDepts.forEach(dept => {
-      const isHeadPromoted = (dept.promoteHead ?? true) && !!dept.headEmployeeId;
+      const isHeadPromoted = (dept.promoteHead ?? false) && !!dept.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
         e.departmentId === dept.id &&
         (!isHeadPromoted || e.id !== dept.headEmployeeId)
@@ -557,7 +566,7 @@ function OrgChartFlow() {
   const directorEmployeeIds = useMemo(() => {
     const s = new Set<string>();
     for (const dp of departments) {
-      if (dp.headEmployeeId && (dp.promoteHead ?? true)) s.add(dp.headEmployeeId);
+      if (dp.headEmployeeId && (dp.promoteHead ?? false)) s.add(dp.headEmployeeId);
     }
     return s;
   }, [departments]);
@@ -568,7 +577,7 @@ function OrgChartFlow() {
   // No aplica si algún subordinado es manager/director (ahí se necesita la jerarquía visible).
   const absorption = useMemo(() => {
     const absorbedIds = new Set<string>(); // empleados que NO se renderizan como cards separados
-    const managerSubsMap = new Map<string, Array<{ id: string; fullName: string; jobTitle: string; color: string; isVacant: boolean }>>();
+    const managerSubsMap = new Map<string, Array<{ id: string; fullName: string; jobTitle: string; color: string; isVacant: boolean; unit?: { id: string; name: string; color: string | null; isHead: boolean } | null }>>();
 
     // Mapeo managerId → subordinados directos
     const directReports = new Map<string, Employee[]>();
@@ -589,14 +598,18 @@ function OrgChartFlow() {
       const allMembers = subs.every(s => getEffectiveRole(s, employees ?? [], departments, units) === "member");
       if (!allMembers) continue;
       // Absorber
-      const list = subs.map(s => ({
-        id: s.id,
-        fullName: s.fullName,
-        jobTitle: s.jobTitle || "Sin asignar",
-        color: s.color || "#3D7EFF",
-        isVacant: s.fullName === "[Puesto vacante]",
-        imageUrl: (s as Employee & { imageUrl?: string | null }).imageUrl ?? null,
-      }));
+      const list = subs.map(s => {
+        const u = s.unitId ? units.find(x => x.id === s.unitId) : null;
+        return {
+          id: s.id,
+          fullName: s.fullName,
+          jobTitle: s.jobTitle || "Sin asignar",
+          color: s.color || "#3D7EFF",
+          isVacant: s.fullName === "[Puesto vacante]",
+          imageUrl: (s as Employee & { imageUrl?: string | null }).imageUrl ?? null,
+          unit: u ? { id: u.id, name: u.name, color: u.color, isHead: u.headEmployeeId === s.id } : null,
+        };
+      });
       managerSubsMap.set(mgrId, list);
       subs.forEach(s => absorbedIds.add(s.id));
     }
@@ -664,7 +677,7 @@ function OrgChartFlow() {
       const mode = dept.layoutMode ?? "vertical";
       if (mode === "manual") return; // no auto-posiciona — drag manual rules
 
-      const isPromoted = (dept.promoteHead ?? true) && !!dept.headEmployeeId;
+      const isPromoted = (dept.promoteHead ?? false) && !!dept.headEmployeeId;
       const empsInDept = (employees ?? []).filter(e =>
         e.departmentId === dept.id &&
         (!isPromoted || e.id !== dept.headEmployeeId) &&
@@ -784,6 +797,31 @@ function OrgChartFlow() {
     return positions;
   }, [divisions, coupledSizes, manualSizeDivs]);
 
+  const handleUnitClick = useCallback((unitId: string) => {
+    const unit = unitsRef.current.find(u => u.id === unitId);
+    if (unit) setSelectedUnit(unit);
+  }, []);
+
+  // Click en subordinado absorbido → abre NodeInfoPanel construyendo nodo sintético.
+  // NodeInfoPanel hace su propio lookup por id en `employees`, así que solo necesita id + datos base.
+  const handleSubClick = useCallback((subId: string) => {
+    const emp = (employeesRef.current ?? []).find(e => e.id === subId);
+    if (!emp) return;
+    const syntheticNode: EmployeeNode = {
+      id: emp.id,
+      type: "employee",
+      position: { x: 0, y: 0 },
+      data: {
+        fullName: emp.fullName,
+        jobTitle: emp.jobTitle || "Sin asignar",
+        color: emp.color || "#3D7EFF",
+        status: emp.status,
+      },
+    };
+    setSelectedUnit(null);
+    setSelectedEmpNode(syntheticNode);
+  }, []);
+
   // ── Build the React Flow nodes from data ──────────────────────────────────
   const computedNodes: AnyNode[] = useMemo(() => {
     const result: AnyNode[] = [];
@@ -844,7 +882,7 @@ function OrgChartFlow() {
     const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
     const deptNeededHeight = new Map<string, number>();
     for (const dp of departments) {
-      const isHeadPromoted = (dp.promoteHead ?? true) && !!dp.headEmployeeId;
+      const isHeadPromoted = (dp.promoteHead ?? false) && !!dp.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
         e.departmentId === dp.id &&
         (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
@@ -866,7 +904,7 @@ function OrgChartFlow() {
     // Departments — child of division if has divisionId; skip if parent division is collapsed
     departments.forEach(dp => {
       if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
-      const isHeadPromoted = (dp.promoteHead ?? true) && !!dp.headEmployeeId;
+      const isHeadPromoted = (dp.promoteHead ?? false) && !!dp.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
         e.departmentId === dp.id &&
         (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
@@ -961,6 +999,11 @@ function OrgChartFlow() {
             showRoleBadge: showRoleBadges,
             // Director promovido NO se renderiza compact (es la figura principal del depto)
             compact: false,
+            unit: (() => {
+              const u = emp.unitId ? units.find(x => x.id === emp.unitId) : null;
+              return u ? { id: u.id, name: u.name, color: u.color, isHead: u.headEmployeeId === emp.id } : null;
+            })(),
+            onUnitClick: handleUnitClick,
           },
         };
         // Parent = división del depto si existe; si no, queda standalone.
@@ -999,6 +1042,12 @@ function OrgChartFlow() {
           showRoleBadge: showRoleBadges,
           compact: isCompactMode,
           subordinatesInCard: subsInCard,
+          unit: (() => {
+            const u = emp.unitId ? units.find(x => x.id === emp.unitId) : null;
+            return u ? { id: u.id, name: u.name, color: u.color, isHead: u.headEmployeeId === emp.id } : null;
+          })(),
+          onUnitClick: handleUnitClick,
+          onSubClick: handleSubClick,
         },
       };
       if (emp.departmentId && departments.some(d => d.id === emp.departmentId)) {
@@ -1013,7 +1062,7 @@ function OrgChartFlow() {
 
     return result;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, directorEmployeeIds, absorption, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive]);
+  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, directorEmployeeIds, absorption, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive, handleUnitClick, handleSubClick]);
 
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
@@ -1095,10 +1144,19 @@ function OrgChartFlow() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const onNodesChange = useCallback((changes: NodeChange[]) => {
+    // PROTECCIÓN ANTI-DESAPARICIÓN: ignorar changes "remove" que vengan de ReactFlow.
+    // La única forma legítima de borrar un puesto/depto/división es via API DELETE,
+    // que actualiza el array (employees/departments/divisions) y triggera recompute.
+    // Sin este filtro, ciertos drag/bug/race conditions emiten "remove" → el node
+    // desaparece del state local pero queda en DB, y el useEffect de sync no lo
+    // restaura porque `computedNodes` no cambió (misma referencia).
+    // Sí permitimos remove de edges sintéticas via su propio path (onEdgeContextMenu).
+    const safe = changes.filter(c => c.type !== "remove");
+    if (safe.length === 0) return;
     // Clamp employee/department Y inside divisions so they don't invade the header zone.
     // The header occupies the top HEADER_H px of any division.
     const DEPT_HEADER_H = 34;
-    const clamped = changes.map(change => {
+    const clamped = safe.map(change => {
       if (change.type === "position" && change.position) {
         const node = nodes.find(n => n.id === change.id);
         if (!node) return change;
@@ -1210,6 +1268,48 @@ function OrgChartFlow() {
             });
           }
         } else if (node.type === "department") {
+          // ── Drag-to-reparent: detectar si el dept cayó dentro de otra división ───
+          // Calcular posición mundo (node.position es local si tiene parentId)
+          let worldX = change.position.x;
+          let worldY = change.position.y;
+          if (node.parentId) {
+            const parentNode = nodes.find(n => n.id === node.parentId);
+            if (parentNode) { worldX += parentNode.position.x; worldY += parentNode.position.y; }
+          }
+          // Centro estimado del dept
+          const DEPT_W_EST = 260;
+          const DEPT_H_EST = 80;
+          const centerX = worldX + DEPT_W_EST / 2;
+          const centerY = worldY + DEPT_H_EST / 2;
+          // Buscar si hay una división que contenga ese centro
+          const targetDivNode = nodes.find(n => {
+            if (n.type !== "division") return false;
+            const dw = typeof n.style?.width === "number" ? n.style.width : 400;
+            const dh = typeof n.style?.height === "number" ? n.style.height : 300;
+            return centerX >= n.position.x && centerX <= n.position.x + dw &&
+                   centerY >= n.position.y && centerY <= n.position.y + dh;
+          });
+          const currentDept = departments.find(d => d.id === change.id);
+          const currentDivId = currentDept?.divisionId ?? null;
+          const newDivId = targetDivNode?.id ?? null;
+          if (newDivId !== currentDivId) {
+            // Reparentar: convertir coords mundo a local de la nueva división (si hay)
+            let localX = worldX;
+            let localY = worldY;
+            if (targetDivNode) {
+              localX = worldX - targetDivNode.position.x;
+              localY = Math.max(HEADER_H + 10, worldY - targetDivNode.position.y);
+            }
+            fetch(`/api/departments/${change.id}`, {
+              method: "PUT", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ divisionId: newDivId, positionX: localX, positionY: localY }),
+            }).catch(() => {});
+            setDepartments(prev => prev.map(d =>
+              d.id === change.id ? { ...d, divisionId: newDivId, positionX: localX, positionY: localY } : d
+            ));
+            return; // no hacer snap ni undo de posición normal
+          }
+          // ── Posición normal (sin reparent) ────────────────────────────────────
           const dSnap = computeDepartmentSnap(change.id, change.position.x, change.position.y);
           const nx = dSnap?.x ?? change.position.x;
           const ny = dSnap?.y ?? change.position.y;
@@ -1302,24 +1402,30 @@ function OrgChartFlow() {
 
   const onPaneContextMenu = useCallback((e: React.MouseEvent | MouseEvent) => {
     e.preventDefault();
+    if (suppressCtxMenuRef.current) { suppressCtxMenuRef.current = false; return; }
     setContextMenu({ kind: "canvas", x: e.clientX, y: e.clientY });
     setSelectedEmpNode(null);
   }, []);
 
   const onNodeContextMenu = useCallback((e: React.MouseEvent, node: AnyNode) => {
     e.preventDefault();
+    if (suppressCtxMenuRef.current) { suppressCtxMenuRef.current = false; return; }
     if (node.type === "employee") setContextMenu({ kind: "employee", id: node.id, x: e.clientX, y: e.clientY });
     else if (node.type === "division") {
       const div = divisions.find(d => d.id === node.id);
       setContextMenu({ kind: "division", id: node.id, x: e.clientX, y: e.clientY, isConnectable: div?.isConnectable !== false, autoSize: !manualSizeDivs.has(node.id), collapsed: collapsedDivs.has(node.id) });
     }
-    else if (node.type === "department") setContextMenu({ kind: "department", id: node.id, x: e.clientX, y: e.clientY });
+    else if (node.type === "department") {
+      const dept = departments.find(d => d.id === node.id);
+      setContextMenu({ kind: "department", id: node.id, x: e.clientX, y: e.clientY, divisionId: dept?.divisionId ?? null });
+    }
   }, [divisions, manualSizeDivs, collapsedDivs]);
 
   // Click derecho en una conexión → menú con opción Eliminar.
   // Las edges sintéticas (__sync_*) muestran info pero no permiten eliminar.
   const onEdgeContextMenu = useCallback((e: React.MouseEvent, edge: Edge) => {
     e.preventDefault();
+    if (suppressCtxMenuRef.current) { suppressCtxMenuRef.current = false; return; }
     const isSynthetic = typeof edge.id === "string" && edge.id.startsWith("__sync_");
     setContextMenu({ kind: "edge", id: edge.id, x: e.clientX, y: e.clientY, isSynthetic });
   }, []);
@@ -1535,6 +1641,30 @@ function OrgChartFlow() {
         }).catch(() => {});
         setDivisions(prev => prev.map(d => d.id === t.id ? { ...d, isConnectable: next } : d));
       }
+      if (action === "adopt-department") setAdoptingDivisionId(t.id);
+      if (action === "move-up" || action === "move-down") {
+        // Swap Y position with nearest division above (move-up) or below (move-down)
+        const sorted = [...divisions].sort((a, b) => (a.positionY ?? 0) - (b.positionY ?? 0));
+        const idx = sorted.findIndex(d => d.id === t.id);
+        if (idx !== -1) {
+          const swapIdx = action === "move-up" ? idx - 1 : idx + 1;
+          if (swapIdx >= 0 && swapIdx < sorted.length) {
+            const cur = sorted[idx];
+            const neighbor = sorted[swapIdx];
+            const newCurY = neighbor.positionY ?? 0;
+            const newNbrY = cur.positionY ?? 0;
+            await Promise.all([
+              fetch(`/api/divisions/${cur.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ positionY: newCurY }) }),
+              fetch(`/api/divisions/${neighbor.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ positionY: newNbrY }) }),
+            ]);
+            setDivisions(prev => prev.map(d => {
+              if (d.id === cur.id) return { ...d, positionY: newCurY };
+              if (d.id === neighbor.id) return { ...d, positionY: newNbrY };
+              return d;
+            }));
+          }
+        }
+      }
       if (action === "rename" && div) setRenaming({ kind: "division", id: t.id, name: div.name });
       if (action === "delete") await deleteDivision(t.id);
     }
@@ -1552,6 +1682,40 @@ function OrgChartFlow() {
         await Promise.all(empsInDept.map(e =>
           updateEmployeeRef.current(e.id, { manualPosition: false }).catch(() => {})
         ));
+      }
+      if (action === "unlink-division" && dept) {
+        // Sacar de división: set divisionId = null, mover a posición mundo
+        const parentNode = nodes.find(n => n.id === dept.divisionId);
+        const worldX = (parentNode?.position.x ?? 0) + (dept.positionX ?? 0);
+        const worldY = (parentNode?.position.y ?? 0) + (dept.positionY ?? 0);
+        fetch(`/api/departments/${t.id}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ divisionId: null, positionX: worldX, positionY: worldY }),
+        }).catch(() => {});
+        setDepartments(prev => prev.map(d => d.id === t.id ? { ...d, divisionId: null, positionX: worldX, positionY: worldY } : d));
+      }
+      if ((action === "move-up" || action === "move-down") && dept) {
+        // Swap X position con el depto vecino más cercano (mismo divisionId o ambos sin div)
+        const siblings = departments.filter(d => d.divisionId === dept.divisionId);
+        const sorted = [...siblings].sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
+        const idx = sorted.findIndex(d => d.id === t.id);
+        if (idx !== -1) {
+          const swapIdx = action === "move-up" ? idx - 1 : idx + 1;
+          if (swapIdx >= 0 && swapIdx < sorted.length) {
+            const neighbor = sorted[swapIdx];
+            const newCurX = neighbor.positionX ?? 0;
+            const newNbrX = dept.positionX ?? 0;
+            await Promise.all([
+              fetch(`/api/departments/${dept.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ positionX: newCurX }) }),
+              fetch(`/api/departments/${neighbor.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ positionX: newNbrX }) }),
+            ]);
+            setDepartments(prev => prev.map(d => {
+              if (d.id === dept.id) return { ...d, positionX: newCurX };
+              if (d.id === neighbor.id) return { ...d, positionX: newNbrX };
+              return d;
+            }));
+          }
+        }
       }
       if (action === "rename" && dept) setRenaming({ kind: "department", id: t.id, name: dept.name });
       if (action === "delete") await deleteDepartment(t.id);
@@ -1608,6 +1772,21 @@ function OrgChartFlow() {
   const handleSaveEmployee = async (id: string, updates: Partial<EmployeeWithSection>) => {
     await updateEmployeeRef.current(id, updates);
     setSelectedEmpNode(prev => prev?.id === id ? { ...prev, data: { ...prev.data, fullName: updates.fullName ?? prev.data.fullName, jobTitle: updates.jobTitle ?? prev.data.jobTitle } } : prev);
+  };
+
+  const handleSaveUnit = async (id: string, updates: { name?: string; headEmployeeId?: string | null; color?: string | null }) => {
+    await fetch(`/api/units/${id}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    setUnits(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    setSelectedUnit(prev => prev?.id === id ? { ...prev, ...updates } : prev);
+  };
+
+  const handleDeleteUnit = async (id: string) => {
+    await fetch(`/api/units/${id}`, { method: "DELETE" });
+    setUnits(prev => prev.filter(u => u.id !== id));
+    setSelectedUnit(null);
   };
 
   const handleSaveDivision = async (updates: Partial<Division>) => {
@@ -1750,15 +1929,48 @@ function OrgChartFlow() {
   const handleExportPng = useCallback(async () => {
     setExportingPng(true);
     try {
-      fitView({ duration: 0, padding: 0.1 });
-      // Esperar a que fitView se aplique y el DOM se repinte
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      const el = document.querySelector(".react-flow") as HTMLElement | null;
-      if (!el) return;
+      // Capturar TODOS los nodes (no solo los visibles en el viewport).
+      // 1) Calcular bounding box completo de todos los nodes
+      // 2) Definir dimensiones de imagen al tamaño real del contenido + padding
+      // 3) Usar getViewportForBounds para alinear el transform del viewport interno
+      // 4) Renderizar .react-flow__viewport con esas dimensiones forzadas → todo entra
+      const allNodes = nodes;
+      if (allNodes.length === 0) return;
+      const bounds = getNodesBounds(allNodes);
+      const padding = 60;
+      const scale = 1; // 1:1 real-size; pixelRatio multiplica densidad para legibilidad
+      const imageWidth = Math.ceil(bounds.width * scale) + padding * 2;
+      const imageHeight = Math.ceil(bounds.height * scale) + padding * 2;
+      const viewport = getViewportForBounds(bounds, imageWidth, imageHeight, 0.1, 2, padding / imageWidth);
+
+      const viewportEl = document.querySelector(".react-flow__viewport") as HTMLElement | null;
+      if (!viewportEl) return;
+
       const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(el, { backgroundColor: "#080B12", pixelRatio: 2 });
+      const dataUrl = await toPng(viewportEl, {
+        backgroundColor: "#080B12",
+        width: imageWidth,
+        height: imageHeight,
+        // pixelRatio 2 = imagen al doble de densidad, ideal para zoom + lectura
+        pixelRatio: 2,
+        style: {
+          width: `${imageWidth}px`,
+          height: `${imageHeight}px`,
+          transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+        },
+        // Filtra paneles flotantes y puntos de conexión (handles) para un PNG limpio.
+        // Las edges son SVG paths con coordenadas propias → no dependen del DOM del handle.
+        filter: (node) => {
+          if (!(node instanceof Element)) return true;
+          return !node.classList.contains("react-flow__panel")
+              && !node.classList.contains("react-flow__minimap")
+              && !node.classList.contains("react-flow__controls")
+              && !node.classList.contains("react-flow__handle")
+              && !node.classList.contains("orgchart-handle");
+        },
+      });
       const a = document.createElement("a");
-      a.download = "organigrama.png";
+      a.download = `organigrama-${new Date().toISOString().slice(0, 10)}.png`;
       a.href = dataUrl;
       a.click();
     } catch (err) {
@@ -1766,7 +1978,7 @@ function OrgChartFlow() {
     } finally {
       setExportingPng(false);
     }
-  }, [fitView]);
+  }, [nodes]);
 
   const handleRename = async (newName: string) => {
     if (!renaming) return;
@@ -1863,6 +2075,33 @@ function OrgChartFlow() {
           cursor: grabbing !important;
         }
       `}</style>
+      <div
+        style={{ width: "100%", height: "100%", position: "relative" }}
+        onMouseDown={e => {
+          if (e.button !== 2) return;
+          rightDragRef.current = { x: e.clientX, y: e.clientY };
+          suppressCtxMenuRef.current = false;
+        }}
+        onMouseMove={e => {
+          if (!rightDragRef.current || !(e.buttons & 2)) return;
+          const dx = e.clientX - rightDragRef.current.x;
+          const dy = e.clientY - rightDragRef.current.y;
+          if (Math.hypot(dx, dy) < 3) return;
+          suppressCtxMenuRef.current = true;
+          rightDragRef.current.x = e.clientX;
+          rightDragRef.current.y = e.clientY;
+          const vp = getViewport();
+          setViewport({ x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom });
+        }}
+        onMouseUp={e => {
+          if (e.button !== 2) return;
+          rightDragRef.current = null;
+          // suppressCtxMenuRef stays true if drag occurred; onPaneContextMenu resets it
+        }}
+        onContextMenu={e => {
+          if (suppressCtxMenuRef.current) e.preventDefault();
+        }}
+      >
       <ReactFlow
         nodes={dedupedNodes}
         edges={dedupedEdges}
@@ -1900,171 +2139,157 @@ function OrgChartFlow() {
           maskColor="rgba(8,11,18,0.7)"
         />
 
-        {/* Toolbar */}
+        {/* Toolbar principal — flotante centrada arriba (estilo Excalidraw/tldraw) */}
         {isAdmin && (
-          <Panel position="top-right" className="m-4">
-            <div className="flex flex-col items-end gap-2">
-              <div className="flex flex-wrap gap-1.5 justify-end" style={{ maxWidth: 520 }}>
+          <Panel position="top-center" className="mt-4">
+            <div className="flex flex-col items-center gap-2">
+              <div
+                className="flex items-center gap-0.5"
+                style={{
+                  background: "rgba(14,18,32,0.95)",
+                  border: "1px solid #1E2540",
+                  borderRadius: 10,
+                  padding: "6px 8px",
+                  backdropFilter: "blur(10px)",
+                  boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+                }}
+              >
+                {/* Vista / utilidades */}
                 <button
                   onClick={() => setSearchOpen(prev => !prev)}
                   title="Buscar (Ctrl+F)"
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
                   style={{
-                    background: searchOpen ? "rgba(61,126,255,0.2)" : "rgba(61,126,255,0.08)",
-                    color: searchOpen ? "#3D7EFF" : "#7A8BAD",
-                    border: `1px solid ${searchOpen ? "rgba(61,126,255,0.4)" : "#1E2540"}`,
+                    background: searchOpen ? "rgba(61,126,255,0.18)" : "transparent",
+                    color: searchOpen ? "#3D7EFF" : "#C4CFEA",
                   }}
                 >
-                  <Search className="h-3 w-3" />
-                  Buscar
+                  <Search className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => { if (!autoLayoutPending) handleAutoLayout(); }}
                   disabled={autoLayoutPending}
-                  title="Auto-layout: distribuye divisiones automáticamente con dagre"
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-                  style={{
-                    background: "rgba(168,85,247,0.12)", color: "#A855F7",
-                    border: "1px solid rgba(168,85,247,0.3)",
-                    opacity: autoLayoutPending ? 0.6 : 1,
-                  }}
+                  title="Auto-layout (dagre)"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
+                  style={{ color: "#A855F7", opacity: autoLayoutPending ? 0.6 : 1 }}
                 >
-                  {autoLayoutPending
-                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                    : <Sparkles className="h-3 w-3" />}
-                  {autoLayoutPending ? "Layouteando..." : "Auto-layout"}
+                  {autoLayoutPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </button>
                 <button
                   onClick={handleExportPng}
                   disabled={exportingPng}
-                  title="Exportar organigrama como PNG"
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-                  style={{
-                    background: "rgba(16,217,160,0.1)", color: "#10D9A0",
-                    border: "1px solid rgba(16,217,160,0.3)",
-                    opacity: exportingPng ? 0.6 : 1,
-                  }}
+                  title="Exportar PNG"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
+                  style={{ color: "#10D9A0", opacity: exportingPng ? 0.6 : 1 }}
                 >
-                  {exportingPng ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                  {exportingPng ? "Exportando..." : "Exportar PNG"}
+                  {exportingPng ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 </button>
+
+                <div style={{ width: 1, height: 22, background: "#1E2540", margin: "0 6px" }} />
+
+                {/* Crear */}
                 <button
                   onClick={() => { setPendingCreatePos(null); setShowAddGroup("division"); setShowAddEmp(false); }}
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-                  style={{ background: "rgba(61,126,255,0.12)", color: "#3D7EFF", border: "1px solid rgba(61,126,255,0.3)" }}
+                  title="Nueva división"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[rgba(61,126,255,0.15)]"
+                  style={{ color: "#3D7EFF" }}
                 >
-                  <Layers className="h-3 w-3" />
-                  División
+                  <Layers className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => { setPendingCreatePos(null); setShowAddGroup("department"); setShowAddEmp(false); }}
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-                  style={{ background: "rgba(200,144,44,0.12)", color: "#C8902C", border: "1px solid rgba(200,144,44,0.3)" }}
+                  title="Nuevo departamento"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[rgba(200,144,44,0.15)]"
+                  style={{ color: "#C8902C" }}
                 >
-                  <FolderPlus className="h-3 w-3" />
-                  Departamento
+                  <FolderPlus className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => { setPendingCreatePos(null); setShowAddEmp(true); setShowAddGroup(null); }}
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-white"
-                  style={{ background: "#3D7EFF", boxShadow: "0 0 12px rgba(61,126,255,0.35)" }}
+                  title="Nuevo puesto"
+                  className="flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white transition-all hover:brightness-110"
+                  style={{ background: "#3D7EFF", boxShadow: "0 0 12px rgba(61,126,255,0.35)", marginLeft: 2 }}
                 >
-                  <UserPlus className="h-3 w-3" />
+                  <UserPlus className="h-4 w-4" />
                   Puesto
                 </button>
-                <button
-                  onClick={() => {
-                    const next = !globalConnectable;
-                    setGlobalConnectable(next);
-                    try { localStorage.setItem("flowos-orgchart-global-connectable", String(next)); } catch {}
-                  }}
-                  title={globalConnectable ? "Conexiones a divisiones: ON (click para desactivar global)" : "Conexiones a divisiones: OFF (click para activar global)"}
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-                  style={{
-                    background: globalConnectable ? "rgba(16,217,160,0.1)" : "rgba(122,139,173,0.1)",
-                    color: globalConnectable ? "#10D9A0" : "#7A8BAD",
-                    border: `1px solid ${globalConnectable ? "rgba(16,217,160,0.3)" : "#1E2540"}`,
-                  }}
-                >
-                  {globalConnectable ? "🔗 Conectables" : "✕ No conectables"}
-                </button>
-                <button
-                  onClick={() => {
-                    const next = !linkedResize;
-                    setLinkedResize(next);
-                    try { localStorage.setItem("flowos-orgchart-linked-resize", String(next)); } catch {}
-                  }}
-                  title={linkedResize ? "Tamaño vinculado: ON — al cambiar tamaño se ajustan los items acoplados" : "Tamaño vinculado: OFF — resize independiente"}
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-                  style={{
-                    background: linkedResize ? "rgba(168,85,247,0.1)" : "rgba(122,139,173,0.1)",
-                    color: linkedResize ? "#A855F7" : "#7A8BAD",
-                    border: `1px solid ${linkedResize ? "rgba(168,85,247,0.3)" : "#1E2540"}`,
-                  }}
-                >
-                  {linkedResize ? "🔗 Tamaño vinc." : "✕ Tamaño libre"}
-                </button>
-                <button
-                  onClick={() => {
-                    const next = !showRoleBadges;
-                    setShowRoleBadges(next);
-                    try { localStorage.setItem("flowos-orgchart-show-badges", String(next)); } catch {}
-                  }}
-                  title={showRoleBadges ? "Badges de rol visibles (DIR / ENC)" : "Badges de rol ocultos"}
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-                  style={{
-                    background: showRoleBadges ? "rgba(245,158,11,0.1)" : "rgba(122,139,173,0.1)",
-                    color: showRoleBadges ? "#F59E0B" : "#7A8BAD",
-                    border: `1px solid ${showRoleBadges ? "rgba(245,158,11,0.3)" : "#1E2540"}`,
-                  }}
-                >
-                  {showRoleBadges ? "🏷️ Badges ON" : "✕ Badges"}
-                </button>
-                <button
-                  onClick={() => {
-                    const next = !locked;
-                    setLocked(next);
-                    try { localStorage.setItem("flowos-orgchart-locked", String(next)); } catch {}
-                  }}
-                  title={locked
-                    ? "Layout bloqueado — drag en cualquier lado hace pan. Click para desbloquear."
-                    : "Layout desbloqueado — drag mueve nodos. Click para bloquear y navegar libremente."}
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-                  style={{
-                    background: locked ? "rgba(244,63,94,0.1)" : "rgba(122,139,173,0.1)",
-                    color: locked ? "#F43F5E" : "#7A8BAD",
-                    border: `1px solid ${locked ? "rgba(244,63,94,0.3)" : "#1E2540"}`,
-                  }}
-                >
-                  {locked ? "🔒 Bloqueado" : "🔓 Editable"}
-                </button>
+
+                <div style={{ width: 1, height: 22, background: "#1E2540", margin: "0 6px" }} />
+
+                {/* Toggles compactos — icono + mini switch */}
+                {[
+                  { on: globalConnectable, setter: setGlobalConnectable, key: "global-connectable", color: "#10D9A0", label: "Conectables", icon: "🔗" },
+                  { on: linkedResize, setter: setLinkedResize, key: "linked-resize", color: "#A855F7", label: "Tamaño vinculado", icon: "📐" },
+                  { on: showRoleBadges, setter: setShowRoleBadges, key: "show-badges", color: "#F59E0B", label: "Badges DIR/ENC", icon: "🏷️" },
+                  { on: !locked, setter: (v: boolean) => setLocked(!v), key: "locked", color: "#3D7EFF", label: locked ? "Bloqueado" : "Editable", icon: locked ? "🔒" : "🔓" },
+                ].map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => {
+                      const next = !t.on;
+                      t.setter(next);
+                      try { localStorage.setItem(`flowos-orgchart-${t.key}`, String(t.key === "locked" ? !next : next)); } catch {}
+                    }}
+                    title={`${t.label}: ${t.on ? "ON" : "OFF"}`}
+                    className="flex h-9 items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-[#1E2540]"
+                    style={{ background: "transparent", border: "none", cursor: "pointer" }}
+                  >
+                    <span style={{ fontSize: 13, opacity: t.on ? 1 : 0.5, filter: t.on ? "none" : "grayscale(1)" }}>{t.icon}</span>
+                    {/* iOS-style switch chico */}
+                    <span
+                      style={{
+                        position: "relative",
+                        width: 22, height: 12,
+                        background: t.on ? t.color : "#2A3450",
+                        borderRadius: 999,
+                        transition: "background 160ms ease",
+                        flexShrink: 0,
+                        boxShadow: t.on ? `0 0 5px ${t.color}55` : "none",
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 2, left: t.on ? 12 : 2,
+                          width: 8, height: 8,
+                          background: "#fff",
+                          borderRadius: "50%",
+                          transition: "left 160ms ease",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                        }}
+                      />
+                    </span>
+                  </button>
+                ))}
+
+                <div style={{ width: 1, height: 22, background: "#1E2540", margin: "0 6px" }} />
+
+                {/* Historia */}
                 <button
                   onClick={doUndo}
                   disabled={undoStack.length === 0}
-                  title="Deshacer último movimiento (Ctrl+Z)"
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  title="Deshacer (Ctrl+Z)"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
                   style={{
-                    background: "rgba(122,139,173,0.1)",
                     color: undoStack.length === 0 ? "#3A4560" : "#C4CFEA",
-                    border: "1px solid #1E2540",
                     cursor: undoStack.length === 0 ? "not-allowed" : "pointer",
+                    fontSize: 16,
                   }}
                 >
-                  ↶ Deshacer
+                  ↶
                 </button>
                 <button
                   onClick={doRedo}
                   disabled={redoStack.length === 0}
                   title="Rehacer (Ctrl+Shift+Z)"
-                  className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
                   style={{
-                    background: "rgba(122,139,173,0.1)",
                     color: redoStack.length === 0 ? "#3A4560" : "#C4CFEA",
-                    border: "1px solid #1E2540",
                     cursor: redoStack.length === 0 ? "not-allowed" : "pointer",
+                    fontSize: 16,
                   }}
                 >
-                  ↷ Rehacer
+                  ↷
                 </button>
               </div>
               {searchOpen && (
@@ -2094,8 +2319,9 @@ function OrgChartFlow() {
           </Panel>
         )}
 
+
         {/* Employee panel — key={node.id} forces remount on selection change so all fields reset cleanly */}
-        {selectedEmpNode && (
+        {selectedEmpNode && !selectedUnit && (
           <Panel position="top-left" className="m-4">
             <NodeInfoPanel
               key={selectedEmpNode.id}
@@ -2107,6 +2333,21 @@ function OrgChartFlow() {
               isAdmin={isAdmin}
               onSave={handleSaveEmployee}
               onClose={() => setSelectedEmpNode(null)}
+            />
+          </Panel>
+        )}
+
+        {/* Unit edit panel — abre cuando se hace click en el chip de una unidad */}
+        {selectedUnit && (
+          <Panel position="top-left" className="m-4">
+            <UnitEditPanel
+              key={selectedUnit.id}
+              unit={selectedUnit}
+              employees={employees ?? []}
+              isAdmin={isAdmin}
+              onSave={handleSaveUnit}
+              onDelete={handleDeleteUnit}
+              onClose={() => setSelectedUnit(null)}
             />
           </Panel>
         )}
@@ -2133,6 +2374,7 @@ function OrgChartFlow() {
           </div>
         </Panel>
       </ReactFlow>
+      </div>
 
       {/* Context menu (rendered outside ReactFlow) */}
       {contextMenu && (
@@ -2193,6 +2435,73 @@ function OrgChartFlow() {
           onClose={() => setEditingDepartment(null)}
         />
       )}
+
+      {/* Adopt department into division picker */}
+      {adoptingDivisionId && (() => {
+        const targetDiv = divisions.find(d => d.id === adoptingDivisionId);
+        // Depts que NO son de esta división (pueden ser de otra o sin div)
+        const adoptable = departments.filter(d => d.divisionId !== adoptingDivisionId);
+        return (
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
+            onMouseDown={e => { if (e.target === e.currentTarget) setAdoptingDivisionId(null); }}
+          >
+            <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#E2E8F8" }}>Adoptar departamento</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 10, color: "#7A8BAD" }}>→ {targetDiv?.name ?? ""}</p>
+                </div>
+                <button onClick={() => setAdoptingDivisionId(null)} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div style={{ overflowY: "auto", padding: 8 }}>
+                {adoptable.length === 0 ? (
+                  <p style={{ color: "#7A8BAD", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos disponibles</p>
+                ) : adoptable.map(dept => {
+                  const fromDiv = divisions.find(d => d.id === dept.divisionId);
+                  return (
+                    <button
+                      key={dept.id}
+                      onClick={async () => {
+                        // Posición local dentro de la nueva división
+                        const localX = 20;
+                        const localY = HEADER_H + 20;
+                        fetch(`/api/departments/${dept.id}`, {
+                          method: "PUT", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ divisionId: adoptingDivisionId, positionX: localX, positionY: localY }),
+                        }).catch(() => {});
+                        setDepartments(prev => prev.map(d =>
+                          d.id === dept.id ? { ...d, divisionId: adoptingDivisionId, positionX: localX, positionY: localY } : d
+                        ));
+                        setAdoptingDivisionId(null);
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        width: "100%", padding: "10px 12px", borderRadius: 8,
+                        border: "none", cursor: "pointer", background: "transparent", textAlign: "left",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "#141928"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "#3D7EFF", flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {dept.name}
+                        </p>
+                        <p style={{ margin: "1px 0 0", fontSize: 10, color: "#7A8BAD" }}>
+                          {fromDiv ? `En: ${fromDiv.name}` : "Sin división"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Move employee to department picker */}
       {movingEmployeeId && (

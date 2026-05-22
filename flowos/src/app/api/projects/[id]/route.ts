@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { logActivity } from "@/lib/project-activity";
 
 export async function GET(
   _req: NextRequest,
@@ -30,7 +31,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { orgId } = await auth();
+  const { orgId, userId: clerkUserId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
@@ -38,6 +39,9 @@ export async function PUT(
     const updates: Record<string, unknown> = {};
     if (body.name !== undefined) updates.name = body.name;
     if (body.description !== undefined) updates.description = body.description;
+    if (body.vfp !== undefined) updates.vfp = body.vfp;
+    if (body.ownerEmployeeId !== undefined) updates.ownerEmployeeId = body.ownerEmployeeId;
+    if (body.status !== undefined) updates.status = body.status;
 
     const result = await db
       .update(projects)
@@ -45,6 +49,15 @@ export async function PUT(
       .where(and(eq(projects.id, id), eq(projects.organizationId, orgId)))
       .returning();
     if (!result.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    // Log activity para cambios importantes
+    if (body.vfp !== undefined) {
+      await logActivity({ projectId: id, organizationId: orgId, clerkUserId, type: "vfp_updated", payload: {} });
+    }
+    if (body.ownerEmployeeId !== undefined) {
+      await logActivity({ projectId: id, organizationId: orgId, clerkUserId, type: "owner_changed", payload: { newOwnerId: body.ownerEmployeeId } });
+    }
+
     return NextResponse.json(result[0]);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

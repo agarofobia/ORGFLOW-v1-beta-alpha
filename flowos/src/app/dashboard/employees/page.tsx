@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOrganization } from "@clerk/nextjs";
-import { Plus, Search, X, Check, Archive, Save, ExternalLink, ChevronDown, Upload } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { Plus, Search, X, Check, Archive, Save, ExternalLink, ChevronDown, Upload, UserPlus } from "lucide-react";
+
+// Vacancy helpers — un puesto está vacante cuando su nombre es el placeholder.
+const VACANT_NAME = "[Puesto vacante]";
+const isVacant = (e: { fullName: string }) => e.fullName === VACANT_NAME;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -27,6 +32,7 @@ interface Employee {
   departmentId?: string;
   divisionId?: string;
   managerId?: string;
+  userId?: string | null;
   metadata?: { onboarding?: OnboardingItem[] };
   createdAt: string;
 }
@@ -72,14 +78,16 @@ function getInitials(name: string) {
 }
 
 function Avatar({ name, color, size = 40, imageUrl }: { name: string; color?: string; size?: number; imageUrl?: string | null }) {
-  const bg = color || "#3D7EFF";
+  const vacant = isVacant({ fullName: name });
+  const bg = vacant ? "#3A4560" : (color || "#3D7EFF");
   const [imageError, setImageError] = useState(false);
-  const hasImage = imageUrl && !imageError;
+  const hasImage = imageUrl && !imageError && !vacant;
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%",
-      backgroundColor: bg + "33",
-      border: `2px solid ${bg}`,
+      backgroundColor: vacant ? "#141928" : bg + "33",
+      border: `2px dashed ${vacant ? "#3A4560" : bg}`,
+      borderStyle: vacant ? "dashed" : "solid",
       display: "flex", alignItems: "center", justifyContent: "center",
       flexShrink: 0,
       fontSize: size * 0.35, fontWeight: 600, color: bg,
@@ -93,6 +101,8 @@ function Avatar({ name, color, size = 40, imageUrl }: { name: string; color?: st
           onError={() => setImageError(true)}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
+      ) : vacant ? (
+        <UserPlus size={size * 0.42} strokeWidth={1.5} color="#7A8BAD" />
       ) : (
         getInitials(name)
       )}
@@ -415,9 +425,11 @@ function FilterDropdown<T extends string>({ value, onChange, options, label, acc
 
 // ─── Employee Panel (drawer overlay) ─────────────────────────────────────────
 
-function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
+function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmployeeId, myInternalUserId, onLink, onUnlink }: {
   employee: Employee; onClose: () => void;
   onUpdated: (e: Employee) => void; onArchive: (e: Employee) => void; isAdmin: boolean;
+  myEmployeeId: string | null; myInternalUserId: string | null;
+  onLink: () => void; onUnlink: () => void;
 }) {
   const [tab, setTab] = useState<"perfil" | "onboarding" | "procesos">("perfil");
   const [local, setLocal] = useState<Employee>(employee);
@@ -439,14 +451,28 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
         canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-        setLocal(prev => ({ ...prev, imageUrl: dataUrl }));
-        setUploadingPhoto(false);
+        canvas.toBlob(async (blob) => {
+          if (!blob) { setUploadingPhoto(false); return; }
+          try {
+            const formData = new FormData();
+            formData.append("file", blob, "photo.jpg");
+            formData.append("bucket", "employee-photos");
+            formData.append("name", `employee-${local.id}`);
+            const res = await fetch("/api/upload", { method: "POST", body: formData });
+            if (!res.ok) throw new Error("Upload failed");
+            const { url } = await res.json();
+            setLocal(prev => ({ ...prev, imageUrl: url }));
+          } catch {
+            // silent — photo upload failed
+          } finally {
+            setUploadingPhoto(false);
+          }
+        }, "image/jpeg", 0.82);
       };
       img.src = ev.target!.result as string;
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [local.id]);
   const [newCheckItem, setNewCheckItem] = useState("");
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]);
@@ -556,6 +582,44 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
             <button onClick={onClose} style={{ background: "none", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 4 }}><X size={16} /></button>
           </div>
         </div>
+        {/* Link UI — vincular este puesto a la cuenta del usuario logueado */}
+        {(() => {
+          const isMine = myEmployeeId === employee.id;
+          const linkedToOther = employee.userId && employee.userId !== myInternalUserId;
+          if (isMine) {
+            return (
+              <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(61,126,255,0.08)", border: "1px solid rgba(61,126,255,0.3)", borderRadius: 6 }}>
+                <span style={{ fontSize: 11, color: "#3D7EFF", fontWeight: 600, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  ★ Tu puesto
+                </span>
+                <span style={{ fontSize: 11, color: "#7A8BAD", flex: 1 }}>
+                  Las tareas de este puesto aparecen en &quot;Mi día&quot;.
+                </span>
+                <button onClick={onUnlink} style={{ fontSize: 10, padding: "3px 8px", background: "transparent", border: "1px solid #F43F5E55", color: "#F43F5E", borderRadius: 4, cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase" }}>
+                  Desvincular
+                </button>
+              </div>
+            );
+          }
+          if (linkedToOther && !isAdmin) {
+            return (
+              <div style={{ marginBottom: 14, padding: "7px 12px", background: "rgba(122,139,173,0.06)", border: "1px solid #1E2540", borderRadius: 6 }}>
+                <span style={{ fontSize: 11, color: "#7A8BAD" }}>Este puesto ya está vinculado a otra cuenta.</span>
+              </div>
+            );
+          }
+          return (
+            <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(16,217,160,0.05)", border: "1px dashed rgba(16,217,160,0.3)", borderRadius: 6 }}>
+              <span style={{ fontSize: 11, color: "#7A8BAD", flex: 1 }}>
+                {linkedToOther ? "Vinculado a otra cuenta (admin puede sobrescribir)." : "¿Este es tu puesto?"}
+              </span>
+              <button onClick={onLink} style={{ fontSize: 11, padding: "4px 12px", background: "#10D9A0", border: "none", color: "#080B12", fontWeight: 600, borderRadius: 4, cursor: "pointer" }}>
+                Soy yo
+              </button>
+            </div>
+          );
+        })()}
+
         {/* Tabs */}
         <div style={{ display: "flex" }}>
           {(["perfil", "onboarding", "procesos"] as const).map(t => (
@@ -792,6 +856,7 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin }: {
 export default function EmployeesPage() {
   const { membership } = useOrganization();
   const isAdmin = membership?.role === "org:admin";
+  const toast = useToast();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [divisions, setDivisions] = useState<Division[]>([]);
@@ -807,22 +872,57 @@ export default function EmployeesPage() {
   const [selected, setSelected] = useState<Employee | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<Employee | null>(null);
+  // ID del employee vinculado al user logueado (para mostrar chip "Tu puesto" + botón "Soy yo").
+  const [myEmployeeId, setMyEmployeeId] = useState<string | null>(null);
+  // internalUserId del current user (necesario para validar si un employee ya tiene OTRO usuario)
+  const [myInternalUserId, setMyInternalUserId] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       // Siempre traemos todos los empleados; el filtro por estado se aplica del lado cliente
       // vía statusFilter ('all' | 'active' | 'inactive' | 'on_leave').
-      const [empRes, divRes, deptRes] = await Promise.all([
+      const [empRes, divRes, deptRes, meRes] = await Promise.all([
         fetch("/api/employees?includeInactive=true"), fetch("/api/divisions"), fetch("/api/departments"),
+        fetch("/api/employees/me"),
       ]);
       if (empRes.ok) setEmployees(await empRes.json());
       if (divRes.ok) setDivisions(await divRes.json());
       if (deptRes.ok) setAllDepartments(await deptRes.json());
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        setMyEmployeeId(meData.employee?.id ?? null);
+        setMyInternalUserId(meData.user?.id ?? null);
+      }
     } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Vincular o desvincular este puesto a mi cuenta
+  const handleLink = async (empId: string) => {
+    const res = await fetch(`/api/employees/${empId}/link`, { method: "POST" });
+    if (res.ok) {
+      const updated = await res.json();
+      setEmployees(prev => prev.map(e => e.id === empId ? { ...e, userId: updated.userId } : e));
+      // Si había otro empleado mío vinculado, desvincularlo en local también
+      if (myEmployeeId && myEmployeeId !== empId) {
+        setEmployees(prev => prev.map(e => e.id === myEmployeeId ? { ...e, userId: null } : e));
+      }
+      setMyEmployeeId(empId);
+      toast.success("Puesto vinculado", "Tus tareas asignadas aparecen ahora en \"Mi día\".");
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error("No se pudo vincular", err.error ?? "Verificá que el puesto no esté ocupado.");
+    }
+  };
+  const handleUnlink = async (empId: string) => {
+    const res = await fetch(`/api/employees/${empId}/link`, { method: "DELETE" });
+    if (res.ok) {
+      setEmployees(prev => prev.map(e => e.id === empId ? { ...e, userId: null } : e));
+      if (myEmployeeId === empId) setMyEmployeeId(null);
+    }
+  };
 
   // Métricas para el header — un golpe de vista de la salud del equipo.
   const metrics = (() => {
@@ -987,15 +1087,27 @@ export default function EmployeesPage() {
               )}
               {group.employees.map(emp => {
                 const isSelected = selected?.id === emp.id;
+                const vacant = isVacant(emp);
+                // En puesto vacante mostramos el jobTitle como título (la posición es lo importante)
+                // y omitimos el "[Puesto vacante]" duplicado.
+                const primary = vacant ? (emp.jobTitle || "Puesto sin definir") : emp.fullName;
+                const secondary = vacant ? "Vacante — buscar candidato" : (emp.jobTitle || "Sin puesto definido");
                 return (
                   <div key={emp.id} onClick={() => setSelected(isSelected ? null : emp)}
-                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 32px", cursor: "pointer", backgroundColor: isSelected ? "#141928" : "transparent", borderLeft: isSelected ? "3px solid #3D7EFF" : "3px solid transparent", borderBottom: "1px solid #1E254040", transition: "background 0.15s" }}>
+                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 32px", cursor: "pointer", backgroundColor: isSelected ? "#141928" : "transparent", borderLeft: isSelected ? "3px solid #3D7EFF" : "3px solid transparent", borderBottom: "1px solid #1E254040", transition: "background 0.15s", opacity: vacant ? 0.78 : 1 }}>
                     <Avatar name={emp.fullName} color={emp.color} size={38} imageUrl={emp.imageUrl} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ color: "#E2E8F8", fontSize: 14, fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.fullName}</p>
-                      <p style={{ color: "#7A8BAD", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.jobTitle || "Sin puesto definido"}</p>
+                      <p style={{ color: vacant ? "#7A8BAD" : "#E2E8F8", fontSize: 14, fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: vacant ? "italic" : "normal" }}>{primary}</p>
+                      <p style={{ color: "#7A8BAD", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{secondary}</p>
                     </div>
-                    <StatusBadge status={emp.status} />
+                    {vacant ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, backgroundColor: "#7A8BAD20", color: "#7A8BAD", border: "1px dashed #7A8BAD60" }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#7A8BAD" }} />
+                        Vacante
+                      </span>
+                    ) : (
+                      <StatusBadge status={emp.status} />
+                    )}
                   </div>
                 );
               })}
@@ -1020,6 +1132,10 @@ export default function EmployeesPage() {
             onUpdated={handleUpdated}
             onArchive={emp => setArchiveTarget(emp)}
             isAdmin={isAdmin}
+            myEmployeeId={myEmployeeId}
+            myInternalUserId={myInternalUserId}
+            onLink={() => handleLink(selected.id)}
+            onUnlink={() => handleUnlink(selected.id)}
           />
         </>
       )}

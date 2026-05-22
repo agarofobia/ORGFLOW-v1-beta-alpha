@@ -14,19 +14,41 @@ import {
   Zap,
   Workflow,
   Inbox,
+  Activity,
+  Sun,
 } from "lucide-react";
 import { OrganizationSwitcher, UserButton, useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/dashboard", label: "Inicio", icon: LayoutGrid },
-  { href: "/dashboard/orgchart", label: "Organigrama", icon: GitBranch },
-  { href: "/dashboard/employees", label: "Empleados", icon: UserCircle2 },
-  { href: "/dashboard/projects", label: "Proyectos", icon: CheckSquare },
-  { href: "/dashboard/docs", label: "Docs", icon: FileText },
-  { href: "/dashboard/processes", label: "Procesos", icon: Workflow },
-  { href: "/dashboard/inbox", label: "Bandeja", icon: Inbox },
-  { href: "/dashboard/team", label: "Equipo", icon: Users },
+// Sidebar reordenado por frecuencia de uso del día a día.
+// Bloque 1: lo que abrís cada mañana. Bloque 2: operativa. Bloque 3: estructura/gestión.
+
+const NAV_GROUPS = [
+  {
+    label: "Día a día",
+    items: [
+      { href: "/dashboard/today", label: "Mi día", icon: Sun },
+      { href: "/dashboard/inbox", label: "Bandeja", icon: Inbox },
+      { href: "/dashboard/projects", label: "Proyectos", icon: CheckSquare },
+      { href: "/dashboard", label: "Inicio", icon: LayoutGrid },
+    ],
+  },
+  {
+    label: "Operativa",
+    items: [
+      { href: "/dashboard/processes", label: "Procesos", icon: Workflow },
+      { href: "/dashboard/docs", label: "Docs", icon: FileText },
+    ],
+  },
+  {
+    label: "Estructura",
+    items: [
+      { href: "/dashboard/orgchart", label: "Organigrama", icon: GitBranch },
+      { href: "/dashboard/employees", label: "Empleados", icon: UserCircle2 },
+      { href: "/dashboard/workload", label: "Carga", icon: Activity },
+      { href: "/dashboard/team", label: "Equipo", icon: Users },
+    ],
+  },
 ];
 
 const FOOTER_NAV = [
@@ -52,7 +74,7 @@ export function DashboardSidebar() {
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-none" style={{ color: "#E2E8F8" }}>
-            OrgFlow
+            FlowOS
           </p>
           <p
             className="mt-0.5 font-mono text-[9px] uppercase tracking-widest leading-none"
@@ -65,62 +87,66 @@ export function DashboardSidebar() {
 
       <div style={{ height: "1px", background: "#1E2540" }} />
 
-      {/* Nav principal */}
-      <nav className="flex-1 overflow-y-auto px-2 pt-4 pb-2">
-        <p
-          className="mb-1.5 px-3 font-mono text-[9px] font-medium uppercase tracking-widest"
-          style={{ color: "#7A8BAD" }}
-        >
-          Workspace
-        </p>
-        <ul className="flex flex-col gap-0.5">
-          {NAV.map((item) => {
-            const active =
-              item.href === "/dashboard"
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center justify-between rounded px-3 py-2 text-sm transition-all duration-150",
-                    active
-                      ? "font-medium"
-                      : "hover:bg-[#141928]"
-                  )}
-                  style={
-                    active
-                      ? {
-                          background: "rgba(61,126,255,0.12)",
-                          borderLeft: "2px solid #3D7EFF",
-                          color: "#E2E8F8",
-                          paddingLeft: "10px",
-                        }
-                      : { color: "#7A8BAD" }
-                  }
-                >
-                  <span className="flex items-center gap-2.5">
-                    <item.icon
-                      className="h-4 w-4 shrink-0"
-                      strokeWidth={active ? 2 : 1.75}
-                    />
-                    {item.label}
-                  </span>
-                  {active && (
-                    <ChevronRight
-                      className="h-3.5 w-3.5 shrink-0"
-                      style={{ color: "#3D7EFF" }}
-                      strokeWidth={2}
-                    />
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Nav principal — agrupado por frecuencia de uso */}
+      <nav className="flex-1 overflow-y-auto px-2 pt-3 pb-2">
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={group.label} style={{ marginTop: gi === 0 ? 0 : 14 }}>
+            <p
+              className="mb-1.5 px-3 font-mono text-[9px] font-medium uppercase tracking-widest"
+              style={{ color: "#7A8BAD" }}
+            >
+              {group.label}
+            </p>
+            <ul className="flex flex-col gap-0.5">
+              {group.items.map((item) => {
+                const active =
+                  item.href === "/dashboard"
+                    ? pathname === item.href
+                    : pathname.startsWith(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center justify-between rounded px-3 py-2 text-sm transition-all duration-150",
+                        active
+                          ? "font-medium"
+                          : "hover:bg-[#141928]"
+                      )}
+                      style={
+                        active
+                          ? {
+                              background: "rgba(61,126,255,0.12)",
+                              borderLeft: "2px solid #3D7EFF",
+                              color: "#E2E8F8",
+                              paddingLeft: "10px",
+                            }
+                          : { color: "#7A8BAD" }
+                      }
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <item.icon
+                          className="h-4 w-4 shrink-0"
+                          strokeWidth={active ? 2 : 1.75}
+                        />
+                        {item.label}
+                      </span>
+                      {active && (
+                        <ChevronRight
+                          className="h-3.5 w-3.5 shrink-0"
+                          style={{ color: "#3D7EFF" }}
+                          strokeWidth={2}
+                        />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
 
-        <div style={{ height: "1px", background: "#1E2540", margin: "12px 0" }} />
+        <div style={{ height: "1px", background: "#1E2540", margin: "14px 0 10px" }} />
 
         <p
           className="mb-1.5 px-3 font-mono text-[9px] font-medium uppercase tracking-widest"

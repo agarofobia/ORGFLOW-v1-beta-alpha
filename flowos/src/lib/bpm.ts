@@ -1,5 +1,8 @@
 import { db } from "@/db";
-import { processDefinitions, processInstances, inboxTasks } from "@/db/schema";
+import {
+  processDefinitions, processInstances, inboxTasks,
+  projectTemplates, projects, projectMilestones, tasks,
+} from "@/db/schema";
 import { eq, and, ne } from "drizzle-orm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -54,7 +57,7 @@ export async function startInstance(opts: {
   organizationId: string;
   startedBy: string;
   context?: Record<string, unknown>;
-}): Promise<{ instanceId: string } | { error: string }> {
+}): Promise<{ instanceId: string; projectId?: string } | { error: string }> {
   const { processDefinitionId, organizationId, startedBy, context = {} } = opts;
 
   const [definition] = await db
@@ -114,7 +117,122 @@ export async function startInstance(opts: {
     await createInboxTask({ instance, node: firstNode, context, definition });
   }
 
-  return { instanceId: instance.id };
+  // Auto-crear proyecto desde template si el proceso lo tiene asociado.
+  // Best-effort: si falla, la instancia ya está creada y el resto del proceso sigue.
+  let createdProjectId: string | null = null;
+  if (definition.projectTemplateId) {
+    try {
+      createdProjectId = await instantiateProjectFromTemplate({
+        templateId: definition.projectTemplateId,
+        organizationId,
+        processInstanceId: instance.id,
+        startedBy,
+        nameSuffix: instance.id.slice(0, 8),
+      });
+    } catch (err) {
+      console.warn("Auto-instantiate project from template failed:", String(err));
+    }
+  }
+
+  return { instanceId: instance.id, projectId: createdProjectId ?? undefined };
+}
+
+// ─── Instantiate project from template (BPM trigger) ──────────────────────────
+// Versión simplificada del flow de /api/project-templates/[id]/instantiate
+// adaptada para uso server-side desde startInstance.
+
+interface TemplateMilestoneShape {
+  title: string;
+  description?: string | null;
+  acceptanceCriteria?: string | null;
+  orderIndex: number;
+  dueDateOffsetDays?: number | null;
+  tasks?: TemplateTaskShape[];
+}
+interface TemplateTaskShape {
+  title: string;
+  description?: string | null;
+  priority?: "low" | "medium" | "high" | "urgent";
+  status?: "todo" | "in_progress" | "in_review" | "done";
+  sectionName?: string | null;
+}
+interface TemplateStructureShape {
+  vfp?: Record<string, string> | null;
+  milestones?: TemplateMilestoneShape[];
+  standaloneTasks?: TemplateTaskShape[];
+}
+
+async function instantiateProjectFromTemplate(opts: {
+  templateId: string;
+  organizationId: string;
+  processInstanceId: string;
+  startedBy: string;
+  nameSuffix?: string;
+}): Promise<string | null> {
+  const [template] = await db.select().from(projectTemplates)
+    .where(and(eq(projectTemplates.id, opts.templateId), eq(projectTemplates.organizationId, opts.organizationId)))
+    .limit(1);
+  if (!template) return null;
+
+  const structure = (template.structure as TemplateStructureShape) ?? {};
+  const startDate = new Date();
+  const baseName = opts.nameSuffix ? `${template.name} — ${opts.nameSuffix}` : template.name;
+
+  // 1. Crear proyecto, linkeado a la instancia
+  const [project] = await db.insert(projects).values({
+    organizationId: opts.organizationId,
+    name: baseName,
+    description: template.description ?? null,
+    vfp: structure.vfp ?? null,
+    status: "activo",
+    processInstanceId: opts.processInstanceId,
+  }).returning();
+
+  // 2. Hitos
+  for (const m of (structure.milestones ?? [])) {
+    const dueDate = m.dueDateOffsetDays != null
+      ? new Date(startDate.getTime() + m.dueDateOffsetDays * 86400000)
+      : null;
+    const [milestone] = await db.insert(projectMilestones).values({
+      projectId: project.id,
+      organizationId: opts.organizationId,
+      title: m.title,
+      description: m.description ?? null,
+      acceptanceCriteria: m.acceptanceCriteria ?? null,
+      orderIndex: m.orderIndex,
+      status: "pending",
+      dueDate,
+    }).returning();
+
+    // 3. Tareas del hito
+    for (const t of (m.tasks ?? [])) {
+      await db.insert(tasks).values({
+        projectId: project.id,
+        organizationId: opts.organizationId,
+        title: t.title,
+        description: t.description ?? undefined,
+        priority: t.priority ?? "medium",
+        status: t.status ?? "todo",
+        sectionName: t.sectionName ?? "Sin sección",
+        milestoneId: milestone.id,
+      });
+    }
+  }
+
+  // 4. Tareas standalone
+  for (const t of (structure.standaloneTasks ?? [])) {
+    await db.insert(tasks).values({
+      projectId: project.id,
+      organizationId: opts.organizationId,
+      title: t.title,
+      description: t.description ?? undefined,
+      priority: t.priority ?? "medium",
+      status: t.status ?? "todo",
+      sectionName: t.sectionName ?? "Sin sección",
+    });
+  }
+
+  return project.id;
 }
 
 // ─── Advance instance ─────────────────────────────────────────────────────────

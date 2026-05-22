@@ -50,7 +50,15 @@ export type EmployeeNodeData = {
     color: string;
     isVacant: boolean;
     imageUrl?: string | null;
+    unit?: { id: string; name: string; color: string | null; isHead: boolean } | null;
   }>;
+  // Unidad a la que pertenece este empleado (cualquier miembro, no solo el head).
+  // Si está presente, se muestra un chip clickeable que abre el panel de la unidad.
+  unit?: { id: string; name: string; color: string | null; isHead: boolean } | null;
+  // Callback para cuando el usuario hace click en el chip de la unidad.
+  onUnitClick?: (unitId: string) => void;
+  // Callback para cuando el usuario hace click en una fila de subordinado absorbido.
+  onSubClick?: (subId: string) => void;
 };
 
 export type DivisionNodeData = {

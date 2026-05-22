@@ -6,6 +6,7 @@ import {
   Table, FileCode, Trash2, Search, X, Download, Eye,
   EyeOff, ChevronRight, Plus, Loader2, Share2, LayoutGrid, List,
 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { useOrganization } from "@clerk/nextjs";
 import ShareModal from "./ShareModal";
 
@@ -18,7 +19,8 @@ interface FileContent {
   fileName: string;
   fileType: string;
   fileSize: number;
-  base64: string;
+  storageUrl?: string;
+  base64?: string; // legacy
   visibility: Visibility;
 }
 
@@ -65,6 +67,7 @@ function formatSize(bytes: number) {
 export default function DocsPage() {
   const { membership } = useOrganization();
   const isAdmin = membership?.role === "org:admin";
+  const toast = useToast();
 
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,17 +106,18 @@ export default function DocsPage() {
 
   const uploadFile = async (file: File) => {
     if (file.size > MAX_SIZE) {
-      alert(`El archivo "${file.name}" supera el límite de 5 MB. Para archivos grandes, subí el link de Google Drive o Dropbox.`);
+      toast.warning(`"${file.name}" supera 5 MB`, "Para archivos grandes, subí el link de Google Drive o Dropbox.");
       return;
     }
     setUploading(true);
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "org-files");
+
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error("Upload to storage failed");
+      const { url: storageUrl } = await uploadRes.json();
 
       const res = await fetch("/api/documents", {
         method: "POST",
@@ -126,7 +130,7 @@ export default function DocsPage() {
             fileName: file.name,
             fileType: file.type || "application/octet-stream",
             fileSize: file.size,
-            base64,
+            storageUrl,
             visibility: "all",
           } satisfies FileContent,
         }),
@@ -135,10 +139,10 @@ export default function DocsPage() {
       if (doc?.id) {
         setDocs((prev) => [doc, ...prev]);
       } else {
-        alert(`Error al subir "${file.name}": ${doc?.error ?? "respuesta inválida"}`);
+        toast.error(`No se pudo subir "${file.name}"`, doc?.error ?? "respuesta inválida");
       }
     } catch (err) {
-      alert(`Error al subir: ${String(err)}`);
+      toast.error("Error al subir", String(err));
     } finally {
       setUploading(false);
     }
@@ -164,7 +168,7 @@ export default function DocsPage() {
     if (doc?.id) {
       setDocs((prev) => [doc, ...prev]);
     } else {
-      alert(`Error al crear carpeta: ${doc?.error ?? "respuesta inválida"}`);
+      toast.error("No se pudo crear la carpeta", doc?.error ?? "respuesta inválida");
     }
     setNewFolderName("");
     setCreatingFolder(false);
@@ -194,8 +198,9 @@ export default function DocsPage() {
   const downloadDoc = (doc: Doc) => {
     if (doc.content.type !== "file") return;
     const a = document.createElement("a");
-    a.href = doc.content.base64;
+    a.href = doc.content.storageUrl ?? doc.content.base64 ?? "";
     a.download = doc.content.fileName;
+    a.target = "_blank";
     a.click();
   };
 
@@ -228,15 +233,16 @@ export default function DocsPage() {
   // ── Preview ──────────────────────────────────────────────────────────────
   function FilePreview({ doc }: { doc: Doc }) {
     if (doc.content.type !== "file") return null;
-    const { fileType, base64, fileName } = doc.content;
+    const { fileType, storageUrl, base64, fileName } = doc.content;
+    const src = storageUrl ?? base64 ?? "";
     if (fileType.startsWith("image/")) {
       // eslint-disable-next-line @next/next/no-img-element
-      return <img src={base64} alt={fileName} className="max-h-96 w-full object-contain rounded-lg" />;
+      return <img src={src} alt={fileName} className="max-h-96 w-full object-contain rounded-lg" />;
     }
     if (fileType === "application/pdf") {
       return (
         <iframe
-          src={base64}
+          src={src}
           title={fileName}
           className="h-96 w-full rounded-lg"
           style={{ border: "1px solid #1E2540" }}
@@ -546,7 +552,7 @@ export default function DocsPage() {
                       {isImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={fc.base64}
+                          src={fc.storageUrl ?? fc.base64 ?? ""}
                           alt={f.title}
                           style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6, marginBottom: 10 }}
                         />

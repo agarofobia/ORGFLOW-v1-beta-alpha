@@ -3,13 +3,15 @@ import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { logActivity } from "@/lib/project-activity";
+import { notify } from "@/lib/notifications";
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { orgId } = await auth();
+  const { orgId, userId: clerkUserId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
@@ -22,13 +24,51 @@ export async function PUT(
     if (body.dueDate !== undefined) updates.dueDate = body.dueDate ? new Date(body.dueDate) : null;
     if (body.sectionName !== undefined) updates.sectionName = body.sectionName;
     if (body.assigneeName !== undefined) updates.assigneeName = body.assigneeName;
+    if (body.assigneeEmployeeId !== undefined) updates.assigneeEmployeeId = body.assigneeEmployeeId;
+    if (body.milestoneId !== undefined) updates.milestoneId = body.milestoneId;
+
+    // Lookup el estado previo para detectar transiciones interesantes (status, assignee)
+    const before = (await db.select().from(tasks).where(and(eq(tasks.id, id), eq(tasks.organizationId, orgId))).limit(1))[0];
 
     const result = await db
       .update(tasks)
       .set(updates)
       .where(and(eq(tasks.id, id), eq(tasks.organizationId, orgId)))
       .returning();
-    return NextResponse.json(result[0]);
+    const after = result[0];
+
+    // Log activity (best-effort) — solo transiciones relevantes
+    if (after && before) {
+      if (body.status !== undefined && before.status !== after.status && after.status === "done") {
+        await logActivity({
+          projectId: after.projectId, organizationId: orgId, clerkUserId,
+          type: "task_completed", payload: { taskId: after.id, title: after.title },
+        });
+      }
+      if (body.assigneeEmployeeId !== undefined && before.assigneeEmployeeId !== after.assigneeEmployeeId) {
+        await logActivity({
+          projectId: after.projectId, organizationId: orgId, clerkUserId,
+          type: "task_assigned", payload: {
+            taskId: after.id, title: after.title,
+            prev: before.assigneeEmployeeId, next: after.assigneeEmployeeId,
+            assigneeName: after.assigneeName,
+          },
+        });
+        // Notificar al nuevo asignado (si tiene cuenta vinculada)
+        if (after.assigneeEmployeeId) {
+          await notify({
+            employeeId: after.assigneeEmployeeId,
+            organizationId: orgId,
+            type: "task_assigned",
+            title: "Te asignaron una tarea",
+            body: after.title,
+            linkUrl: `/dashboard/projects?id=${after.projectId}`,
+          });
+        }
+      }
+    }
+
+    return NextResponse.json(after);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

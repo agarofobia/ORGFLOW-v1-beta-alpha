@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Save } from "lucide-react";
+import { X, Loader2, Save, Trash2 } from "lucide-react";
 import type { Employee, Unit } from "@/db/schema";
 import type { Division, Department, EmployeeNode } from "./types";
 import { ColorPicker } from "./ColorPicker";
@@ -11,6 +11,109 @@ import { roleLabelLong } from "./roles";
 // sectionName es un campo del schema (employees.section_name) que aún no se usa
 // en otros sitios. Por eso lo intersectamos acá para que el panel pueda editarlo.
 export type EmployeeWithSection = Employee & { sectionName?: string | null };
+
+// ─── UnitEditPanel ────────────────────────────────────────────────────────────
+
+export function UnitEditPanel({
+  unit, employees, isAdmin, onSave, onDelete, onClose,
+}: {
+  unit: Unit;
+  employees: Employee[];
+  isAdmin: boolean;
+  onSave: (id: string, updates: { name?: string; headEmployeeId?: string | null; color?: string | null }) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(unit.name);
+  const [headId, setHeadId] = useState<string>(unit.headEmployeeId ?? "");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const memberCount = employees.filter(e => e.unitId === unit.id).length;
+  const head = employees.find(e => e.id === headId);
+
+  const fieldStyle: React.CSSProperties = {
+    width: "100%", background: "#141928", border: "1px solid #1E2540",
+    borderRadius: 6, color: "#E2E8F8", fontSize: 13, padding: "7px 10px",
+    outline: "none", boxSizing: "border-box",
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onSave(unit.id, { name: name.trim(), headEmployeeId: headId || null });
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setDeleting(true);
+    try { await onDelete(unit.id); }
+    finally { setDeleting(false); }
+  };
+
+  return (
+    <div style={{ width: 300, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 12 }}>⬡</span>
+          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>Unidad</p>
+        </div>
+        <button onClick={onClose} className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-2.5">
+        <div>
+          <label className="mb-1 block font-mono text-[10px] uppercase" style={{ color: "#7A8BAD" }}>Nombre</label>
+          <input value={name} onChange={e => setName(e.target.value)} readOnly={!isAdmin} style={fieldStyle} />
+        </div>
+
+        <div>
+          <label className="mb-1 block font-mono text-[10px] uppercase" style={{ color: "#7A8BAD" }}>Jefe de unidad</label>
+          {isAdmin ? (
+            <select value={headId} onChange={e => setHeadId(e.target.value)} style={{ ...fieldStyle, cursor: "pointer" }}>
+              <option value="">Sin jefe asignado</option>
+              {employees.filter(e => e.departmentId === unit.departmentId).map(e => (
+                <option key={e.id} value={e.id}>{e.fullName}</option>
+              ))}
+            </select>
+          ) : (
+            <p style={{ fontSize: 13, color: head ? "#E2E8F8" : "#7A8BAD" }}>{head?.fullName ?? "Sin asignar"}</p>
+          )}
+        </div>
+
+        <div style={{ fontSize: 11, color: "#7A8BAD", fontFamily: "monospace", padding: "4px 8px", background: "#141928", borderRadius: 6, border: "1px solid #1E2540" }}>
+          {memberCount} miembro{memberCount !== 1 ? "s" : ""} asignado{memberCount !== 1 ? "s" : ""}
+        </div>
+
+        {isAdmin && (
+          <button onClick={handleSave} disabled={saving || !name.trim()}
+            className="flex items-center justify-center gap-2 rounded py-2 text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: "#3D7EFF" }}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" strokeWidth={2} />}
+            Guardar
+          </button>
+        )}
+
+        {isAdmin && (
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex items-center justify-center gap-2 rounded py-1.5 text-xs font-medium disabled:opacity-50"
+            style={{ color: confirmDelete ? "#fff" : "#EF4444", background: confirmDelete ? "#EF4444" : "transparent", border: "1px solid #EF444466" }}
+          >
+            {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            {confirmDelete ? "Confirmar eliminación" : "Eliminar unidad"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function NodeInfoPanel({
   node, employees, divisions, departments, units, isAdmin, onSave, onClose,

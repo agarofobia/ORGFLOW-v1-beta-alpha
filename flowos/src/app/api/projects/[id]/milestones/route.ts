@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projectMilestones } from "@/db/schema";
 import { and, eq, asc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { logActivity } from "@/lib/project-activity";
 
 export async function GET(
   _req: NextRequest,
@@ -29,7 +30,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await params;
-  const { orgId } = await auth();
+  const { orgId, userId: clerkUserId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
@@ -55,8 +56,19 @@ export async function POST(
         orderIndex: maxOrder + 1,
         status: body.status ?? "pending",
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
+        acceptanceCriteria: body.acceptanceCriteria ?? null,
+        ownerEmployeeId: body.ownerEmployeeId ?? null,
       })
       .returning();
+
+    if (result[0]) {
+      await logActivity({
+        projectId, organizationId: orgId, clerkUserId,
+        type: "milestone_created",
+        payload: { milestoneId: result[0].id, title: result[0].title },
+      });
+    }
+
     return NextResponse.json(result[0], { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
