@@ -362,24 +362,28 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
           />
         ) : (
           <div
-            className="flex flex-shrink-0 items-center justify-center text-xs font-semibold text-white"
+            className="flex flex-shrink-0 items-center justify-center font-semibold"
             style={{
-              background: isVacant ? "#7A8BAD" : data.color,
+              background: isVacant ? "transparent" : data.color,
+              border: isVacant ? "1.5px dashed #7A8BAD66" : "none",
+              color: isVacant ? "#7A8BAD" : "#fff",
               borderRadius: 6,
               width: avatarSize, height: avatarSize,
               fontSize: isCompact ? 9 : 12,
             }}
           >
-            {initials}
+            {isVacant ? "+" : initials}
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="truncate font-medium" style={{ color: isVacant ? "#7A8BAD" : "#E2E8F8", fontSize: fontSizeName, lineHeight: 1.15 }}>
-            {isVacant ? "Puesto vacante" : data.fullName}
+          {/* Para vacantes: jobTitle prominente arriba, "Vacante" como label pequeño abajo.
+              Para ocupados: fullName arriba, jobTitle abajo. Más fácil escanear quién es quién. */}
+          <div className="truncate font-medium" style={{ color: isVacant ? "#7A8BAD" : "#E2E8F8", fontSize: fontSizeName, lineHeight: 1.15, fontStyle: isVacant ? "italic" : "normal" }}>
+            {isVacant ? (data.jobTitle || "Puesto sin definir") : data.fullName}
           </div>
           {(!isCompact || isVacant) && (
-            <div className="truncate" style={{ color: "#7A8BAD", fontSize: isCompact ? 9 : 12 }}>
-              {data.jobTitle}
+            <div className="truncate" style={{ color: isVacant ? "#7A8BAD" : "#7A8BAD", fontSize: isCompact ? 9 : 11, fontFamily: isVacant ? "monospace" : "inherit", textTransform: isVacant ? "uppercase" : "none", letterSpacing: isVacant ? "0.08em" : "normal" }}>
+              {isVacant ? "Vacante" : data.jobTitle}
             </div>
           )}
         </div>
@@ -396,7 +400,7 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
         }}>
           {subordinates.map(sub => {
             const subInitials = sub.isVacant
-              ? "?"
+              ? "+"
               : (sub.fullName ?? "").split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
             return (
               <div
