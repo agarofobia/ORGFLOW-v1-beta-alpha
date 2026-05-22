@@ -38,7 +38,9 @@ export default function TeamPage() {
           elements: {
             rootBox: "w-full",
             card: "shadow-none border border-[#1E2540] bg-[#0E1220]",
-            navbar: "hidden",
+            // navbar visible: Clerk lo necesita para que el usuario pueda
+            // navegar entre Miembros / Settings / Invitaciones. Sin navbar
+            // queda solo el header sin contenido.
             scrollBox: "bg-transparent",
             formButtonPrimary:
               "bg-[#3D7EFF] hover:bg-[#5a93ff] text-white shadow-[0_0_16px_rgba(61,126,255,0.35)]",
