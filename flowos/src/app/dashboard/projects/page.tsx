@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useToast } from "@/components/ui/toast";
+import { Popover, popoverOptionStyle, popoverOptionHover } from "@/components/ui/popover";
 
 const STATUSES = ["todo", "in_progress", "in_review", "done"] as const;
 type Status = (typeof STATUSES)[number];
@@ -116,19 +117,8 @@ function EmployeePicker({ value, employees, onChange, onClose, onPick }: {
 }) {
   const [query, setQuery] = useState("");
   const filtered = employees.filter(e => e.fullName.toLowerCase().includes(query.toLowerCase()));
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
   return (
-    <div ref={ref} style={{
-      position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 100,
-      background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8,
-      boxShadow: "0 8px 24px rgba(0,0,0,0.5)", width: 240, maxHeight: 280,
-      display: "flex", flexDirection: "column", overflow: "hidden",
-    }}>
+    <Popover onClose={onClose}>
       <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar empleado..."
         style={{
           background: "#141928", border: "none", borderBottom: "1px solid #1E2540",
@@ -151,26 +141,23 @@ function EmployeePicker({ value, employees, onChange, onClose, onPick }: {
           <p style={{ padding: 14, color: "#7A8BAD", fontSize: 12, textAlign: "center", margin: 0 }}>
             Sin resultados
           </p>
-        ) : filtered.map(emp => (
-          <button key={emp.id} onClick={() => { onChange(emp.fullName, emp.id); onPick?.(emp); onClose(); }}
-            style={{
-              display: "flex", alignItems: "center", gap: 8, width: "100%",
-              padding: "6px 12px", background: value === emp.fullName ? "rgba(61,126,255,0.1)" : "transparent",
-              border: "none", cursor: "pointer", textAlign: "left",
-              borderLeft: value === emp.fullName ? "2px solid #3D7EFF" : "2px solid transparent",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#1E2540"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = value === emp.fullName ? "rgba(61,126,255,0.1)" : "transparent"; }}
-          >
-            <EmployeeAvatar name={emp.fullName} employees={employees} size={20} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.fullName}</p>
-              {emp.jobTitle && <p style={{ margin: 0, fontSize: 10, color: "#7A8BAD", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.jobTitle}</p>}
-            </div>
-          </button>
-        ))}
+        ) : filtered.map(emp => {
+          const active = value === emp.fullName;
+          return (
+            <button key={emp.id} onClick={() => { onChange(emp.fullName, emp.id); onPick?.(emp); onClose(); }}
+              {...popoverOptionHover(active)}
+              style={{ ...popoverOptionStyle(active), padding: "6px 12px" }}
+            >
+              <EmployeeAvatar name={emp.fullName} employees={employees} size={20} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 12, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.fullName}</p>
+                {emp.jobTitle && <p style={{ margin: 0, fontSize: 10, color: "#7A8BAD", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.jobTitle}</p>}
+              </div>
+            </button>
+          );
+        })}
       </div>
-    </div>
+    </Popover>
   );
 }
 
@@ -181,19 +168,8 @@ function MilestonePicker({ value, milestones, onChange, onClose }: {
   value: string | null | undefined; milestones: Milestone[];
   onChange: (id: string | null) => void; onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
   return (
-    <div ref={ref} style={{
-      position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 100,
-      background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8,
-      boxShadow: "0 8px 24px rgba(0,0,0,0.5)", width: 240, maxHeight: 300,
-      display: "flex", flexDirection: "column", overflow: "hidden",
-    }}>
+    <Popover onClose={onClose} maxHeight={300}>
       <button onClick={() => { onChange(null); onClose(); }}
         style={{
           display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
@@ -211,16 +187,11 @@ function MilestonePicker({ value, milestones, onChange, onClose }: {
         <div style={{ overflowY: "auto", flex: 1 }}>
           {milestones.map(m => {
             const due = formatDueDate(m.dueDate);
+            const active = value === m.id;
             return (
               <button key={m.id} onClick={() => { onChange(m.id); onClose(); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8, width: "100%",
-                  padding: "8px 12px", background: value === m.id ? "rgba(61,126,255,0.1)" : "transparent",
-                  border: "none", cursor: "pointer", textAlign: "left",
-                  borderLeft: value === m.id ? "2px solid #3D7EFF" : "2px solid transparent",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#1E2540"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = value === m.id ? "rgba(61,126,255,0.1)" : "transparent"; }}
+                {...popoverOptionHover(active)}
+                style={{ ...popoverOptionStyle(active), padding: "8px 12px" }}
               >
                 <Flag style={{ width: 11, height: 11, color: MILESTONE_STATUS_COLORS[m.status], flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -232,7 +203,7 @@ function MilestonePicker({ value, milestones, onChange, onClose }: {
           })}
         </div>
       )}
-    </div>
+    </Popover>
   );
 }
 
@@ -249,35 +220,21 @@ function InlineEnumPicker<T extends string>({ value, options, labels, colors, on
   value: T; options: readonly T[]; labels: Record<T, string>; colors: Record<T, string>;
   onChange: (v: T) => void; onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
   return (
-    <div ref={ref} style={{
-      position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 100,
-      background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6,
-      boxShadow: "0 8px 24px rgba(0,0,0,0.5)", minWidth: 140, overflow: "hidden",
-    }}>
-      {options.map(opt => (
-        <button key={opt} onClick={() => { onChange(opt); onClose(); }}
-          style={{
-            display: "flex", alignItems: "center", gap: 8, width: "100%",
-            padding: "7px 12px",
-            background: value === opt ? "rgba(61,126,255,0.1)" : "transparent",
-            border: "none", cursor: "pointer", textAlign: "left",
-            fontSize: 12, color: "#E2E8F8",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#1E2540"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = value === opt ? "rgba(61,126,255,0.1)" : "transparent"; }}
-        >
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: colors[opt], flexShrink: 0 }} />
-          {labels[opt]}
-        </button>
-      ))}
-    </div>
+    <Popover onClose={onClose} width={140} maxHeight={400} style={{ borderRadius: 6 }}>
+      {options.map(opt => {
+        const active = value === opt;
+        return (
+          <button key={opt} onClick={() => { onChange(opt); onClose(); }}
+            {...popoverOptionHover(active)}
+            style={popoverOptionStyle(active)}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: colors[opt], flexShrink: 0 }} />
+            {labels[opt]}
+          </button>
+        );
+      })}
+    </Popover>
   );
 }
 
