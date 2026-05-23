@@ -80,6 +80,9 @@ export default function DocsPage() {
   const [dragOver, setDragOver] = useState(false);
   const [sharingDoc, setSharingDoc] = useState<Doc | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  // Inline rename — guarda el id del doc en edición + valor temp
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -190,6 +193,35 @@ export default function DocsPage() {
     await fetch(`/api/documents/${doc.id}`, { method: "DELETE" });
     setDocs((prev) => prev.filter((d) => d.id !== doc.id));
     if (selectedDoc?.id === doc.id) setSelectedDoc(null);
+  };
+
+  // Inline rename — comparte UX entre file y folder. Doble-click sobre el título
+  // inicia la edición; Enter guarda; Esc cancela.
+  const startRename = (doc: Doc) => {
+    setRenamingId(doc.id);
+    setRenameValue(doc.title);
+  };
+  const cancelRename = () => {
+    setRenamingId(null);
+    setRenameValue("");
+  };
+  const commitRename = async (doc: Doc) => {
+    const newTitle = renameValue.trim();
+    if (!newTitle || newTitle === doc.title) { cancelRename(); return; }
+    // Update optimista; el server confirma
+    setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, title: newTitle } : d));
+    setRenamingId(null);
+    setRenameValue("");
+    try {
+      await fetch(`/api/documents/${doc.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle, content: doc.content }),
+      });
+    } catch {
+      // Si falla, revertir
+      setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, title: doc.title } : d));
+      toast.error("No se pudo renombrar", "Revisá tu conexión y reintentá.");
+    }
   };
 
   const toggleVisibility = async (doc: Doc) => {
@@ -382,15 +414,35 @@ export default function DocsPage() {
               {/* Carpetas */}
               {folders.map((f) => (
                 <div key={f.id} className="group flex items-center gap-1">
-                  <button
-                    onClick={() => { setCurrentFolder(f.id); setSelectedDoc(null); setSearch(""); }}
-                    className="flex flex-1 items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors hover:bg-[#141928]"
-                    style={{ color: "#C4CFEA" }}
-                  >
-                    <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
-                    <span className="truncate">{f.title}</span>
-                  </button>
-                  {isAdmin && (
+                  {renamingId === f.id ? (
+                    <div className="flex flex-1 items-center gap-2 rounded px-2 py-1.5">
+                      <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") { e.preventDefault(); commitRename(f); }
+                          if (e.key === "Escape") cancelRename();
+                        }}
+                        onBlur={() => commitRename(f)}
+                        className="flex-1 bg-transparent text-xs outline-none"
+                        style={{ color: "#E2E8F8", borderBottom: "1px solid #3D7EFF" }}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setCurrentFolder(f.id); setSelectedDoc(null); setSearch(""); }}
+                      onDoubleClick={() => isAdmin && startRename(f)}
+                      title={isAdmin ? "Doble-click para renombrar" : undefined}
+                      className="flex flex-1 items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors hover:bg-[#141928]"
+                      style={{ color: "#C4CFEA" }}
+                    >
+                      <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+                      <span className="truncate">{f.title}</span>
+                    </button>
+                  )}
+                  {isAdmin && renamingId !== f.id && (
                     <button
                       onClick={() => deleteDoc(f)}
                       title={`Eliminar carpeta "${f.title}"`}
@@ -406,10 +458,31 @@ export default function DocsPage() {
               {/* Archivos */}
               {files.map((f) => {
                 const fc = f.content as FileContent;
+                if (renamingId === f.id) {
+                  return (
+                    <div key={f.id} className="flex items-center gap-2 rounded px-2 py-1.5">
+                      {fileIcon(fc.fileType)}
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") { e.preventDefault(); commitRename(f); }
+                          if (e.key === "Escape") cancelRename();
+                        }}
+                        onBlur={() => commitRename(f)}
+                        className="flex-1 bg-transparent text-xs outline-none"
+                        style={{ color: "#E2E8F8", borderBottom: "1px solid #3D7EFF" }}
+                      />
+                    </div>
+                  );
+                }
                 return (
                   <div key={f.id} className="group flex items-center gap-1">
                     <button
                       onClick={() => setSelectedDoc(f)}
+                      onDoubleClick={() => isAdmin && startRename(f)}
+                      title={isAdmin ? "Doble-click para renombrar" : undefined}
                       className="flex flex-1 items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors"
                       style={
                         selectedDoc?.id === f.id
