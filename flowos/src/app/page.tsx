@@ -157,26 +157,26 @@ export default function LandingPage() {
           <FeatureCard
             number="01"
             title="Org chart visual"
-            description="Canvas infinito con drag & drop. Departamentos como burbujas anidadas. El que diseñamos es de los más rápidos del mercado, y se sincroniza en tiempo real."
+            description="Canvas infinito con drag & drop. Departamentos como burbujas anidadas. Edición fluida con autosave inteligente que persiste cada cambio."
             className="md:col-span-7 md:row-span-2"
             tall
           />
           <FeatureCard
             number="02"
             title="Proyectos y tareas"
-            description="Vistas Kanban, lista, calendario. Atajos de teclado en todo. Inspirado en Linear."
+            description="Vistas Lista y Tablero temporal (Hoy/Semana/Después). Hitos con criterios de aceptación. Búsqueda y filtros granulares. Ctrl+K para navegar al toque."
             className="md:col-span-5"
           />
           <FeatureCard
             number="03"
-            title="Wiki con bloques"
-            description="Editor a la altura de Notion. Markdown nativo. Búsqueda instantánea."
+            title="Procesos BPM"
+            description="Diseñá flujos visuales con nodos de tarea, gateway y eventos. Ejecutalos y los responsables reciben la tarea en su bandeja. Loop bidireccional con proyectos."
             className="md:col-span-5"
           />
           <FeatureCard
             number="04"
-            title="CRM ligero"
-            description="Contactos, deals y pipelines. Importá desde CSV. Export en cualquier momento."
+            title="Documentos compartidos"
+            description="Base de conocimiento del equipo. Carpetas, búsqueda, preview de imágenes y PDFs. Control de visibilidad: todos o solo admins."
             className="md:col-span-6"
           />
           <FeatureCard
