@@ -194,8 +194,18 @@ export default function MyDayPage() {
       <div style={{ flex: 1, padding: "22px 32px 32px", display: "flex", flexDirection: "column", gap: 18 }}>
         {(["overdue", "today", "week", "later"] as Bucket[]).map(b => {
           const list = grouped[b];
-          if (list.length === 0 && b !== "today") return null; // mostramos siempre "today" aunque esté vacío
+          // "overdue" se oculta cuando está vacío (no quiero mostrar un bloque rojo "Atrasadas: 0" — distrae).
+          // El resto (today, week, later) se muestran siempre para dar el panorama completo del día/semana.
+          if (list.length === 0 && b === "overdue") return null;
           const meta = BUCKET_META[b];
+          // Empty state copy específico por bucket
+          const emptyCopy: Record<Bucket, string> = {
+            overdue: "Sin atrasos ✓",
+            today: "Nada vence hoy 🎉",
+            week: "Sin nada esta semana",
+            later: "Backlog vacío",
+            done: "—",
+          };
           return (
             <section key={b}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
@@ -209,7 +219,7 @@ export default function MyDayPage() {
               </div>
               {list.length === 0 ? (
                 <div style={{ padding: "16px", background: "#0E1220", border: "1px dashed #1E2540", borderRadius: 8, fontSize: 12, color: "#7A8BAD", textAlign: "center" }}>
-                  {b === "today" ? "Nada vence hoy 🎉" : "Vacío"}
+                  {emptyCopy[b]}
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
