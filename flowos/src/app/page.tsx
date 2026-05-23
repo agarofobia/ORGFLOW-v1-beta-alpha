@@ -50,13 +50,13 @@ export default function LandingPage() {
           className="font-display text-[3.5rem] leading-[0.92] tracking-tight md:text-[7.5rem] lg:text-[9rem] opacity-0 animate-fade-up"
           style={{ animationDelay: "120ms" }}
         >
-          Toda tu empresa.
+          La estructura
           <br />
           <span className="italic text-[hsl(var(--flow-rust))]">
-            Una sola fuente
+            de tu empresa
           </span>
           <br />
-          de verdad.
+          en marcha.
         </h1>
 
         {/* Subhead a la derecha — layout grid asimétrico */}
@@ -66,11 +66,11 @@ export default function LandingPage() {
             style={{ animationDelay: "240ms" }}
           >
             <p className="text-lg leading-relaxed text-[hsl(var(--muted-foreground))] md:text-xl">
-              Org chart, proyectos, wiki, CRM. Reemplazá Notion, Linear, Slack,
-              Airtable y media docena de SaaS más.{" "}
+              Organigrama vivo, procesos ejecutables y proyectos con hitos.{" "}
               <span className="text-[hsl(var(--foreground))]">
-                Tu equipo en un solo lugar.
-              </span>
+                Todo conectado bajo un mismo modelo,
+              </span>{" "}
+              para que cada tarea sepa quién la hace y por qué.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/sign-up" className="btn-ink">
@@ -101,33 +101,48 @@ export default function LandingPage() {
         <div className="rule" />
       </div>
 
-      {/* ─── Sección: Lo que reemplazás ──────────────────────────────── */}
+      {/* ─── Sección: Pilares ────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-6 py-24 md:px-10 md:py-32">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-4">
-            <span className="section-num">02 — Reemplaza</span>
+            <span className="section-num">02 — Pilares</span>
             <h2 className="mt-4 font-display text-4xl leading-[1.05] tracking-tight md:text-5xl">
-              Una herramienta.
+              Una decisión
               <br />
               <span className="italic text-[hsl(var(--flow-ochre))]">
-                Adiós a seis.
+                de diseño.
               </span>
             </h2>
+            <p className="mt-6 text-base leading-relaxed text-[hsl(var(--muted-foreground))]">
+              FlowOS se construye sobre tres principios. Cada feature los respeta.
+            </p>
           </div>
           <div className="md:col-span-7 md:col-start-6">
-            <ul className="grid grid-cols-2 gap-y-6 gap-x-8 text-base">
+            <ul className="grid gap-y-10 text-base">
               {[
-                ["Notion", "Wiki interna y docs"],
-                ["Linear", "Tareas y proyectos"],
-                ["Airtable", "Datos estructurados"],
-                ["Lattice", "Org chart y RRHH"],
-                ["HubSpot", "CRM y pipelines"],
-                ["Slack Connect", "Invitaciones a clientes"],
-              ].map(([name, role]) => (
-                <li key={name} className="border-l border-[hsl(var(--border))] pl-4">
-                  <div className="font-display text-2xl">{name}</div>
-                  <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                    {role}
+                {
+                  num: "I",
+                  title: "Correlacional",
+                  desc: "Las tareas no se asignan a personas: se asignan a puestos del organigrama. Si rota la persona, la responsabilidad se mantiene. El conocimiento operativo no se va con el empleado.",
+                },
+                {
+                  num: "II",
+                  title: "Procesos que se ejecutan",
+                  desc: "Diseñá un flujo BPM y se vuelve operación viva: instancias en curso, tareas en bandeja, hitos que avanzan automáticamente. No es un diagrama decorativo, es el motor del trabajo.",
+                },
+                {
+                  num: "III",
+                  title: "Una sola fuente",
+                  desc: "Organigrama, proyectos y procesos comparten el mismo modelo de datos. Crear un proceso puede armar el proyecto. Completar un hito puede avanzar el proceso. Sin imports, sin sincronizaciones, sin desfasajes.",
+                },
+              ].map(({ num, title, desc }) => (
+                <li key={num} className="grid grid-cols-[auto_1fr] gap-x-6">
+                  <span className="section-num pt-1">{num}</span>
+                  <div>
+                    <div className="font-display text-2xl md:text-3xl">{title}</div>
+                    <div className="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">
+                      {desc}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -288,12 +303,13 @@ export default function LandingPage() {
           </div>
           <div className="md:col-span-8 md:col-start-5">
             <p className="font-display text-3xl leading-[1.2] md:text-4xl lg:text-5xl">
-              Las empresas merecen{" "}
+              Una empresa{" "}
               <span className="italic text-[hsl(var(--flow-rust))]">
-                herramientas mejores
+                no es una lista de tareas.
               </span>{" "}
-              que las que tienen. Una sola, hecha con cuidado, vale por seis
-              hechas para que pagues seis suscripciones.
+              Es una estructura de personas, responsabilidades y procesos que
+              conviven y se sostienen entre sí. Diseñamos FlowOS para reflejar
+              esa verdad, no para esconderla.
             </p>
             <p className="mt-8 text-base text-[hsl(var(--muted-foreground))]">
               — Equipo FlowOS, Buenos Aires
