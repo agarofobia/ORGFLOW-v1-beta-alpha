@@ -1216,7 +1216,7 @@ function TemplatesModal({ onClose, onInstantiated }: {
 
   return (
     <div onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(8px, 3vw, 24px)" }}>
       <div style={{
         width: "min(720px, 100%)", maxHeight: "90vh",
         background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
@@ -1466,7 +1466,7 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
       </div>
 
       {/* Owner + Health + Stats grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {/* Owner */}
         <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 16 }}>
           <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
@@ -2113,7 +2113,7 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
             placeholder="Lista los criterios concretos. Ej:&#10;- 5 usuarios completaron el flow sin asistencia&#10;- Tiempo medio < 90s&#10;- Cero errores 500 en último deploy"
             style={{ width: "100%", background: "#141928", border: "1px solid rgba(16,217,160,0.3)", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#E2E8F8", outline: "none", resize: "vertical", fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box" }} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
           <div>
             <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", marginBottom: 4 }}>Estado</label>
             <select value={draft.status ?? "pending"} onChange={e => setDraft({ ...draft, status: e.target.value as Milestone["status"] })}
@@ -2317,7 +2317,10 @@ function ProjectModal(props: {
     <div
       onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
-        position: "fixed", inset: 0, zIndex: 80, padding: 24,
+        position: "fixed", inset: 0, zIndex: 80,
+        // En mobile (< 640px) el modal ocupa toda la pantalla (padding 0).
+        // En desktop respiramos con 24px alrededor.
+        padding: "clamp(0px, 3vw, 24px)",
         background: "rgba(0,0,0,0.72)", backdropFilter: "blur(4px)",
         display: "flex", alignItems: "stretch", justifyContent: "center",
       }}
@@ -2325,7 +2328,9 @@ function ProjectModal(props: {
       <div style={{
         width: "min(1200px, 100%)", maxHeight: "100%",
         background: "#080B12", border: "1px solid #1E2540",
-        borderRadius: 14, boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+        // En mobile sin borde redondeado para look full-screen
+        borderRadius: "clamp(0px, 2vw, 14px)",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
         display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         {/* Sticky header */}
@@ -2458,7 +2463,7 @@ function ProjectModal(props: {
 
           {/* ── SECCIÓN STATS (Owner + Health + Quick) ──────────────── */}
           <section style={{ padding: "16px 24px 0" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
               {/* Owner */}
               <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 14 }}>
                 <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
@@ -2512,7 +2517,7 @@ function ProjectModal(props: {
                 <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                   Resumen
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginTop: 8 }}>
                   <Stat label="Tareas" value={total} />
                   <Stat label="Hitos" value={milestones.length} color="#A855F7" />
                 </div>

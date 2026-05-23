@@ -171,6 +171,25 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Mobile touch targets — WCAG mínimo 44x44px para acciones primarias.
+     En mobile expandimos el hit area de botones chicos via pseudo ::before.
+     No afecta el visual, solo el area clickeable. */
+  @media (max-width: 767px) {
+    button[aria-label],
+    button[title] {
+      position: relative;
+    }
+    /* Si el botón visualmente es < 44px (típico icon button h-8 w-8 = 32px),
+       expandimos el hit area con ::before transparente */
+    button.h-8.w-8::before,
+    button[class*="h-7"][class*="w-7"]::before {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      pointer-events: auto;
+    }
+  }
+
   /* Label monoespaciado para badges y etiquetas */
   .label {
     font-family: var(--font-dm-mono, ui-monospace, monospace);
