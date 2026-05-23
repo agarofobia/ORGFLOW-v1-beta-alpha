@@ -614,23 +614,45 @@ function DesignerFlow({
   definition,
   onSave,
   saving,
+  onDirtyChange,
 }: {
   definition: ProcessDefinition;
   onSave: (nodes: ProcessNode[], edges: ProcessEdge[]) => Promise<void>;
   saving: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { screenToFlowPosition } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState<BpmNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNode, setSelectedNode] = useState<BpmNode | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  // Track cambios sin guardar — se setea true en cualquier mutación post-load.
+  // Se resetea cuando definition cambia (load nuevo o post-save trae fresh).
+  const [isDirty, setIsDirty] = useState(false);
+  // notify parent on dirty changes (para showar "● Cambios sin guardar" en topbar fuera de este componente)
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
   useEffect(() => {
     const dbNodes = definition.nodes as unknown as ProcessNode[];
     const dbEdges = definition.edges as unknown as ProcessEdge[];
     setNodes(nodesFromDB(Array.isArray(dbNodes) ? dbNodes : []));
     setEdges(edgesFromDB(Array.isArray(dbEdges) ? dbEdges : []));
+    // El load (inicial o post-save) limpia el dirty flag.
+    setIsDirty(false);
   }, [definition.id, definition.nodes, definition.edges, setNodes, setEdges]);
+
+  // Wrap onNodesChange para detectar mutaciones persistentes (no "select" / "dimensions").
+  const handleNodesChange = useCallback((changes: Parameters<typeof onNodesChange>[0]) => {
+    onNodesChange(changes);
+    const persistent = changes.some(c => c.type === "position" || c.type === "remove" || c.type === "add" || c.type === "replace");
+    if (persistent) setIsDirty(true);
+  }, [onNodesChange]);
+
+  const handleEdgesChange = useCallback((changes: Parameters<typeof onEdgesChange>[0]) => {
+    onEdgesChange(changes);
+    const persistent = changes.some(c => c.type === "remove" || c.type === "add" || c.type === "replace");
+    if (persistent) setIsDirty(true);
+  }, [onEdgesChange]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -649,6 +671,7 @@ function DesignerFlow({
           eds
         )
       );
+      setIsDirty(true);
     },
     [setEdges, nodes]
   );
@@ -664,6 +687,7 @@ function DesignerFlow({
       data: { label: defaultLabel },
     };
     setNodes((nds) => [...nds, newNode]);
+    setIsDirty(true);
   };
 
   const updateNodeData = (id: string, data: Partial<BpmData>) => {
@@ -673,6 +697,7 @@ function DesignerFlow({
     if (selectedNode?.id === id) {
       setSelectedNode((prev) => prev ? { ...prev, data: { ...prev.data, ...data } } : null);
     }
+    setIsDirty(true);
   };
 
   const updateEdgeCondition = (edgeId: string, condition: string) => {
@@ -688,7 +713,32 @@ function DesignerFlow({
         ? { ...prev, label: condition || "condición", data: { ...((prev.data as Record<string, unknown>) ?? {}), condition } }
         : prev
     );
+    setIsDirty(true);
   };
+
+  // beforeunload guard — alerta al user antes de cerrar pestaña si tiene cambios sin guardar.
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // En navegadores modernos el string es ignorado, pero la promesa de bloqueo se respeta.
+      e.returnValue = "Tenés cambios sin guardar en el proceso. ¿Salir igual?";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // Ctrl+S / Cmd+S → guardar. No interferimos si el user está tipeando en un input.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (isDirty && !saving) onSave(nodesToDB(nodes), edgesToDB(edges));
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isDirty, saving, nodes, edges, onSave]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: BpmNode) => {
     setSelectedNode(node);
@@ -751,8 +801,8 @@ function DesignerFlow({
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
           onEdgeClick={onEdgeClick}
@@ -768,16 +818,20 @@ function DesignerFlow({
           <Panel position="top-right" className="m-3">
             <button
               onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px disabled:opacity-60"
-              style={{ background: "#3D7EFF", boxShadow: "0 0 12px rgba(61,126,255,0.3)" }}
+              disabled={saving || !isDirty}
+              title={isDirty ? "Guardar cambios (Ctrl+S)" : "Sin cambios pendientes"}
+              className="flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{
+                background: isDirty ? "#3D7EFF" : "#1E2540",
+                boxShadow: isDirty ? "0 0 12px rgba(61,126,255,0.3)" : "none",
+              }}
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Save className="h-4 w-4" strokeWidth={2} />
               )}
-              Guardar
+              {isDirty ? "Guardar" : "Guardado"}
             </button>
           </Panel>
         </ReactFlow>
@@ -861,6 +915,34 @@ export default function ProcessDesignerPage({
   }, []);
   const [environment, setEnvironment] = useState<"test" | "production">("production");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [editorDirty, setEditorDirty] = useState(false);
+  // Refs para click-outside en dropdowns del topbar
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const templateDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cierra status dropdown si se clickea afuera
+  useEffect(() => {
+    if (!statusOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as unknown as globalThis.Node)) {
+        setStatusOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [statusOpen]);
+
+  // Cierra template dropdown si se clickea afuera
+  useEffect(() => {
+    if (!templateOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (templateDropdownRef.current && !templateDropdownRef.current.contains(e.target as unknown as globalThis.Node)) {
+        setTemplateOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [templateOpen]);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Escape para salir de fullscreen
@@ -913,20 +995,30 @@ export default function ProcessDesignerPage({
 
   const handleStatusChange = async (status: "draft" | "active" | "archived") => {
     setStatusOpen(false);
+    // Validación pre-activación: un proceso publicado tiene que ser ejecutable.
+    // Sin startEvent o endEvent → al iniciar instancia el motor BPM crashea.
+    if (status === "active" && definition) {
+      const nodes = (definition.nodes ?? []) as unknown as ProcessNode[];
+      const hasStart = Array.isArray(nodes) && nodes.some(n => n.type === "startEvent");
+      const hasEnd = Array.isArray(nodes) && nodes.some(n => n.type === "endEvent");
+      if (!hasStart || !hasEnd) {
+        const missing = [!hasStart && "Inicio", !hasEnd && "Fin"].filter(Boolean).join(" y ");
+        toast.error("No se puede publicar", `Falta nodo ${missing}. Agregalo desde la paleta antes de activar.`);
+        return;
+      }
+    }
     const res = await fetch(`/api/processes/${processId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        nodes: definition?.nodes,
-        edges: definition?.edges,
-        status,
-        category: definition?.category,
-      }),
+      body: JSON.stringify({ status }),
     });
     if (res.ok) {
       const updated = await res.json();
       setDefinition(updated);
+      if (status === "active") toast.success("Proceso publicado", "Ya podés iniciar instancias.");
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error("No se pudo cambiar el estado", err.error ?? "Error desconocido");
     }
   };
 
@@ -1046,7 +1138,7 @@ export default function ProcessDesignerPage({
         )}
 
         {/* Status dropdown */}
-        <div className="relative">
+        <div className="relative" ref={statusDropdownRef}>
           <button
             onClick={() => setStatusOpen((v) => !v)}
             className="flex items-center gap-1.5 rounded px-2.5 py-1 font-mono text-[10px] uppercase transition-colors hover:bg-[#141928]"
@@ -1079,7 +1171,7 @@ export default function ProcessDesignerPage({
         </div>
 
         {/* Template de proyecto asociado — cierra el loop BPM */}
-        <div className="relative">
+        <div className="relative" ref={templateDropdownRef}>
           <button
             onClick={() => setTemplateOpen(v => !v)}
             title="Template de proyecto que se instancia al iniciar este proceso"
@@ -1149,6 +1241,16 @@ export default function ProcessDesignerPage({
           ))}
         </div>
 
+        {/* Indicador de estado de guardado:
+            - "● Sin guardar" rojo si hay cambios pendientes
+            - "✓ Guardado" verde durante 2.5s post-save (saved flag)
+            - silencioso si todo está limpio */}
+        {editorDirty && !saved && (
+          <span className="flex items-center gap-1.5 font-mono text-[11px]" style={{ color: "#F43F5E" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#F43F5E" }} />
+            Sin guardar
+          </span>
+        )}
         {saved && (
           <span className="font-mono text-[11px]" style={{ color: "#10D9A0" }}>
             ✓ Guardado
@@ -1189,6 +1291,7 @@ export default function ProcessDesignerPage({
             definition={definition}
             onSave={handleSave}
             saving={saving}
+            onDirtyChange={setEditorDirty}
           />
         </ReactFlowProvider>
       </div>
