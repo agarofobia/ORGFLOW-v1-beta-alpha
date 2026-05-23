@@ -689,7 +689,7 @@ export default function DashboardHome() {
   const firstName = user?.firstName ?? "amigo";
 
   return (
-    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 32px 64px" }}>
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px clamp(16px, 4vw, 32px) 64px" }}>
       {/* Greeting */}
       <div style={{ marginBottom: 32 }}>
         <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 4px", fontFamily: "monospace" }}>

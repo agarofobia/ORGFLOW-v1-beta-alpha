@@ -159,7 +159,7 @@ export default function MyDayPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#080B12", overflow: "auto" }}>
-      <div style={{ padding: "28px 32px 18px", borderBottom: "1px solid #1E2540" }}>
+      <div style={{ padding: "24px clamp(16px, 4vw, 32px) 18px", borderBottom: "1px solid #1E2540" }}>
         <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
           Workspace · {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
         </p>
@@ -191,7 +191,7 @@ export default function MyDayPage() {
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: "22px 32px 32px", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ flex: 1, padding: "22px clamp(16px, 4vw, 32px) 32px", display: "flex", flexDirection: "column", gap: 18 }}>
         {(["overdue", "today", "week", "later"] as Bucket[]).map(b => {
           const list = grouped[b];
           // "overdue" se oculta cuando está vacío (no quiero mostrar un bloque rojo "Atrasadas: 0" — distrae).

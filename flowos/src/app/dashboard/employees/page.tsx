@@ -989,7 +989,7 @@ export default function EmployeesPage() {
     <div style={{ height: "100%", minHeight: "calc(100vh - 56px)", backgroundColor: "#080B12", overflow: "hidden", position: "relative" }}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         {/* Header */}
-        <div style={{ padding: "24px 32px 16px", borderBottom: "1px solid #1E2540" }}>
+        <div style={{ padding: "24px clamp(16px, 4vw, 32px) 16px", borderBottom: "1px solid #1E2540" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
               <div>
@@ -1079,7 +1079,7 @@ export default function EmployeesPage() {
             <div key={group.label}>
               {/* Group header */}
               {groupBy !== "none" && (
-                <div style={{ padding: "10px 32px 6px", borderBottom: "1px solid #1E2540", background: "#0A0E1A", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ padding: "10px clamp(16px, 4vw, 32px) 6px", borderBottom: "1px solid #1E2540", background: "#0A0E1A", display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 3, height: 14, borderRadius: 2, background: group.color }} />
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#E2E8F8", textTransform: "uppercase", letterSpacing: "0.08em" }}>{group.label}</span>
                   <span style={{ fontSize: 10, color: "#7A8BAD", background: "#141928", borderRadius: 4, padding: "1px 6px", fontFamily: "monospace" }}>{group.employees.length}</span>
@@ -1094,7 +1094,7 @@ export default function EmployeesPage() {
                 const secondary = vacant ? "Vacante — buscar candidato" : (emp.jobTitle || "Sin puesto definido");
                 return (
                   <div key={emp.id} onClick={() => setSelected(isSelected ? null : emp)}
-                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 32px", cursor: "pointer", backgroundColor: isSelected ? "#141928" : "transparent", borderLeft: isSelected ? "3px solid #3D7EFF" : "3px solid transparent", borderBottom: "1px solid #1E254040", transition: "background 0.15s", opacity: vacant ? 0.78 : 1 }}>
+                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px clamp(16px, 4vw, 32px)", cursor: "pointer", backgroundColor: isSelected ? "#141928" : "transparent", borderLeft: isSelected ? "3px solid #3D7EFF" : "3px solid transparent", borderBottom: "1px solid #1E254040", transition: "background 0.15s", opacity: vacant ? 0.78 : 1 }}>
                     <Avatar name={emp.fullName} color={emp.color} size={38} imageUrl={emp.imageUrl} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ color: vacant ? "#7A8BAD" : "#E2E8F8", fontSize: 14, fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: vacant ? "italic" : "normal" }}>{primary}</p>
@@ -1116,7 +1116,7 @@ export default function EmployeesPage() {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "10px 32px", borderTop: "1px solid #1E2540" }}>
+        <div style={{ padding: "10px clamp(16px, 4vw, 32px)", borderTop: "1px solid #1E2540" }}>
           <p style={{ color: "#7A8BAD", fontSize: 12, margin: 0 }}>
             {loading ? "—" : `${filtered.length} empleado${filtered.length !== 1 ? "s" : ""}`}
           </p>
