@@ -136,7 +136,7 @@ export default function WorkloadPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#080B12", overflow: "auto" }}>
       {/* Header */}
-      <div style={{ padding: "28px 32px 18px", borderBottom: "1px solid #1E2540" }}>
+      <div style={{ padding: "28px clamp(16px, 4vw, 32px) 18px", borderBottom: "1px solid #1E2540" }}>
         <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
           Workspace
         </p>
@@ -168,7 +168,7 @@ export default function WorkloadPage() {
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: "20px 32px 32px" }}>
+      <div style={{ flex: 1, padding: "20px clamp(16px, 4vw, 32px) 32px" }}>
         {groupBy === "employee" ? (
           byEmployee.filter(r => r.open.length > 0).length === 0 ? (
             <EmptyState />
