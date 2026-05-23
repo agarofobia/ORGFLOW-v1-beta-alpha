@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Upload, Folder, FolderOpen, FileText, File, Image as ImageIcon,
   Table, FileCode, Trash2, Search, X, Download, Eye,
-  EyeOff, ChevronRight, Plus, Loader2, Share2, LayoutGrid, List,
+  EyeOff, ChevronRight, ChevronDown, Plus, Loader2, Share2, LayoutGrid, List,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -85,6 +85,16 @@ export default function DocsPage() {
   // Inline rename — guarda el id del doc en edición + valor temp
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  // Tree view en sidebar: carpetas expandidas. Persiste entre renders pero no entre sesiones.
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const toggleFolder = (id: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -403,129 +413,79 @@ export default function DocsPage() {
           )}
         </div>
 
-        {/* Breadcrumb nav */}
+        {/* Tree nav — jerarquía completa con folders expandibles */}
         <nav className="flex-1 overflow-y-auto p-2">
-          {/* Root */}
-          {currentFolder !== null && !search && (
-            <button
-              onClick={() => setCurrentFolder(null)}
-              className="mb-1 flex items-center gap-1.5 rounded px-2 py-1.5 text-xs w-full text-left transition-colors hover:bg-[#141928]"
-              style={{ color: "#7A8BAD" }}
-            >
-              ← Raíz
-            </button>
-          )}
-
           {loading ? (
             <div className="flex justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#3D7EFF" }} />
             </div>
-          ) : (
-            <>
-              {/* Carpetas */}
-              {folders.map((f) => (
-                <div key={f.id} className="group flex items-center gap-1">
-                  {renamingId === f.id ? (
-                    <div className="flex flex-1 items-center gap-2 rounded px-2 py-1.5">
-                      <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
-                      <input
-                        autoFocus
-                        value={renameValue}
-                        onChange={e => setRenameValue(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === "Enter") { e.preventDefault(); commitRename(f); }
-                          if (e.key === "Escape") cancelRename();
-                        }}
-                        onBlur={() => commitRename(f)}
-                        className="flex-1 bg-transparent text-xs outline-none"
-                        style={{ color: "#E2E8F8", borderBottom: "1px solid #3D7EFF" }}
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setCurrentFolder(f.id); setSelectedDoc(null); setSearch(""); }}
-                      onDoubleClick={() => isAdmin && startRename(f)}
-                      title={isAdmin ? "Doble-click para renombrar" : undefined}
-                      className="flex flex-1 items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors hover:bg-[#141928]"
-                      style={{ color: "#C4CFEA" }}
-                    >
-                      <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
-                      <span className="truncate">{f.title}</span>
-                    </button>
-                  )}
-                  {isAdmin && renamingId !== f.id && (
-                    <button
-                      onClick={() => deleteDoc(f)}
-                      title={`Eliminar carpeta "${f.title}"`}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#1E2540]"
-                      style={{ color: "#7A8BAD" }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              {/* Archivos */}
-              {files.map((f) => {
-                const fc = f.content as FileContent;
-                if (renamingId === f.id) {
-                  return (
-                    <div key={f.id} className="flex items-center gap-2 rounded px-2 py-1.5">
-                      {fileIcon(fc.fileType)}
-                      <input
-                        autoFocus
-                        value={renameValue}
-                        onChange={e => setRenameValue(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === "Enter") { e.preventDefault(); commitRename(f); }
-                          if (e.key === "Escape") cancelRename();
-                        }}
-                        onBlur={() => commitRename(f)}
-                        className="flex-1 bg-transparent text-xs outline-none"
-                        style={{ color: "#E2E8F8", borderBottom: "1px solid #3D7EFF" }}
-                      />
-                    </div>
-                  );
-                }
-                return (
-                  <div key={f.id} className="group flex items-center gap-1">
-                    <button
-                      onClick={() => setSelectedDoc(f)}
-                      onDoubleClick={() => isAdmin && startRename(f)}
-                      title={isAdmin ? "Doble-click para renombrar" : undefined}
-                      className="flex flex-1 items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors"
-                      style={
-                        selectedDoc?.id === f.id
-                          ? { background: "rgba(61,126,255,0.12)", borderLeft: "2px solid #3D7EFF", color: "#E2E8F8", paddingLeft: "6px" }
-                          : { color: "#7A8BAD" }
-                      }
-                    >
-                      {fileIcon(fc.fileType)}
-                      <span className="flex-1 truncate">{f.title}</span>
-                      {fc.visibility === "admin_only" && (
-                        <EyeOff className="h-3 w-3 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => deleteDoc(f)}
-                      title={`Eliminar "${f.title}"`}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#1E2540]"
-                      style={{ color: "#7A8BAD" }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                );
-              })}
-
-              {folders.length === 0 && files.length === 0 && !loading && (
-                <p className="px-2 py-4 text-center text-xs" style={{ color: "#7A8BAD" }}>
-                  {search ? "Sin resultados" : "Sin archivos aún"}
-                </p>
-              )}
-            </>
-          )}
+          ) : search.trim() ? (
+            // Búsqueda activa → resultado flat sin tree (más útil)
+            (() => {
+              const matches = docs.filter(d => {
+                if (d.content.type === "file" && d.content.visibility === "admin_only" && !isAdmin) return false;
+                return d.title.toLowerCase().includes(search.toLowerCase());
+              });
+              if (matches.length === 0) {
+                return <p className="px-2 py-4 text-center text-xs" style={{ color: "#7A8BAD" }}>Sin resultados</p>;
+              }
+              return matches.map(d => (
+                <TreeNode
+                  key={d.id}
+                  doc={d}
+                  depth={0}
+                  allDocs={docs}
+                  isAdmin={isAdmin}
+                  selectedDoc={selectedDoc}
+                  expandedFolders={expandedFolders}
+                  toggleFolder={toggleFolder}
+                  setSelectedDoc={setSelectedDoc}
+                  renamingId={renamingId}
+                  renameValue={renameValue}
+                  setRenameValue={setRenameValue}
+                  startRename={startRename}
+                  cancelRename={cancelRename}
+                  commitRename={commitRename}
+                  deleteDoc={deleteDoc}
+                  hideChildrenInSearch
+                />
+              ));
+            })()
+          ) : (() => {
+            // Vista normal: árbol jerárquico desde la raíz
+            const rootDocs = docs.filter(d => {
+              if (d.content.type === "file" && d.content.visibility === "admin_only" && !isAdmin) return false;
+              return d.parentId === null;
+            });
+            if (rootDocs.length === 0) {
+              return <p className="px-2 py-4 text-center text-xs" style={{ color: "#7A8BAD" }}>Sin archivos aún</p>;
+            }
+            // Ordenamos: carpetas primero (alfabético) + archivos después (alfabético)
+            const sorted = [
+              ...rootDocs.filter(d => d.content.type === "folder").sort((a, b) => a.title.localeCompare(b.title)),
+              ...rootDocs.filter(d => d.content.type === "file").sort((a, b) => a.title.localeCompare(b.title)),
+            ];
+            return sorted.map(d => (
+              <TreeNode
+                key={d.id}
+                doc={d}
+                depth={0}
+                allDocs={docs}
+                isAdmin={isAdmin}
+                selectedDoc={selectedDoc}
+                expandedFolders={expandedFolders}
+                toggleFolder={toggleFolder}
+                setSelectedDoc={setSelectedDoc}
+                renamingId={renamingId}
+                renameValue={renameValue}
+                setRenameValue={setRenameValue}
+                startRename={startRename}
+                cancelRename={cancelRename}
+                commitRename={commitRename}
+                deleteDoc={deleteDoc}
+              />
+            ));
+          })()}
         </nav>
 
         <div className="px-3 pb-2 font-mono text-[9px]" style={{ color: "#3A4560" }}>
@@ -781,5 +741,161 @@ export default function DocsPage() {
         />
       )}
     </div>
+  );
+}
+
+// ─── TreeNode recursivo ──────────────────────────────────────────────────────
+// Renderiza un documento (file o folder) con indentación según depth.
+// Si es folder y está expandido, renderiza sus hijos debajo.
+// El padding-left aumenta 12px por nivel para mostrar la jerarquía visual.
+
+interface TreeNodeProps {
+  doc: Doc;
+  depth: number;
+  allDocs: Doc[];
+  isAdmin: boolean;
+  selectedDoc: Doc | null;
+  expandedFolders: Set<string>;
+  toggleFolder: (id: string) => void;
+  setSelectedDoc: (d: Doc | null) => void;
+  renamingId: string | null;
+  renameValue: string;
+  setRenameValue: (v: string) => void;
+  startRename: (d: Doc) => void;
+  cancelRename: () => void;
+  commitRename: (d: Doc) => void;
+  deleteDoc: (d: Doc) => void;
+  // En modo búsqueda, no expandimos hijos automáticamente (los resultados ya están flat).
+  hideChildrenInSearch?: boolean;
+}
+
+function TreeNode(props: TreeNodeProps) {
+  const {
+    doc, depth, allDocs, isAdmin, selectedDoc, expandedFolders, toggleFolder,
+    setSelectedDoc, renamingId, renameValue, setRenameValue,
+    startRename, cancelRename, commitRename, deleteDoc, hideChildrenInSearch,
+  } = props;
+
+  const isFolder = doc.content.type === "folder";
+  const isExpanded = isFolder && expandedFolders.has(doc.id);
+  const isSelected = !isFolder && selectedDoc?.id === doc.id;
+
+  // Hijos directos del folder (si aplica)
+  const children = isFolder
+    ? allDocs.filter(d => {
+        if (d.parentId !== doc.id) return false;
+        // Ocultar admin-only para non-admins también dentro del tree
+        if (d.content.type === "file" && d.content.visibility === "admin_only" && !isAdmin) return false;
+        return true;
+      })
+    : [];
+  const sortedChildren = [
+    ...children.filter(d => d.content.type === "folder").sort((a, b) => a.title.localeCompare(b.title)),
+    ...children.filter(d => d.content.type === "file").sort((a, b) => a.title.localeCompare(b.title)),
+  ];
+
+  // Padding-left por depth + espacio para el chevron (12px por nivel + 4px base)
+  const indent = depth * 12 + 4;
+
+  const fc = doc.content.type === "file" ? doc.content : null;
+
+  return (
+    <>
+      <div
+        className="group flex items-center gap-0.5"
+        style={{ paddingLeft: indent }}
+      >
+        {/* Chevron expand/collapse — visible solo para folders. Para files: spacer del mismo ancho */}
+        {isFolder ? (
+          <button
+            onClick={() => toggleFolder(doc.id)}
+            className="flex h-5 w-4 shrink-0 items-center justify-center rounded hover:bg-[#1E2540]"
+            style={{ color: "#7A8BAD" }}
+            aria-label={isExpanded ? "Colapsar carpeta" : "Expandir carpeta"}
+          >
+            {isExpanded
+              ? <ChevronDown className="h-3 w-3" strokeWidth={2} />
+              : <ChevronRight className="h-3 w-3" strokeWidth={2} />}
+          </button>
+        ) : (
+          <span className="h-5 w-4 shrink-0" />
+        )}
+
+        {/* Rename mode */}
+        {renamingId === doc.id ? (
+          <div className="flex flex-1 items-center gap-2 rounded px-1 py-1.5">
+            {isFolder
+              ? <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+              : fileIcon(fc!.fileType)}
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={e => setRenameValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") { e.preventDefault(); commitRename(doc); }
+                if (e.key === "Escape") cancelRename();
+              }}
+              onBlur={() => commitRename(doc)}
+              className="flex-1 bg-transparent text-xs outline-none"
+              style={{ color: "#E2E8F8", borderBottom: "1px solid #3D7EFF" }}
+            />
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              if (isFolder) toggleFolder(doc.id);
+              else setSelectedDoc(doc);
+            }}
+            onDoubleClick={() => isAdmin && startRename(doc)}
+            title={isAdmin ? "Doble-click para renombrar" : undefined}
+            className="flex flex-1 items-center gap-2 rounded px-1.5 py-1.5 text-xs transition-colors hover:bg-[#141928]"
+            style={
+              isSelected
+                ? { background: "rgba(61,126,255,0.12)", borderLeft: "2px solid #3D7EFF", color: "#E2E8F8", paddingLeft: "4px" }
+                : { color: isFolder ? "#C4CFEA" : "#7A8BAD" }
+            }
+          >
+            {isFolder
+              ? (isExpanded
+                  ? <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+                  : <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />)
+              : fileIcon(fc!.fileType)}
+            <span className="flex-1 truncate">{doc.title}</span>
+            {!isFolder && fc?.visibility === "admin_only" && (
+              <EyeOff className="h-3 w-3 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+            )}
+          </button>
+        )}
+
+        {/* Delete button — visible al hover */}
+        {isAdmin && renamingId !== doc.id && (
+          <button
+            onClick={() => deleteDoc(doc)}
+            title={`Eliminar ${isFolder ? "carpeta" : "archivo"} "${doc.title}"`}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#1E2540]"
+            style={{ color: "#7A8BAD" }}
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+
+      {/* Hijos recursivos — solo si folder expandido y no estamos en modo búsqueda flat */}
+      {isFolder && isExpanded && !hideChildrenInSearch && sortedChildren.length > 0 && (
+        <>
+          {sortedChildren.map(child => (
+            <TreeNode {...props} key={child.id} doc={child} depth={depth + 1} />
+          ))}
+        </>
+      )}
+      {isFolder && isExpanded && !hideChildrenInSearch && sortedChildren.length === 0 && (
+        <p
+          className="text-[10px] italic"
+          style={{ color: "#3A4560", paddingLeft: indent + 24, paddingTop: 2, paddingBottom: 2 }}
+        >
+          (vacía)
+        </p>
+      )}
+    </>
   );
 }
