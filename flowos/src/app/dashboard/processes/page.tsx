@@ -22,6 +22,7 @@ import {
   MoveRight,
 } from "lucide-react";
 import type { ProcessDefinition } from "@/db/schema";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const STATUS_CONFIG = {
   draft: { label: "Borrador", color: "#7A8BAD", bg: "rgba(122,139,173,0.12)" },
@@ -48,6 +49,7 @@ type BreadcrumbEntry = { id: string; name: string };
 export default function ProcessesPage() {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [items, setItems] = useState<ProcessDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -159,8 +161,17 @@ export default function ProcessesPage() {
 
   const handleDelete = async (item: ProcessDefinition, e: React.MouseEvent) => {
     e.stopPropagation();
-    const label = item.category === "folder" ? "esta carpeta y todo su contenido" : "este proceso";
-    if (!confirm(`¿Eliminar ${label}?`)) return;
+    const isFolder = item.category === "folder";
+    const ok = await confirm({
+      title: isFolder ? "¿Eliminar carpeta?" : "¿Eliminar proceso?",
+      description: isFolder
+        ? `Se eliminará "${item.name}" y todo su contenido. Esta acción no se puede deshacer.`
+        : `Se eliminará "${item.name}". Las instancias en curso quedarán huérfanas.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/processes/${item.id}`, { method: "DELETE" });
     setItems((prev) => prev.filter((p) => p.id !== item.id));
   };

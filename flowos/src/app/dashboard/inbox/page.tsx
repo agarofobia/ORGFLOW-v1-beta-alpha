@@ -20,6 +20,7 @@ import {
 import type { InboxTask, ProcessDefinition, ProcessInstance } from "@/db/schema";
 import TaskRunnerModal from "./TaskRunnerModal";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const PRIORITY_CONFIG = {
   low: { label: "Baja", color: "#7A8BAD" },
@@ -56,6 +57,7 @@ const INSTANCE_STATUS = {
 export default function InboxPage() {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [mainTab, setMainTab] = useState<"tasks" | "tracking">("tasks");
   const [tasks, setTasks] = useState<InboxTask[]>([]);
   const [processes, setProcesses] = useState<ProcessDefinition[]>([]);
@@ -100,7 +102,14 @@ export default function InboxPage() {
   }, [mainTab, fetchInstances]);
 
   const deleteInstance = async (id: string) => {
-    if (!confirm("¿Cancelar y eliminar esta instancia? Se borrarán también sus tareas.")) return;
+    const ok = await confirm({
+      title: "¿Cancelar instancia?",
+      description: "Se eliminará la instancia y todas sus tareas asociadas. Esta acción no se puede deshacer.",
+      confirmText: "Sí, cancelar instancia",
+      cancelText: "Volver",
+      danger: true,
+    });
+    if (!ok) return;
     setDeletingInstance(id);
     try {
       await fetch(`/api/instances/${id}`, { method: "DELETE" });

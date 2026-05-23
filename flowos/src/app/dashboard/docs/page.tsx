@@ -7,6 +7,7 @@ import {
   EyeOff, ChevronRight, Plus, Loader2, Share2, LayoutGrid, List,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useOrganization } from "@clerk/nextjs";
 import ShareModal from "./ShareModal";
 
@@ -67,6 +68,7 @@ function formatSize(bytes: number) {
 export default function DocsPage() {
   const { membership } = useOrganization();
   const isAdmin = membership?.role === "org:admin";
+  const confirm = useConfirm();
   const toast = useToast();
 
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -189,7 +191,16 @@ export default function DocsPage() {
 
   const deleteDoc = async (doc: Doc) => {
     const label = doc.content.type === "folder" ? "carpeta" : "archivo";
-    if (!confirm(`¿Eliminar este ${label}?`)) return;
+    const ok = await confirm({
+      title: `¿Eliminar ${label}?`,
+      description: doc.content.type === "folder"
+        ? `Se eliminará "${doc.title}" y todo su contenido. Esta acción no se puede deshacer.`
+        : `Se eliminará "${doc.title}". Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/documents/${doc.id}`, { method: "DELETE" });
     setDocs((prev) => prev.filter((d) => d.id !== doc.id));
     if (selectedDoc?.id === doc.id) setSelectedDoc(null);
