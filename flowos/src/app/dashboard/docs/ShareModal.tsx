@@ -130,7 +130,7 @@ export default function ShareModal({
             <Share2 className="h-4 w-4" style={{ color: "#3D7EFF" }} />
             <span className="font-semibold text-sm" style={{ color: "#E2E8F8" }}>Compartir documento</span>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+          <button onClick={onClose} title="Cerrar (Esc)" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
             <X className="h-4 w-4" />
           </button>
         </div>

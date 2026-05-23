@@ -34,7 +34,7 @@ export function AddPositionPanel({ onAdd, onClose }: {
     <div style={{ width: 260, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
       <div className="mb-3 flex items-center justify-between">
         <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>Nuevo puesto</p>
-        <button onClick={onClose} className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+        <button onClick={onClose} title="Cerrar" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -88,7 +88,7 @@ export function AddGroupPanel({ type, divisions, onAdd, onClose }: {
         <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
           {type === "division" ? "Nueva división" : "Nuevo departamento"}
         </p>
-        <button onClick={onClose} className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+        <button onClick={onClose} title="Cerrar" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
           <X className="h-3.5 w-3.5" />
         </button>
       </div>

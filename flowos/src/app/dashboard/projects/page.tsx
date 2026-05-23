@@ -485,7 +485,7 @@ function ProjectDetailModal({ project, onClose, onUpdated }: {
             />
             {savingName && <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" style={{ color: "#3D7EFF" }} />}
           </div>
-          <button onClick={onClose} className="rounded p-1.5 hover:bg-[#1E2540] shrink-0" style={{ color: "#7A8BAD" }}>
+          <button onClick={onClose} title="Cerrar proyecto (Esc)" aria-label="Cerrar" className="rounded p-1.5 hover:bg-[#1E2540] shrink-0" style={{ color: "#7A8BAD" }}>
             <X className="h-4 w-4" />
           </button>
         </div>

@@ -61,7 +61,7 @@ export function UnitEditPanel({
           <span style={{ fontSize: 12 }}>⬡</span>
           <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>Unidad</p>
         </div>
-        <button onClick={onClose} className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+        <button onClick={onClose} title="Cerrar" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -184,7 +184,7 @@ export function NodeInfoPanel({
             <div className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
             <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>Puesto</p>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+          <button onClick={onClose} title="Cerrar" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
             <X className="h-3.5 w-3.5" />
           </button>
         </div>

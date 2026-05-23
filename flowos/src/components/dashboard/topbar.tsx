@@ -159,6 +159,8 @@ export function DashboardTopbar() {
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setNotifOpen((o) => !o)}
+            title={unreadCount > 0 ? `${unreadCount} notificación${unreadCount !== 1 ? "es" : ""} sin leer` : "Notificaciones"}
+            aria-label="Notificaciones"
             className="relative flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-[#141928]"
             style={{ color: "#7A8BAD" }}
           >

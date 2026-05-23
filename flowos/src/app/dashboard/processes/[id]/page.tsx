@@ -492,7 +492,7 @@ function PropertiesPanel({
         <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
           Propiedades
         </p>
-        <button onClick={onClose} className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+        <button onClick={onClose} title="Cerrar (Esc)" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
           <X className="h-3.5 w-3.5" />
         </button>
       </div>

@@ -198,7 +198,7 @@ export default function TaskRunnerModal({
               {loading ? "Cargando…" : task?.nodeLabel ?? "Tarea"}
             </span>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+          <button onClick={onClose} title="Cerrar (Esc)" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
             <X className="h-4 w-4" />
           </button>
         </div>
