@@ -4,32 +4,25 @@ import * as schema from "./schema";
 
 const connectionString = process.env.DATABASE_URL!;
 
-// En dev cacheamos el cliente a nivel global para evitar reabrir el pool en
-// cada hot reload (saturaría el pool de Supabase con max 15 conexiones).
-// En production NO cacheamos: postgres-js + Supavisor transaction pooler tiene
-// un bug conocido donde el connection pool se corrompe entre warm starts del
-// Lambda y queries empiezan a fallar con "Failed query" sin razón aparente.
-// Crear cliente fresh por request en serverless agrega ~50-100ms pero elimina
-// el problema 100%.
+// Cache global para evitar reabrir el pool en cada hot reload de Next.js dev.
+// Sin esto, cada cambio de archivo crea un cliente nuevo y satura el pool de Supabase (max 15 conexiones).
 declare global {
   // eslint-disable-next-line no-var
   var __pgClient: ReturnType<typeof postgres> | undefined;
 }
 
-function createClient() {
-  return postgres(connectionString, {
-    prepare: false,           // requerido por Supavisor transaction pooler
-    max: 1,                   // 1 connection por Lambda warm (multi-statement no necesario)
-    idle_timeout: 5,          // cerrar conexiones idle agresivamente
-    max_lifetime: 60,         // reciclar conexiones cada minuto
-    connect_timeout: 10,
-  });
-}
-
 const client =
-  process.env.NODE_ENV === "production"
-    ? createClient()
-    : (globalThis.__pgClient ??= createClient());
+  globalThis.__pgClient ??
+  postgres(connectionString, {
+    prepare: false,
+    max: 5,                  // mantener bajo para no saturar el pooler de Supabase
+    idle_timeout: 20,        // cerrar conexiones idle a los 20s
+    max_lifetime: 60 * 30,   // reciclar conexiones cada 30 min
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.__pgClient = client;
+}
 
 export const db = drizzle(client, { schema });
 export { schema };
