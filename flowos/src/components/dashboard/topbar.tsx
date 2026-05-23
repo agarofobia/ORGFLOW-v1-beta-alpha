@@ -108,19 +108,37 @@ export function DashboardTopbar() {
 
       {/* Acciones derecha */}
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <div
-          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm"
+        {/* Search → abre el command palette (Ctrl+K). Click visual + atajo. */}
+        <button
+          onClick={() => {
+            // Dispara el shortcut Ctrl+K para abrir el palette (el listener vive en CommandPalette).
+            window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+          }}
+          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-[#141928]"
           style={{
             background: "#0E1220",
             border: "1px solid #1E2540",
             color: "#7A8BAD",
-            minWidth: "180px",
+            minWidth: "200px",
+            cursor: "pointer",
           }}
+          title="Búsqueda rápida (Ctrl+K)"
         >
           <Search className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-          <span className="text-xs">Search anything…</span>
-        </div>
+          <span className="text-xs flex-1 text-left">Buscar páginas y acciones…</span>
+          <span
+            className="font-mono text-[9px]"
+            style={{
+              background: "#141928",
+              border: "1px solid #1E2540",
+              borderRadius: 3,
+              padding: "1px 5px",
+              color: "#7A8BAD",
+            }}
+          >
+            Ctrl K
+          </span>
+        </button>
 
         {/* Notificaciones */}
         <div className="relative" ref={notifRef}>

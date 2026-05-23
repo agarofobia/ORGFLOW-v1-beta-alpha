@@ -2,6 +2,7 @@ import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { ToastProvider } from "@/components/ui/toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { CommandPalette } from "@/components/ui/command-palette";
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,8 @@ export default function DashboardLayout({
           </main>
         </div>
       </div>
+      {/* Command palette global — Ctrl+K / Cmd+K en cualquier lado del dashboard */}
+      <CommandPalette />
     </ToastProvider>
   );
 }
