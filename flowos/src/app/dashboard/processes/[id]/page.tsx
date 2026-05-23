@@ -729,16 +729,21 @@ function DesignerFlow({
   }, [isDirty]);
 
   // Ctrl+S / Cmd+S → guardar. No interferimos si el user está tipeando en un input.
+  // Esc → cierra paneles laterales abiertos (nodo o edge).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
         if (isDirty && !saving) onSave(nodesToDB(nodes), edgesToDB(edges));
       }
+      if (e.key === "Escape" && (selectedNode || selectedEdge)) {
+        setSelectedNode(null);
+        setSelectedEdge(null);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isDirty, saving, nodes, edges, onSave]);
+  }, [isDirty, saving, nodes, edges, onSave, selectedNode, selectedEdge]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: BpmNode) => {
     setSelectedNode(node);
@@ -791,9 +796,12 @@ function DesignerFlow({
 
         <div style={{ height: 1, background: "#1E2540", margin: "8px 0" }} />
 
-        <p className="px-1 font-mono text-[9px]" style={{ color: "#7A8BAD" }}>
-          Tip: conectá nodos arrastrando desde los handles (puntos azules).
-        </p>
+        <div className="flex flex-col gap-1.5 px-1 font-mono text-[9px]" style={{ color: "#7A8BAD", lineHeight: 1.5 }}>
+          <p><strong style={{ color: "#C4CFEA" }}>Conectar</strong>: arrastrar desde los handles azules.</p>
+          <p><strong style={{ color: "#C4CFEA" }}>Borrar</strong>: seleccionar + tecla Delete.</p>
+          <p><strong style={{ color: "#C4CFEA" }}>Editar</strong>: click en nodo → panel lateral.</p>
+          <p><strong style={{ color: "#C4CFEA" }}>Guardar</strong>: Ctrl+S o botón.</p>
+        </div>
       </div>
 
       {/* Canvas */}
