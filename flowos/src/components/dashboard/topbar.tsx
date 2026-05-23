@@ -3,7 +3,8 @@
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Bell, Search, CheckCheck } from "lucide-react";
+import { Bell, Search, CheckCheck, Menu } from "lucide-react";
+import { useMobileNav } from "./mobile-nav-context";
 
 interface DbNotification {
   id: string;
@@ -45,6 +46,7 @@ function timeAgo(iso: string) {
 
 export function DashboardTopbar() {
   const pathname = usePathname();
+  const { toggle: toggleMobileNav } = useMobileNav();
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<DbNotification[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -94,27 +96,40 @@ export function DashboardTopbar() {
       className="flex h-14 shrink-0 items-center justify-between px-6"
       style={{ borderBottom: "1px solid #1E2540", background: "#080B12" }}
     >
-      {/* Título */}
-      <div className="flex items-baseline gap-2.5">
-        <h1 className="text-base font-semibold" style={{ color: "#E2E8F8" }}>
-          {meta.title}
-        </h1>
-        {meta.subtitle && (
-          <span className="text-sm" style={{ color: "#7A8BAD" }}>
-            {meta.subtitle}
-          </span>
-        )}
+      {/* Hamburger + Título */}
+      <div className="flex items-center gap-3">
+        {/* Hamburger — visible solo en mobile, abre el sidebar overlay */}
+        <button
+          onClick={toggleMobileNav}
+          className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-[#141928] md:hidden"
+          style={{ color: "#7A8BAD" }}
+          aria-label="Abrir menú"
+        >
+          <Menu className="h-4 w-4" strokeWidth={1.75} />
+        </button>
+        <div className="flex items-baseline gap-2.5">
+          <h1 className="text-base font-semibold" style={{ color: "#E2E8F8" }}>
+            {meta.title}
+          </h1>
+          {meta.subtitle && (
+            <span className="hidden sm:inline text-sm" style={{ color: "#7A8BAD" }}>
+              {meta.subtitle}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Acciones derecha */}
       <div className="flex items-center gap-2">
-        {/* Search → abre el command palette (Ctrl+K). Click visual + atajo. */}
+        {/* Search → abre el command palette (Ctrl+K). Click visual + atajo.
+            Oculto en mobile (< 640px) para liberar espacio; el palette sigue
+            disponible via Ctrl+K o desde el sidebar hamburger. */}
         <button
           onClick={() => {
             // Dispara el shortcut Ctrl+K para abrir el palette (el listener vive en CommandPalette).
             window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
           }}
-          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-[#141928]"
+          className="hidden sm:flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-[#141928]"
           style={{
             background: "#0E1220",
             border: "1px solid #1E2540",

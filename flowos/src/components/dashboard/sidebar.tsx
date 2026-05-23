@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { OrganizationSwitcher, UserButton, useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import { useMobileNav } from "./mobile-nav-context";
 
 // Sidebar reordenado por frecuencia de uso del día a día.
 // Bloque 1: lo que abrís cada mañana. Bloque 2: operativa. Bloque 3: estructura/gestión.
@@ -58,12 +59,29 @@ const FOOTER_NAV = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
+  const { open: mobileOpen, setOpen: setMobileOpen } = useMobileNav();
 
   return (
-    <aside
-      className="flex h-screen w-[185px] flex-col flex-shrink-0"
-      style={{ background: "#080B12", borderRight: "1px solid #1E2540" }}
-    >
+    <>
+      {/* Backdrop overlay para mobile — visible solo cuando sidebar está abierto */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-30 md:hidden"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+        />
+      )}
+      <aside
+        className={cn(
+          "flex h-screen w-[185px] flex-col flex-shrink-0",
+          // Desktop: estático en el flow.
+          // Mobile: fixed overlay con slide-in. Translate-x oculta cuando cerrado.
+          "md:static md:translate-x-0 md:z-auto",
+          "fixed left-0 top-0 z-40 transition-transform duration-200",
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        )}
+        style={{ background: "#080B12", borderRight: "1px solid #1E2540" }}
+      >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-5">
         <div
@@ -238,6 +256,7 @@ export function DashboardSidebar() {
           </div>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
