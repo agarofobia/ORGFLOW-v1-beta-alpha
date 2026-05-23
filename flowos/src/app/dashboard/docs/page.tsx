@@ -712,23 +712,147 @@ export default function DocsPage() {
             </div>
           </div>
         ) : (
-          /* Drop / empty state */
-          <div
-            className="flex flex-1 flex-col items-center justify-center gap-4 cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div
-              className="flex flex-col items-center gap-3 rounded-xl p-10"
-              style={{ border: "2px dashed #1E2540" }}
-            >
-              <Upload className="h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
-              <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>
-                Arrastrá archivos o hacé click para subir
-              </p>
-              <p className="text-xs" style={{ color: "#7A8BAD" }}>
-                Word, Excel, PDF, imágenes, PSD y más · Máximo 5 MB por archivo
-              </p>
-            </div>
+          /* List view — filas con folders + files del current folder */
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#3D7EFF" }} />
+              </div>
+            ) : folders.length === 0 && files.length === 0 ? (
+              /* Empty: dropzone clickable */
+              <div
+                className="flex flex-1 flex-col items-center justify-center gap-4 cursor-pointer py-16"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div
+                  className="flex flex-col items-center gap-3 rounded-xl p-10"
+                  style={{ border: "2px dashed #1E2540" }}
+                >
+                  <Upload className="h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
+                  <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>
+                    Arrastrá archivos o hacé click para subir
+                  </p>
+                  <p className="text-xs" style={{ color: "#7A8BAD" }}>
+                    Word, Excel, PDF, imágenes, PSD y más · Máximo 5 MB por archivo
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Header de columnas */}
+                <div
+                  className="grid items-center px-6 py-2 text-[10px] font-mono uppercase tracking-widest"
+                  style={{
+                    gridTemplateColumns: "1fr 110px 110px 40px",
+                    color: "#7A8BAD",
+                    borderBottom: "1px solid #1E2540",
+                  }}
+                >
+                  <span>Nombre</span>
+                  <span className="text-right">Tamaño</span>
+                  <span className="text-right">Visibilidad</span>
+                  <span></span>
+                </div>
+
+                {/* Carpetas */}
+                {folders.map((f) => (
+                  <div
+                    key={f.id}
+                    className="group grid items-center px-6 py-2.5 text-xs transition-colors hover:bg-[#141928] cursor-pointer"
+                    style={{
+                      gridTemplateColumns: "1fr 110px 110px 40px",
+                      borderBottom: "1px solid #1E254040",
+                    }}
+                    onClick={() => { setCurrentFolder(f.id); setSelectedDoc(null); setSearch(""); }}
+                    onDoubleClick={() => isAdmin && startRename(f)}
+                    title={isAdmin ? "Click: abrir · Doble-click: renombrar" : "Click: abrir"}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <FolderOpen className="h-4 w-4 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+                      <span className="truncate" style={{ color: "#E2E8F8" }}>{f.title}</span>
+                    </div>
+                    <span className="text-right" style={{ color: "#7A8BAD" }}>—</span>
+                    <span className="text-right" style={{ color: "#7A8BAD" }}>—</span>
+                    <div className="flex justify-end">
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteDoc(f); }}
+                          title={`Eliminar carpeta "${f.title}"`}
+                          className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-[#1E2540]"
+                          style={{ color: "#F43F5E" }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Archivos */}
+                {files.map((rawFile) => {
+                  const f = rawFile as Doc;
+                  const fc = f.content as FileContent;
+                  return (
+                    <div
+                      key={f.id}
+                      className="group grid items-center px-6 py-2.5 text-xs transition-colors hover:bg-[#141928] cursor-pointer"
+                      style={{
+                        gridTemplateColumns: "1fr 110px 110px 40px",
+                        borderBottom: "1px solid #1E254040",
+                      }}
+                      onClick={() => setSelectedDoc(f)}
+                      onDoubleClick={() => isAdmin && startRename(f)}
+                      title={isAdmin ? "Click: abrir preview · Doble-click: renombrar" : "Click: abrir preview"}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {fileIcon(fc.fileType)}
+                        <span className="truncate" style={{ color: "#E2E8F8" }}>{f.title}</span>
+                      </div>
+                      <span className="text-right font-mono" style={{ color: "#7A8BAD" }}>
+                        {formatSize(fc.fileSize)}
+                      </span>
+                      <div className="flex justify-end items-center gap-1.5" style={{ color: "#7A8BAD" }}>
+                        {fc.visibility === "admin_only" ? (
+                          <>
+                            <EyeOff className="h-3 w-3" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+                            <span style={{ color: "#F59E0B", fontSize: 10 }}>Admins</span>
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="h-3 w-3" strokeWidth={1.75} />
+                            <span style={{ fontSize: 10 }}>Todos</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex justify-end">
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteDoc(f); }}
+                            title={`Eliminar "${f.title}"`}
+                            className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-[#1E2540]"
+                            style={{ color: "#F43F5E" }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Drop zone más abajo, sutil */}
+                <div
+                  className="m-6 flex flex-col items-center justify-center gap-2 rounded-xl p-6 cursor-pointer transition-colors hover:bg-[#0E1220]"
+                  style={{ border: "1px dashed #1E2540" }}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-5 w-5" style={{ color: "#1E2540" }} strokeWidth={1.5} />
+                  <p className="text-xs" style={{ color: "#7A8BAD" }}>
+                    Arrastrá o hacé click para subir más archivos · Máximo 5 MB
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
