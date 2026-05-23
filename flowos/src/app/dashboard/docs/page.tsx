@@ -104,6 +104,16 @@ export default function DocsPage() {
 
   useEffect(() => { fetchDocs(); }, [fetchDocs]);
 
+  // Esc cierra el preview del archivo seleccionado
+  useEffect(() => {
+    if (!selectedDoc) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedDoc(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectedDoc]);
+
   const uploadFile = async (file: File) => {
     if (file.size > MAX_SIZE) {
       toast.warning(`"${file.name}" supera 5 MB`, "Para archivos grandes, subí el link de Google Drive o Dropbox.");
@@ -381,7 +391,12 @@ export default function DocsPage() {
                     <span className="truncate">{f.title}</span>
                   </button>
                   {isAdmin && (
-                    <button onClick={() => deleteDoc(f)} className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+                    <button
+                      onClick={() => deleteDoc(f)}
+                      title={`Eliminar carpeta "${f.title}"`}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#1E2540]"
+                      style={{ color: "#7A8BAD" }}
+                    >
                       <Trash2 className="h-3 w-3" />
                     </button>
                   )}
@@ -408,7 +423,12 @@ export default function DocsPage() {
                         <EyeOff className="h-3 w-3 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
                       )}
                     </button>
-                    <button onClick={() => deleteDoc(f)} className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+                    <button
+                      onClick={() => deleteDoc(f)}
+                      title={`Eliminar "${f.title}"`}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#1E2540]"
+                      style={{ color: "#7A8BAD" }}
+                    >
                       <Trash2 className="h-3 w-3" />
                     </button>
                   </div>
@@ -524,6 +544,7 @@ export default function DocsPage() {
                     {isAdmin && (
                       <button
                         onClick={e => { e.stopPropagation(); deleteDoc(f); }}
+                        title={`Eliminar "${f.title}"`}
                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1"
                         style={{ background: "rgba(244,63,94,0.1)", color: "#F43F5E" }}
                       >

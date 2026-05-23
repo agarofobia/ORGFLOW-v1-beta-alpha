@@ -316,7 +316,8 @@ export default function SettingsPage() {
             ))}
           </div>
           <p className="mt-3 text-xs" style={{ color: "#7A8BAD" }}>
-            Nota: el cambio de idioma completo requiere i18n. Por ahora se guarda la preferencia.
+            Nota: el sign-in, switcher de organización y settings de usuario (Clerk) se muestran en
+            el idioma seleccionado. El resto de la app se traducirá progresivamente.
           </p>
         </Card>
       </section>
