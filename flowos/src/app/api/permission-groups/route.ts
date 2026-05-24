@@ -4,6 +4,7 @@ import { permissionGroups } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { PRESETS, PresetKey } from "@/lib/permissions";
+import { requirePermission } from "@/lib/require-permission";
 
 export async function GET() {
   const { orgId } = await auth();
@@ -22,6 +23,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const block = await requirePermission("settings", "manage");
+  if (block) return block;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

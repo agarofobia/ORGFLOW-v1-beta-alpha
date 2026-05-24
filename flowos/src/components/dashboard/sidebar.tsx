@@ -28,10 +28,10 @@ const NAV_GROUPS = [
   {
     label: "Día a día",
     items: [
-      { href: "/dashboard/today", label: "Mi día", icon: Sun },
-      { href: "/dashboard/inbox", label: "Bandeja", icon: Inbox },
-      { href: "/dashboard/projects", label: "Proyectos", icon: CheckSquare },
       { href: "/dashboard", label: "Inicio", icon: LayoutGrid },
+      { href: "/dashboard/inbox", label: "Bandeja", icon: Inbox },
+      { href: "/dashboard/today", label: "Mi día", icon: Sun },
+      { href: "/dashboard/projects", label: "Proyectos", icon: CheckSquare },
     ],
   },
   {

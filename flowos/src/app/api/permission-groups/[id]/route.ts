@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { permissionGroups } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 
 export async function GET(
   _req: NextRequest,
@@ -29,6 +30,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const block = await requirePermission("settings", "manage");
+  if (block) return block;
   const { id } = await params;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -56,6 +59,8 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const block = await requirePermission("settings", "manage");
+  if (block) return block;
   const { id } = await params;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
