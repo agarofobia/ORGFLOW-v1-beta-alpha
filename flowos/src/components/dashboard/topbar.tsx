@@ -121,9 +121,8 @@ export function DashboardTopbar() {
 
       {/* Acciones derecha */}
       <div className="flex items-center gap-2">
-        {/* Search → abre el command palette (Ctrl+K). Click visual + atajo.
-            Oculto en mobile (< 640px) para liberar espacio; el palette sigue
-            disponible via Ctrl+K o desde el sidebar hamburger. */}
+        {/* Search → abre el command palette. En desktop muestra una barra completa con hint Ctrl+K.
+            En mobile muestra solo el ícono (sin Ctrl, se abre via touch). */}
         <button
           onClick={() => {
             // Dispara el shortcut Ctrl+K para abrir el palette (el listener vive en CommandPalette).
@@ -153,6 +152,19 @@ export function DashboardTopbar() {
           >
             Ctrl K
           </span>
+        </button>
+
+        {/* Search mobile — botón icono solo */}
+        <button
+          onClick={() => {
+            window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+          }}
+          className="flex sm:hidden h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-bg-elevated)]"
+          style={{ color: "var(--c-text-muted)" }}
+          title="Buscar"
+          aria-label="Buscar"
+        >
+          <Search className="h-4 w-4" strokeWidth={1.75} />
         </button>
 
         {/* Notificaciones */}

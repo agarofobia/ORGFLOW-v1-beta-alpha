@@ -454,6 +454,28 @@ div[style*="inset: 0"][style*="rgba(0, 0, 0, 0.7"] {
   -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
 
+/* Mobile — modales con safe-area + responsive ────────────────────────────────
+ * Cualquier div fixed inset:0 que sea un modal overlay recibe padding mobile-aware.
+ * Esto evita que el contenido del modal quede tapado por notch/home indicator.
+ * Solo aplica < 640px (sm breakpoint Tailwind). */
+@media (max-width: 639px) {
+  div[style*="inset:0"][style*="rgba(0,0,0"],
+  div[style*="inset: 0"][style*="rgba(0,0,0"] {
+    padding-top: max(env(safe-area-inset-top, 0px), 12px) !important;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px) !important;
+    padding-left: max(env(safe-area-inset-left, 0px), 8px) !important;
+    padding-right: max(env(safe-area-inset-right, 0px), 8px) !important;
+  }
+  /* Inner card de modales — fuerza max-width al viewport */
+  div[style*="inset:0"][style*="rgba(0,0,0"] > div[style*="maxWidth"],
+  div[style*="inset: 0"][style*="rgba(0,0,0"] > div[style*="maxWidth"],
+  div[style*="inset:0"][style*="rgba(0,0,0"] > div[style*="max-width"],
+  div[style*="inset: 0"][style*="rgba(0,0,0"] > div[style*="max-width"] {
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100vh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
 /* Soft glow para superficies elevadas (cards importantes) */
 .flo-surface-elevated {
   box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.02) inset;
@@ -715,6 +737,98 @@ select:focus-visible {
 }
 .flo-attention {
   animation: flo-attention-pulse 2s ease-in-out infinite;
+}
+
+/* ─── Polish v4 — Mobile-first fixes ──────────────────────────────────────── */
+
+/* Touch targets — WCAG 44x44px en mobile. Iconos pequeños se expanden con
+ * hit-area transparente via pseudo elemento. */
+@media (max-width: 767px) {
+  button[aria-label],
+  button[title] {
+    min-height: 36px;
+    min-width: 36px;
+  }
+  /* h-7/h-8 buttons en mobile reciben hit area extendida */
+  button.h-7,
+  button.h-8,
+  button[class*="h-7"],
+  button[class*="h-8"] {
+    position: relative;
+  }
+  button.h-7::before,
+  button.h-8::before,
+  button[class*="h-7"]::before,
+  button[class*="h-8"]::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    pointer-events: auto;
+  }
+}
+
+/* Tables con scroll horizontal automático en mobile.
+ * Aplica a cualquier table o grid wider que el viewport. */
+@media (max-width: 767px) {
+  /* Wrapper de tabla — agregar overflow-x scroll para que no rompa el layout */
+  .flo-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .flo-table-scroll table {
+    min-width: 100%;
+    width: max-content;
+  }
+}
+
+/* En touch devices, los :hover quedan "pegados" después del tap.
+ * @media hover: hover evita aplicar hover effects en touch-only devices. */
+@media (hover: none) {
+  /* En touch devices, en lugar de :hover, los efectos solo aparecen con :active.
+   * Esto evita el "sticky hover" tras un tap en mobile. */
+  *:hover {
+    transform: none !important;
+  }
+  /* Cards con hover lift — disable en touch */
+  .flo-card-hoverable:hover {
+    transform: none !important;
+  }
+}
+
+/* Inputs en mobile — sin zoom automático al focus (iOS).
+ * Para evitar zoom, el input debe ser >= 16px. Forzamos eso en mobile. */
+@media (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="search"],
+  input[type="password"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Botón flotante de scroll para volver al inicio en páginas largas (mobile).
+ * Opcional, lo dejo definido por si lo querés usar. */
+.flo-scroll-top-btn {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  z-index: 40;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--c-bg-surface);
+  border: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px var(--c-shadow-medium);
 }
 
 /* ─── Auto-glow en CTAs primarios sólidos ─────────────────────────────────────
