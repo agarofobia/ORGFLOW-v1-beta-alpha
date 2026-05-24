@@ -19,6 +19,7 @@ import PermissionGroupsSection from "./PermissionGroupsSection";
 import AiConfigSection from "./AiConfigSection";
 import AiVisibilityToggle from "./AiVisibilityToggle";
 import WebhooksSection from "./WebhooksSection";
+import ApiTokensSection from "./ApiTokensSection";
 
 type Theme = "dark" | "light" | "system";
 type Lang = "es" | "en" | "pt";
@@ -426,6 +427,9 @@ export default function SettingsPage() {
 
       {/* ── Webhooks salientes (integración con apps externas) ── */}
       <WebhooksSection />
+
+      {/* ── API Tokens (acceso entrante desde apps/IAs/scripts) ── */}
+      <ApiTokensSection />
 
       {/* ── Plan y facturación ── */}
       <section className="mt-10">

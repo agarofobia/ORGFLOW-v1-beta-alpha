@@ -646,6 +646,31 @@ export const aiConversations = pgTable(
   })
 );
 
+// ─── API Tokens — acceso programático ────────────────────────────────────────
+// Tokens públicos para que apps externas / scripts / IAs accedan a /api/v1/*.
+// Formato: flo_<32-chars-hex>. Solo se ve UNA vez al crear (one-time reveal).
+// En DB guardamos solo sha256(token) — el original nunca persiste.
+
+export const apiTokens = pgTable(
+  "api_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    name: text("name").notNull(),
+    prefix: text("prefix").notNull(), // visible: ej "flo_a1b2c3d4"
+    tokenHash: text("token_hash").notNull().unique(), // sha256(token)
+    scope: text("scope").notNull().default("read"), // read | write | admin
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revoked: boolean("revoked").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    orgIdx: index("api_tokens_org_idx").on(t.organizationId),
+  })
+);
+
 // ─── Webhooks salientes ─────────────────────────────────────────────────────
 // Subscriptions: el user/admin configura URLs a las que FlowOS enviará eventos.
 // Deliveries: historial de cada intento de entrega (status, response, errores).
@@ -831,6 +856,8 @@ export type AiConfig = typeof aiConfig.$inferSelect;
 export type NewAiConfig = typeof aiConfig.$inferInsert;
 export type AiConversation = typeof aiConversations.$inferSelect;
 export type NewAiConversation = typeof aiConversations.$inferInsert;
+export type ApiToken = typeof apiTokens.$inferSelect;
+export type NewApiToken = typeof apiTokens.$inferInsert;
 export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
 export type NewWebhookSubscription = typeof webhookSubscriptions.$inferInsert;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
