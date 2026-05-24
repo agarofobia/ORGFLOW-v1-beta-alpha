@@ -6,6 +6,7 @@ import { CommandPalette } from "@/components/ui/command-palette";
 import { MobileNavProvider } from "@/components/dashboard/mobile-nav-context";
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import AiChatWidget from "@/components/dashboard/ai-chat-widget";
+import OnboardingWizard from "@/components/dashboard/onboarding-wizard";
 
 export default function DashboardLayout({
   children,
@@ -29,6 +30,8 @@ export default function DashboardLayout({
           <CommandPalette />
           {/* Asistente IA flotante — se auto-oculta si la org no lo configuró o el user no tiene permiso */}
           <AiChatWidget />
+          {/* Onboarding wizard — solo aparece si la org está vacía y el user no apretó "skip forever" */}
+          <OnboardingWizard />
         </MobileNavProvider>
       </ConfirmDialogProvider>
     </ToastProvider>
