@@ -27,6 +27,14 @@ export const metadata: Metadata = {
   ),
 };
 
+// viewport-fit=cover habilita env(safe-area-inset-*) en iOS Safari.
+// Sin esto el botón del chat queda detrás del home indicator del iPhone.
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+};
+
 export default function RootLayout({
   children,
 }: {

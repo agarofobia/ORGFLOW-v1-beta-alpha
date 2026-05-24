@@ -202,11 +202,13 @@ export default function AiChatWidget() {
           aria-label="Abrir asistente IA"
           style={{
             position: "fixed",
-            bottom: 20,
-            right: 20,
-            zIndex: 50,
-            width: 52,
-            height: 52,
+            // Safe area insets (iPhone home indicator, Android gesture bar).
+            // calc() = padding base + safe-area-inset si existe.
+            bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+            right: "calc(20px + env(safe-area-inset-right, 0px))",
+            zIndex: 60,
+            width: 56,
+            height: 56,
             borderRadius: "50%",
             background: "linear-gradient(135deg, var(--c-accent-blue) 0%, var(--c-accent-violet) 100%)",
             border: "none",
@@ -217,6 +219,9 @@ export default function AiChatWidget() {
             justifyContent: "center",
             boxShadow: "0 8px 24px rgb(var(--c-accent-blue-rgb) / 0.4)",
             transition: "transform 0.15s",
+            // Touch target mínimo WCAG (mobile)
+            touchAction: "manipulation",
+            WebkitTapHighlightColor: "transparent",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
           onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
@@ -230,11 +235,14 @@ export default function AiChatWidget() {
         <div
           style={{
             position: "fixed",
-            bottom: 20,
-            right: 20,
-            zIndex: 50,
-            width: "min(420px, calc(100vw - 40px))",
-            height: "min(660px, calc(100vh - 40px))",
+            // En mobile, ocupar casi toda la pantalla con respeto del safe area.
+            bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+            right: "calc(20px + env(safe-area-inset-right, 0px))",
+            left: "auto",
+            top: "auto",
+            zIndex: 60,
+            width: "min(420px, calc(100vw - 32px))",
+            height: "min(660px, calc(100vh - 80px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px)))",
             background: "var(--c-bg-darker)",
             border: "1px solid var(--c-border)",
             borderRadius: 14,
