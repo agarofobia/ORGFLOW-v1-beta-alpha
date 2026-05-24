@@ -6,7 +6,7 @@
 //  3. El user no lo desactivó manualmente (localStorage "flowos-ai-hidden")
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Sparkles, X, Send, Loader2, EyeOff, RotateCcw } from "lucide-react";
+import { Sparkles, X, Send, Loader2, EyeOff, RotateCcw, ChevronDown, ChevronUp, Eye, Plus, Ban } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -72,6 +72,7 @@ export default function AiChatWidget() {
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCapabilities, setShowCapabilities] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -346,19 +347,21 @@ export default function AiChatWidget() {
             {messages.filter(isVisibleMessage).length === 0 && (
               <div
                 style={{
-                  textAlign: "center",
-                  padding: "32px 12px",
+                  padding: "20px 12px 12px",
                   color: "var(--c-text-muted)",
                   fontSize: 12,
                   lineHeight: 1.5,
                 }}
               >
-                <Sparkles size={28} style={{ margin: "0 auto 8px", display: "block", color: "var(--c-border)" }} />
-                <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--c-text-secondary)", fontWeight: 500 }}>
-                  ¿En qué te ayudo?
-                </p>
-                <p style={{ margin: 0 }}>Probá pedirme algo como:</p>
-                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ textAlign: "center", marginBottom: 14 }}>
+                  <Sparkles size={28} style={{ margin: "0 auto 8px", display: "block", color: "var(--c-border)" }} />
+                  <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--c-text-secondary)", fontWeight: 500 }}>
+                    ¿En qué te ayudo?
+                  </p>
+                </div>
+
+                {/* Sugerencias rápidas */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
                   {[
                     "Listame los proyectos activos",
                     "Mostrame el organigrama",
@@ -382,6 +385,135 @@ export default function AiChatWidget() {
                     </button>
                   ))}
                 </div>
+
+                {/* Toggle de capabilities */}
+                <button
+                  onClick={() => setShowCapabilities((v) => !v)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "6px 10px",
+                    background: "transparent",
+                    border: "1px solid var(--c-border)",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    color: "var(--c-text-muted)",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Sparkles size={11} style={{ color: "var(--c-accent-violet)" }} />
+                    ¿Qué puede hacer?
+                  </span>
+                  {showCapabilities ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+
+                {showCapabilities && (
+                  <div
+                    className="flo-msg-in"
+                    style={{
+                      marginTop: 8,
+                      padding: 12,
+                      background: "var(--c-bg-surface)",
+                      border: "1px solid var(--c-border)",
+                      borderRadius: 8,
+                      fontSize: 11,
+                      color: "var(--c-text-secondary)",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <div style={{ marginBottom: 10 }}>
+                      <p
+                        style={{
+                          margin: "0 0 4px",
+                          fontSize: 9,
+                          fontFamily: "monospace",
+                          color: "var(--c-accent-blue)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.1em",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Eye size={10} /> Leer
+                      </p>
+                      <p style={{ margin: 0, paddingLeft: 14 }}>
+                        Organigrama (divisiones · departamentos)<br />
+                        Empleados y sus puestos<br />
+                        Proyectos · hitos · tareas<br />
+                        Procesos BPM
+                      </p>
+                    </div>
+
+                    <div style={{ marginBottom: 10 }}>
+                      <p
+                        style={{
+                          margin: "0 0 4px",
+                          fontSize: 9,
+                          fontFamily: "monospace",
+                          color: "var(--c-accent-emerald)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.1em",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Plus size={10} /> Crear y modificar
+                      </p>
+                      <p style={{ margin: 0, paddingLeft: 14 }}>
+                        Proyectos con VFP, hitos y tareas<br />
+                        Asignar tareas o cambiar su estado<br />
+                        Empleados, departamentos, divisiones<br />
+                        Procesos BPM (draft) o iniciar instancias
+                      </p>
+                    </div>
+
+                    <div>
+                      <p
+                        style={{
+                          margin: "0 0 4px",
+                          fontSize: 9,
+                          fontFamily: "monospace",
+                          color: "var(--c-accent-red)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.1em",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Ban size={10} /> Nunca puede
+                      </p>
+                      <p style={{ margin: 0, paddingLeft: 14 }}>
+                        Eliminar registros<br />
+                        Cambiar permisos o config<br />
+                        Acceder a datos de otra org<br />
+                        Hacer cosas que tu permiso no permite
+                      </p>
+                    </div>
+
+                    <p
+                      style={{
+                        margin: "10px 0 0",
+                        paddingTop: 8,
+                        borderTop: "1px solid var(--c-border)",
+                        fontSize: 10,
+                        color: "var(--c-text-muted)",
+                        fontStyle: "italic",
+                      }}
+                    >
+                      Hereda tus permisos exactamente. Si vos no podés crear proyectos, la IA tampoco.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             {messages.map((m, i) => {

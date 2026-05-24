@@ -592,6 +592,131 @@ div[style*="inset: 0"][style*="rgba(0, 0, 0, 0.7"] {
   margin: 8px 0;
 }
 
+/* ─── Polish v3 — Focus rings, skeleton loaders, status chips ───────────── */
+
+/* Focus rings consistentes en todos los inputs/textareas/selects.
+ * Reemplaza el outline browser-default por un ring accent sutil. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--c-bg-base), 0 0 0 4px rgb(var(--c-accent-blue-rgb) / 0.45);
+  border-color: var(--c-accent-blue) !important;
+}
+
+/* Skeleton loader — placeholder con shimmer animation */
+@keyframes flo-skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.flo-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--c-bg-surface) 0%,
+    var(--c-bg-elevated) 50%,
+    var(--c-bg-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: flo-skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+  border: 1px solid var(--c-border);
+}
+
+/* Status chips — sistema unificado.
+ * Uso: <span class="flo-chip flo-chip-success">Activo</span> */
+.flo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  border: 1px solid;
+  line-height: 1.5;
+}
+.flo-chip::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.flo-chip-success {
+  background: rgb(var(--c-accent-emerald-rgb) / 0.12);
+  border-color: rgb(var(--c-accent-emerald-rgb) / 0.3);
+  color: var(--c-accent-emerald);
+}
+.flo-chip-info {
+  background: rgb(var(--c-accent-blue-rgb) / 0.12);
+  border-color: rgb(var(--c-accent-blue-rgb) / 0.3);
+  color: var(--c-accent-blue);
+}
+.flo-chip-warning {
+  background: rgb(var(--c-accent-amber-rgb) / 0.12);
+  border-color: rgb(var(--c-accent-amber-rgb) / 0.3);
+  color: var(--c-accent-amber);
+}
+.flo-chip-danger {
+  background: rgb(var(--c-accent-red-rgb) / 0.12);
+  border-color: rgb(var(--c-accent-red-rgb) / 0.3);
+  color: var(--c-accent-red);
+}
+.flo-chip-premium {
+  background: rgb(var(--c-accent-violet-rgb) / 0.12);
+  border-color: rgb(var(--c-accent-violet-rgb) / 0.3);
+  color: var(--c-accent-violet);
+}
+.flo-chip-muted {
+  background: var(--c-bg-elevated);
+  border-color: var(--c-border);
+  color: var(--c-text-muted);
+}
+
+/* Empty state container — uso opcional para unificar estilos */
+.flo-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--c-bg-surface);
+  border: 1px dashed var(--c-border);
+  border-radius: 12px;
+}
+.flo-empty-state svg {
+  color: var(--c-border);
+  margin-bottom: 12px;
+}
+.flo-empty-state-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text-primary);
+  margin: 0 0 6px;
+}
+.flo-empty-state-desc {
+  font-size: 12px;
+  color: var(--c-text-muted);
+  max-width: 360px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Botones: micro-pulse cuando un primary action es importante.
+ * Uso: agregar className="flo-attention" a un CTA crítico. */
+@keyframes flo-attention-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--c-accent-blue-rgb) / 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgb(var(--c-accent-blue-rgb) / 0); }
+}
+.flo-attention {
+  animation: flo-attention-pulse 2s ease-in-out infinite;
+}
+
 /* ─── Auto-glow en CTAs primarios sólidos ─────────────────────────────────────
  * Cualquier button con `background: #3D7EFF` (azul primario) recibe glow + lift.
  * Mismo tratamiento para emerald y violet. No afecta ghost buttons (los que usan

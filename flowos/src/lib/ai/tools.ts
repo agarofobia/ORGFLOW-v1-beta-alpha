@@ -21,6 +21,7 @@ import {
 import { and, eq, ilike, or } from "drizzle-orm";
 import type { Module, Action, PermissionsMap } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions";
+import { startInstance } from "@/lib/bpm";
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 
@@ -320,6 +321,207 @@ export function buildTools(ctx: ToolContext) {
         return { task };
       },
     }),
+
+    // ─── Tools nuevas (24/05): ops sobre tareas, procesos, estructura ─────
+
+    assign_task: tool({
+      description: "Asigna una tarea existente a un empleado. Si no encontrás el empleado primero usá list_employees.",
+      inputSchema: z.object({
+        taskId: z.string(),
+        assigneeEmployeeId: z.string().describe("Employee UUID del nuevo responsable"),
+      }),
+      execute: async ({ taskId, assigneeEmployeeId }) => {
+        const block = requirePerm("assign_task", ctx, "projects", "edit");
+        if (block) return block;
+        const [task] = await db
+          .update(tasks)
+          .set({ assigneeEmployeeId })
+          .where(and(eq(tasks.id, taskId), eq(tasks.organizationId, ctx.orgId)))
+          .returning();
+        if (!task) return errorResult("Tarea no encontrada o de otra org");
+        return { task };
+      },
+    }),
+
+    update_task_status: tool({
+      description: "Cambia el status de una tarea. Valores: todo / in_progress / in_review / done.",
+      inputSchema: z.object({
+        taskId: z.string(),
+        status: z.enum(["todo", "in_progress", "in_review", "done"]),
+      }),
+      execute: async ({ taskId, status }) => {
+        const block = requirePerm("update_task_status", ctx, "projects", "edit");
+        if (block) return block;
+        const [task] = await db
+          .update(tasks)
+          .set({ status })
+          .where(and(eq(tasks.id, taskId), eq(tasks.organizationId, ctx.orgId)))
+          .returning();
+        if (!task) return errorResult("Tarea no encontrada o de otra org");
+        return { task };
+      },
+    }),
+
+    create_employee: tool({
+      description:
+        "Crea un puesto en el organigrama. Puede quedar vacante (sin nombre real) o con persona asignada. " +
+        "Si el user menciona depto/división, resolvé IDs primero con get_organization_structure.",
+      inputSchema: z.object({
+        fullName: z.string().describe("Nombre completo del empleado, o 'Vacante — <Rol>' para puestos sin asignar"),
+        jobTitle: z.string().optional().describe("Cargo / título del puesto"),
+        departmentId: z.string().optional(),
+        divisionId: z.string().optional().describe("Solo si reporta directo a una división (secretario de div)"),
+        managerId: z.string().optional().describe("Employee UUID del manager directo"),
+        email: z.string().optional(),
+        status: z.enum(["active", "inactive", "on_leave"]).optional(),
+      }),
+      execute: async ({ fullName, jobTitle, departmentId, divisionId, managerId, email, status }) => {
+        const block = requirePerm("create_employee", ctx, "employees", "create");
+        if (block) return block;
+        const [emp] = await db
+          .insert(employees)
+          .values({
+            organizationId: ctx.orgId,
+            fullName,
+            jobTitle: jobTitle ?? null,
+            departmentId: departmentId ?? null,
+            divisionId: divisionId ?? null,
+            managerId: managerId ?? null,
+            email: email ?? null,
+            status: status ?? "active",
+          })
+          .returning();
+        return { employee: emp };
+      },
+    }),
+
+    create_department: tool({
+      description: "Crea un departamento dentro de una división.",
+      inputSchema: z.object({
+        name: z.string(),
+        divisionId: z.string().describe("Division UUID donde pertenece"),
+        color: z.string().optional().describe("Hex color para el header del depto"),
+      }),
+      execute: async ({ name, divisionId, color }) => {
+        const block = requirePerm("create_department", ctx, "org_chart", "edit");
+        if (block) return block;
+        const [dept] = await db
+          .insert(departments)
+          .values({
+            organizationId: ctx.orgId,
+            name,
+            divisionId,
+            color: color ?? "#C8902C",
+          })
+          .returning();
+        return { department: dept };
+      },
+    }),
+
+    create_division: tool({
+      description: "Crea una división (nivel más alto del organigrama).",
+      inputSchema: z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        color: z.string().optional().describe("Hex color, default azul"),
+      }),
+      execute: async ({ name, description, color }) => {
+        const block = requirePerm("create_division", ctx, "org_chart", "edit");
+        if (block) return block;
+        const [div] = await db
+          .insert(divisions)
+          .values({
+            organizationId: ctx.orgId,
+            name,
+            description: description ?? null,
+            color: color ?? "#3D7EFF",
+          })
+          .returning();
+        return { division: div };
+      },
+    }),
+
+    start_process_instance: tool({
+      description:
+        "Inicia una instancia de un proceso BPM existente. Devuelve { instanceId, projectId? } " +
+        "— projectId aparece si el proceso tiene template de proyecto asociado.",
+      inputSchema: z.object({
+        processDefinitionId: z.string().describe("UUID de la definición del proceso (obtener con list_processes)"),
+        context: z.record(z.string(), z.unknown()).optional().describe("Variables iniciales para el proceso"),
+      }),
+      execute: async ({ processDefinitionId, context }) => {
+        const block = requirePerm("start_process_instance", ctx, "processes", "create");
+        if (block) return block;
+        const result = await startInstance({
+          processDefinitionId,
+          organizationId: ctx.orgId,
+          startedBy: ctx.clerkUserId,
+          context: context ?? {},
+        });
+        if ("error" in result) return errorResult(result.error);
+        return result;
+      },
+    }),
+
+    create_process: tool({
+      description:
+        "Crea una definición de proceso BPM (draft por default). Recibe los nodos y edges en formato simplificado. " +
+        "Para procesos complejos sugerí al user diseñarlo en el editor visual.",
+      inputSchema: z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        category: z.string().optional().describe("Categoría libre — rrhh, finanzas, ventas, etc."),
+        nodes: z
+          .array(
+            z.object({
+              id: z.string(),
+              type: z
+                .enum(["startEvent", "endEvent", "userTask", "serviceTask", "automatedTask", "exclusiveGateway", "parallelGateway"])
+                .describe("Tipo BPMN"),
+              label: z.string(),
+              description: z.string().optional(),
+              assigneeDeptId: z.string().optional().describe("Department UUID para userTask"),
+            })
+          )
+          .describe("Mínimo: 1 startEvent, 1 endEvent y al menos 1 task en el medio"),
+        edges: z
+          .array(
+            z.object({
+              id: z.string(),
+              from: z.string(),
+              to: z.string(),
+              label: z.string().optional(),
+              condition: z.string().optional().describe("Para gateways: expresión JS que evalúa el context"),
+            })
+          )
+          .describe("Conexiones entre nodos. start debe tener edge saliente. end debe tener edge entrante."),
+      }),
+      execute: async ({ name, description, category, nodes, edges }) => {
+        const block = requirePerm("create_process", ctx, "processes", "create");
+        if (block) return block;
+        // Validación básica
+        if (!nodes.some((n) => n.type === "startEvent")) {
+          return errorResult("El proceso debe tener al menos un startEvent");
+        }
+        if (!nodes.some((n) => n.type === "endEvent")) {
+          return errorResult("El proceso debe tener al menos un endEvent");
+        }
+        const [proc] = await db
+          .insert(processDefinitions)
+          .values({
+            organizationId: ctx.orgId,
+            name,
+            description: description ?? null,
+            category: category ?? "general",
+            status: "draft",
+            nodes,
+            edges,
+            createdBy: ctx.clerkUserId,
+          })
+          .returning();
+        return { process: proc, hint: "Creado en status 'draft'. Para usarlo, abrilo en el editor y pasalo a 'active'." };
+      },
+    }),
   };
 
   // Permission metadata para filtrar tools no permitidas ANTES de mandar al modelo
@@ -331,6 +533,14 @@ export function buildTools(ctx: ToolContext) {
   TOOL_META.set("create_project", { requires: { module: "projects", action: "create" } });
   TOOL_META.set("create_milestone", { requires: { module: "projects", action: "edit" } });
   TOOL_META.set("create_task", { requires: { module: "projects", action: "edit" } });
+  // Tools nuevas 24/05
+  TOOL_META.set("assign_task", { requires: { module: "projects", action: "edit" } });
+  TOOL_META.set("update_task_status", { requires: { module: "projects", action: "edit" } });
+  TOOL_META.set("create_employee", { requires: { module: "employees", action: "create" } });
+  TOOL_META.set("create_department", { requires: { module: "org_chart", action: "edit" } });
+  TOOL_META.set("create_division", { requires: { module: "org_chart", action: "edit" } });
+  TOOL_META.set("start_process_instance", { requires: { module: "processes", action: "create" } });
+  TOOL_META.set("create_process", { requires: { module: "processes", action: "create" } });
 
   return allTools;
 }
