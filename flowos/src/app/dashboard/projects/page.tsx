@@ -1099,12 +1099,12 @@ function ProjectsHub({
                     display: "flex", flexDirection: "column", gap: 14,
                     padding: 18, background: "#0E1220", border: "1px solid #1E2540",
                     borderRadius: 10, cursor: "pointer", textAlign: "left",
-                    transition: "transform 0.12s, border-color 0.12s, box-shadow 0.12s",
+                    transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, box-shadow 180ms ease",
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = "#3D7EFF";
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 8px 28px rgba(61,126,255,0.18)";
+                    e.currentTarget.style.borderColor = "rgba(61,126,255,0.55)";
+                    e.currentTarget.style.transform = "translateY(-3px)";
+                    e.currentTarget.style.boxShadow = "0 12px 32px rgba(61,126,255,0.22), 0 0 0 1px rgba(61,126,255,0.08) inset";
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.borderColor = "#1E2540";

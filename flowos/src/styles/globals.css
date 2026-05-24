@@ -372,4 +372,198 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
   border: 1px solid #1E2540 !important;
   border-radius: 6px !important;
 }
+
+/* ─── Polish v2 — depth + premium feel ──────────────────────────────────────
+ * Utility classes para subir el "premium feel" sin tocar componentes uno por uno.
+ * Aplican backdrop-blur a modales, glow shadows a CTAs primarios, y hover-lift
+ * a cards. Pensadas para "agregar clase al elemento" — composables con estilos
+ * inline existentes.
+ */
+
+/* Modal backdrop con blur sutil — aplicar a divs fixed inset-0 que sirven de overlay */
+.flo-modal-backdrop {
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+/* Auto-blur en TODOS los overlays full-screen con background oscuro.
+ * Identifica divs con position: fixed + inset: 0 + background rgba negro semi-transparente
+ * (el patrón estándar de todos los modales de la app). Evita editar 11 archivos uno por uno.
+ * El attribute-substring matching captura tanto "rgba(0,0,0,0.6)" como con espacios.
+ */
+div[style*="inset:0"][style*="rgba(0,0,0,0.6"],
+div[style*="inset:0"][style*="rgba(0,0,0,0.7"],
+div[style*="inset: 0"][style*="rgba(0,0,0,0.6"],
+div[style*="inset: 0"][style*="rgba(0,0,0,0.7"],
+div[style*="inset:0"][style*="rgba(0, 0, 0, 0.6"],
+div[style*="inset:0"][style*="rgba(0, 0, 0, 0.7"],
+div[style*="inset: 0"][style*="rgba(0, 0, 0, 0.6"],
+div[style*="inset: 0"][style*="rgba(0, 0, 0, 0.7"] {
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+/* Soft glow para superficies elevadas (cards importantes) */
+.flo-surface-elevated {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.02) inset;
+}
+
+/* CTAs primarios — glow azul + lift sutil al hover */
+.flo-btn-primary-glow {
+  box-shadow: 0 4px 14px rgba(61,126,255,0.28), 0 1px 0 rgba(255,255,255,0.08) inset;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+.flo-btn-primary-glow:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(61,126,255,0.42), 0 1px 0 rgba(255,255,255,0.12) inset;
+  filter: brightness(1.05);
+}
+.flo-btn-primary-glow:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+/* Variante verde para CTAs de "iniciar / éxito" */
+.flo-btn-emerald-glow {
+  box-shadow: 0 4px 14px rgba(16,217,160,0.25), 0 1px 0 rgba(255,255,255,0.08) inset;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+.flo-btn-emerald-glow:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(16,217,160,0.4), 0 1px 0 rgba(255,255,255,0.12) inset;
+  filter: brightness(1.05);
+}
+
+/* Variante violeta — para botones "premium / AI / BPM avanzado" */
+.flo-btn-violet-glow {
+  box-shadow: 0 4px 14px rgba(168,85,247,0.3), 0 1px 0 rgba(255,255,255,0.08) inset;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+.flo-btn-violet-glow:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(168,85,247,0.45), 0 1px 0 rgba(255,255,255,0.12) inset;
+  filter: brightness(1.05);
+}
+
+/* Card "hoverable" — lift + border accent al pasar mouse */
+.flo-card-hoverable {
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.flo-card-hoverable:hover {
+  transform: translateY(-2px);
+  border-color: rgba(61,126,255,0.45) !important;
+  box-shadow: 0 10px 28px rgba(61,126,255,0.12), 0 0 0 1px rgba(61,126,255,0.06) inset;
+}
+
+/* Animación de entrada para listas — apply via inline style con animationDelay
+ * para staggear */
+@keyframes flo-fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.flo-fade-in {
+  animation: flo-fade-in-up 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Pulse de "actualizado recién" — flash sutil para chips de status */
+@keyframes flo-pulse-accent {
+  0%   { box-shadow: 0 0 0 0   rgba(61,126,255,0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(61,126,255,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(61,126,255,0);   }
+}
+.flo-pulse {
+  animation: flo-pulse-accent 1.2s ease-out 1;
+}
+
+/* Tabular nums automáticos en spans específicos para números */
+.flo-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Auto-glow en CTAs primarios sólidos ─────────────────────────────────────
+ * Cualquier button con `background: #3D7EFF` (azul primario) recibe glow + lift.
+ * Mismo tratamiento para emerald y violet. No afecta ghost buttons (los que usan
+ * rgba transparente como bg).
+ */
+
+/* Azul primario */
+button[style*="background:#3D7EFF"]:not(:disabled),
+button[style*="background: #3D7EFF"]:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(61,126,255,0.32), 0 1px 0 rgba(255,255,255,0.1) inset;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+button[style*="background:#3D7EFF"]:hover:not(:disabled),
+button[style*="background: #3D7EFF"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(61,126,255,0.48), 0 1px 0 rgba(255,255,255,0.14) inset;
+  filter: brightness(1.06);
+}
+button[style*="background:#3D7EFF"]:active:not(:disabled),
+button[style*="background: #3D7EFF"]:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+/* Verde — "Iniciar instancia" / éxito */
+button[style*="background:#10D9A0"]:not(:disabled),
+button[style*="background: #10D9A0"]:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(16,217,160,0.32), 0 1px 0 rgba(255,255,255,0.1) inset;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+button[style*="background:#10D9A0"]:hover:not(:disabled),
+button[style*="background: #10D9A0"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(16,217,160,0.45), 0 1px 0 rgba(255,255,255,0.14) inset;
+  filter: brightness(1.06);
+}
+
+/* Violeta — premium / templates / BPM avanzado */
+button[style*="background:#A855F7"]:not(:disabled),
+button[style*="background: #A855F7"]:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(168,85,247,0.34), 0 1px 0 rgba(255,255,255,0.1) inset;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+button[style*="background:#A855F7"]:hover:not(:disabled),
+button[style*="background: #A855F7"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(168,85,247,0.5), 0 1px 0 rgba(255,255,255,0.14) inset;
+  filter: brightness(1.06);
+}
+
+/* Ghost buttons emerald — la versión "Iniciar instancia" sutil del BPM editor.
+ * Se reconoce porque tiene background rgba transparente + color emerald.
+ * Sumamos glow muy sutil para que tenga depth sin gritar. */
+button[style*="rgba(16,217,160,0.1"]:not(:disabled),
+button[style*="rgba(16,217,160,0.12"]:not(:disabled),
+button[style*="rgba(16,217,160,0.15"]:not(:disabled) {
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+button[style*="rgba(16,217,160,0.1"]:hover:not(:disabled),
+button[style*="rgba(16,217,160,0.12"]:hover:not(:disabled),
+button[style*="rgba(16,217,160,0.15"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16,217,160,0.18);
+}
+
+/* Auto-hover lift para cards con bg #0E1220 + border #1E2540 — el patrón
+ * estándar de cards de hub/dashboard. Aplica el lift sutil + accent en hover.
+ * Limitamos a elementos clickeables (que tengan cursor: pointer en su style)
+ * para no afectar cards meramente informativas.
+ */
+[style*="background:#0E1220"][style*="border:1px solid #1E2540"][style*="cursor:pointer"],
+[style*="background: #0E1220"][style*="cursor: pointer"][style*="#1E2540"] {
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease !important;
+}
+[style*="background:#0E1220"][style*="border:1px solid #1E2540"][style*="cursor:pointer"]:hover,
+[style*="background: #0E1220"][style*="cursor: pointer"][style*="#1E2540"]:hover {
+  transform: translateY(-2px);
+  border-color: rgba(61,126,255,0.45) !important;
+  box-shadow: 0 10px 28px rgba(61,126,255,0.14), 0 0 0 1px rgba(61,126,255,0.08) inset;
+}
 .react-flow__attribution { display: none !important; }

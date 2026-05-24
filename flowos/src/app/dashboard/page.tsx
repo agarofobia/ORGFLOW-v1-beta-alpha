@@ -438,13 +438,13 @@ function WidgetCard({ widget, value, loading, editing, onRemove, onClick }: {
         border: "1px solid #1E2540",
         borderRadius: 10,
         cursor: editing ? "default" : "pointer",
-        transition: "transform 0.12s, border-color 0.12s, box-shadow 0.12s",
+        transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, box-shadow 180ms ease",
       }}
       onMouseEnter={e => {
         if (editing) return;
         e.currentTarget.style.borderColor = spec.color;
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = `0 8px 24px ${spec.color}25`;
+        e.currentTarget.style.transform = "translateY(-3px)";
+        e.currentTarget.style.boxShadow = `0 12px 32px ${spec.color}33, 0 0 0 1px ${spec.color}1a inset`;
       }}
       onMouseLeave={e => {
         e.currentTarget.style.borderColor = "#1E2540";
@@ -821,8 +821,19 @@ function ActionCard({ href, icon: Icon, title, description, accentColor }: {
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         minHeight: 116, padding: 16,
         background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10,
-        textDecoration: "none", transition: "all 0.15s",
+        textDecoration: "none",
+        transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, box-shadow 180ms ease",
         position: "relative", overflow: "hidden",
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = accentColor;
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = `0 10px 28px ${accentColor}26, 0 0 0 1px ${accentColor}14 inset`;
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = "#1E2540";
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
