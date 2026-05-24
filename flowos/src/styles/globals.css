@@ -534,6 +534,64 @@ div[style*="inset: 0"][style*="rgba(0, 0, 0, 0.7"] {
   font-variant-numeric: tabular-nums;
 }
 
+/* ─── Chat AI — animaciones del widget ────────────────────────────────────── */
+
+/* Cada mensaje entra con fade + slide-up */
+@keyframes flo-msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.flo-msg-in {
+  animation: flo-msg-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Typing indicator — 3 dots que pulsan staggered */
+@keyframes flo-typing-bounce {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30%           { opacity: 1;   transform: translateY(-3px); }
+}
+.flo-typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: flo-typing-bounce 1.2s ease-in-out infinite;
+}
+.flo-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.flo-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* Markdown content estilo del chat — ajustes finos para que no se rompa el flow */
+.flo-md-content > *:last-child { margin-bottom: 0 !important; }
+.flo-md-content p { margin: 0 0 6px; }
+.flo-md-content table {
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 11px;
+  width: 100%;
+}
+.flo-md-content th, .flo-md-content td {
+  border: 1px solid var(--c-border);
+  padding: 4px 8px;
+  text-align: left;
+}
+.flo-md-content th {
+  background: var(--c-bg-elevated);
+  font-weight: 600;
+}
+.flo-md-content blockquote {
+  border-left: 3px solid var(--c-accent-blue);
+  margin: 6px 0;
+  padding: 4px 10px;
+  color: var(--c-text-secondary);
+  background: rgb(var(--c-accent-blue-rgb) / 0.05);
+  border-radius: 4px;
+}
+.flo-md-content hr {
+  border: none;
+  border-top: 1px solid var(--c-border);
+  margin: 8px 0;
+}
+
 /* ─── Auto-glow en CTAs primarios sólidos ─────────────────────────────────────
  * Cualquier button con `background: #3D7EFF` (azul primario) recibe glow + lift.
  * Mismo tratamiento para emerald y violet. No afecta ghost buttons (los que usan

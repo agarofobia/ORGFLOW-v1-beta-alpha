@@ -7,7 +7,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles, X, Send, Loader2, EyeOff, RotateCcw } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { usePermissions } from "@/hooks/usePermissions";
+import { PROVIDER_CATALOG, isValidProvider, type AiProvider } from "@/lib/ai/providers";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -23,7 +26,7 @@ type ChatMessage = {
 
 const HIDDEN_LS_KEY = "flowos-ai-hidden";
 
-// ─── Helpers para extraer texto de los mensajes ──────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getMessageText(msg: ChatMessage): string {
   if (typeof msg.content === "string") return msg.content;
@@ -40,13 +43,21 @@ function getToolUses(msg: ChatMessage): string[] {
     .map((b) => b.name);
 }
 
-// Solo mostramos en el feed los user-prompts originales (string) y las
-// assistant responses con texto. Los tool_use / tool_result quedan en
-// background para que el modelo los use, pero no se muestran como "mensajes".
 function isVisibleMessage(msg: ChatMessage): boolean {
   if (msg.role === "user" && typeof msg.content === "string") return true;
   if (msg.role === "assistant" && getMessageText(msg).trim().length > 0) return true;
   return false;
+}
+
+// Tools tienen nombres tipo `list_employees` — los mostramos prettier.
+function prettyToolName(name: string): string {
+  return name
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/^Get /, "Leyendo ")
+    .replace(/^List /, "Listando ")
+    .replace(/^Create /, "Creando ")
+    .replace(/^Find /, "Buscando ");
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -54,17 +65,17 @@ function isVisibleMessage(msg: ChatMessage): boolean {
 export default function AiChatWidget() {
   const { can, loading: permsLoading } = usePermissions();
   const [enabledForOrg, setEnabledForOrg] = useState<boolean | null>(null);
+  const [provider, setProvider] = useState<AiProvider | null>(null);
   const [hiddenByUser, setHiddenByUser] = useState(false);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
-  const [thinkingStep, setThinkingStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Cargar estado feature org + localStorage hidden
+  // Cargar config + estado feature + provider
   useEffect(() => {
     try {
       setHiddenByUser(localStorage.getItem(HIDDEN_LS_KEY) === "true");
@@ -72,7 +83,12 @@ export default function AiChatWidget() {
 
     fetch("/api/ai/config")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setEnabledForOrg(!!(data && data.configured && data.enabled)))
+      .then((data) => {
+        setEnabledForOrg(!!(data && data.configured && data.enabled));
+        if (data && isValidProvider(data.provider)) {
+          setProvider(data.provider);
+        }
+      })
       .catch(() => setEnabledForOrg(false));
   }, []);
 
@@ -117,11 +133,9 @@ export default function AiChatWidget() {
     setInput("");
     setError(null);
 
-    // Optimistic: mostramos el mensaje del user inmediatamente
     const optimistic: ChatMessage = { role: "user", content: text };
     setMessages((prev) => [...prev, optimistic]);
     setThinking(true);
-    setThinkingStep("pensando…");
 
     try {
       const r = await fetch("/api/ai/chat", {
@@ -132,19 +146,16 @@ export default function AiChatWidget() {
       if (!r.ok) {
         const data = await r.json().catch(() => ({ error: "Error desconocido" }));
         setError(data.error ?? "Error al consultar al asistente.");
-        // Sacar el optimistic message
         setMessages((prev) => prev.slice(0, -1));
         return;
       }
       const data = await r.json();
-      // El server devuelve la conversación entera (incluye tool_use/result)
       setMessages(Array.isArray(data.messages) ? data.messages : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setThinking(false);
-      setThinkingStep("");
     }
   }, [input, messages, thinking]);
 
@@ -155,11 +166,16 @@ export default function AiChatWidget() {
     }
   };
 
-  // ─── Gates de visibilidad ───────────────────────────────────────────────────
+  // Gates de visibilidad
   if (permsLoading || enabledForOrg === null) return null;
   if (!enabledForOrg) return null;
   if (!can("ai", "view") || !can("ai", "create")) return null;
   if (hiddenByUser) return null;
+
+  // Nombre del provider para el header
+  const providerLabel = provider
+    ? PROVIDER_CATALOG[provider].label.split(" (")[1]?.replace(")", "") ?? PROVIDER_CATALOG[provider].label
+    : "AI";
 
   return (
     <>
@@ -167,7 +183,7 @@ export default function AiChatWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          title="Asistente IA (Claude)"
+          title="Asistente IA"
           aria-label="Abrir asistente IA"
           style={{
             position: "fixed",
@@ -202,8 +218,8 @@ export default function AiChatWidget() {
             bottom: 20,
             right: 20,
             zIndex: 50,
-            width: "min(400px, calc(100vw - 40px))",
-            height: "min(640px, calc(100vh - 40px))",
+            width: "min(420px, calc(100vw - 40px))",
+            height: "min(660px, calc(100vh - 40px))",
             background: "var(--c-bg-darker)",
             border: "1px solid var(--c-border)",
             borderRadius: 14,
@@ -211,6 +227,7 @@ export default function AiChatWidget() {
             flexDirection: "column",
             overflow: "hidden",
             boxShadow: "0 20px 60px var(--c-shadow-strong)",
+            animation: "flo-fade-in-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
           }}
         >
           {/* Header */}
@@ -239,8 +256,15 @@ export default function AiChatWidget() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>Asistente FlowOS</p>
-              <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "2px 0 0", fontFamily: "monospace" }}>
-                Claude · BYOK · respeta tus permisos
+              <p
+                style={{
+                  fontSize: 10,
+                  color: "var(--c-text-muted)",
+                  margin: "2px 0 0",
+                  fontFamily: "monospace",
+                }}
+              >
+                {providerLabel} · BYOK · respeta tus permisos
               </p>
             </div>
             <button
@@ -354,21 +378,94 @@ export default function AiChatWidget() {
               return (
                 <div
                   key={i}
+                  className="flo-msg-in"
                   style={{
                     alignSelf: isUser ? "flex-end" : "flex-start",
-                    maxWidth: "85%",
+                    maxWidth: "88%",
                     background: isUser ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "var(--c-bg-surface)",
                     border: `1px solid ${isUser ? "rgb(var(--c-accent-blue-rgb) / 0.3)" : "var(--c-border)"}`,
                     borderRadius: 10,
                     padding: "8px 12px",
                     fontSize: 12.5,
                     color: "var(--c-text-primary)",
-                    lineHeight: 1.5,
-                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.55,
                     wordBreak: "break-word",
                   }}
                 >
-                  {text}
+                  {isUser ? (
+                    <span style={{ whiteSpace: "pre-wrap" }}>{text}</span>
+                  ) : (
+                    <div className="flo-md-content">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <p style={{ margin: "0 0 6px", lineHeight: 1.55 }}>{children}</p>,
+                          ul: ({ children }) => (
+                            <ul style={{ margin: "4px 0 6px", paddingLeft: 18 }}>{children}</ul>
+                          ),
+                          ol: ({ children }) => (
+                            <ol style={{ margin: "4px 0 6px", paddingLeft: 18 }}>{children}</ol>
+                          ),
+                          li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
+                          strong: ({ children }) => (
+                            <strong style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{children}</strong>
+                          ),
+                          em: ({ children }) => <em style={{ color: "var(--c-text-secondary)" }}>{children}</em>,
+                          code: ({ children }) => (
+                            <code
+                              style={{
+                                background: "var(--c-bg-elevated)",
+                                border: "1px solid var(--c-border)",
+                                borderRadius: 4,
+                                padding: "1px 5px",
+                                fontSize: 11,
+                                fontFamily: "monospace",
+                                color: "var(--c-accent-cyan)",
+                              }}
+                            >
+                              {children}
+                            </code>
+                          ),
+                          pre: ({ children }) => (
+                            <pre
+                              style={{
+                                background: "var(--c-bg-base)",
+                                border: "1px solid var(--c-border)",
+                                borderRadius: 6,
+                                padding: 8,
+                                fontSize: 11,
+                                overflowX: "auto",
+                                margin: "6px 0",
+                              }}
+                            >
+                              {children}
+                            </pre>
+                          ),
+                          a: ({ href, children }) => (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: "var(--c-accent-blue)", textDecoration: "underline" }}
+                            >
+                              {children}
+                            </a>
+                          ),
+                          h1: ({ children }) => (
+                            <h1 style={{ fontSize: 14, fontWeight: 700, margin: "8px 0 4px" }}>{children}</h1>
+                          ),
+                          h2: ({ children }) => (
+                            <h2 style={{ fontSize: 13, fontWeight: 700, margin: "6px 0 4px" }}>{children}</h2>
+                          ),
+                          h3: ({ children }) => (
+                            <h3 style={{ fontSize: 12.5, fontWeight: 600, margin: "6px 0 3px" }}>{children}</h3>
+                          ),
+                        }}
+                      >
+                        {text}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                   {tools.length > 0 && (
                     <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
                       {tools.map((t, ti) => (
@@ -382,8 +479,9 @@ export default function AiChatWidget() {
                             padding: "2px 6px",
                             borderRadius: 4,
                           }}
+                          title={t}
                         >
-                          ⚐ {t}
+                          ⚐ {prettyToolName(t)}
                         </span>
                       ))}
                     </div>
@@ -393,21 +491,21 @@ export default function AiChatWidget() {
             })}
             {thinking && (
               <div
+                className="flo-msg-in"
                 style={{
                   alignSelf: "flex-start",
                   background: "var(--c-bg-surface)",
                   border: "1px solid var(--c-border)",
                   borderRadius: 10,
-                  padding: "8px 12px",
-                  fontSize: 12,
-                  color: "var(--c-text-muted)",
+                  padding: "10px 14px",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
                 }}
               >
-                <Loader2 size={12} className="animate-spin" />
-                {thinkingStep || "pensando…"}
+                <span className="flo-typing-dot" style={{ background: "var(--c-text-muted)" }} />
+                <span className="flo-typing-dot" style={{ background: "var(--c-text-muted)" }} />
+                <span className="flo-typing-dot" style={{ background: "var(--c-text-muted)" }} />
               </div>
             )}
             {error && (
