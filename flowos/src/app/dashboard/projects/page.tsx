@@ -1407,60 +1407,172 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
 
   return (
     <div style={{ flex: 1, overflow: "auto", padding: "24px 32px", display: "flex", flexDirection: "column", gap: 18 }}>
-      {/* VFP card — el corazón del proyecto */}
-      <div style={{
-        background: vfpComplete ? "linear-gradient(135deg, rgba(61,126,255,0.08), rgba(168,85,247,0.06))" : "rgba(245,158,11,0.06)",
-        border: `1px solid ${vfpComplete ? "rgba(61,126,255,0.3)" : "rgba(245,158,11,0.4)"}`,
-        borderRadius: 12, padding: 22,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: vfpComplete ? "rgba(61,126,255,0.15)" : "rgba(245,158,11,0.15)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <Flag style={{ width: 16, height: 16, color: vfpComplete ? "#3D7EFF" : "#F59E0B" }} strokeWidth={2} />
+      {/* VFP card — el corazón conceptual del proyecto.
+          Gradient multi-layer + glow + accent border. Es el elemento más
+          importante del modal — tiene que ser el primero que llame la atención. */}
+      <div
+        style={{
+          position: "relative",
+          background: vfpComplete
+            ? "radial-gradient(ellipse 600px 200px at 0% 0%, rgba(61,126,255,0.16), transparent 60%), radial-gradient(ellipse 400px 200px at 100% 100%, rgba(168,85,247,0.14), transparent 60%), linear-gradient(135deg, rgba(20,25,40,0.6), rgba(14,18,32,0.95))"
+            : "radial-gradient(ellipse 500px 200px at 50% 0%, rgba(245,158,11,0.14), transparent 60%), linear-gradient(180deg, rgba(245,158,11,0.04), rgba(14,18,32,0.95))",
+          border: `1px solid ${vfpComplete ? "rgba(61,126,255,0.35)" : "rgba(245,158,11,0.45)"}`,
+          borderRadius: 14,
+          padding: 24,
+          boxShadow: vfpComplete
+            ? "0 10px 40px rgba(61,126,255,0.12), 0 0 0 1px rgba(168,85,247,0.06) inset, 0 1px 0 rgba(255,255,255,0.04) inset"
+            : "0 10px 40px rgba(245,158,11,0.1), 0 1px 0 rgba(255,255,255,0.03) inset",
+          overflow: "hidden",
+        }}
+      >
+        {/* Spotlight highlight en la esquina superior izquierda */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: -1,
+            left: -1,
+            right: -1,
+            height: 1,
+            background: vfpComplete
+              ? "linear-gradient(90deg, transparent, rgba(61,126,255,0.5), rgba(168,85,247,0.4), transparent)"
+              : "linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: vfpComplete
+                  ? "linear-gradient(135deg, rgba(61,126,255,0.25), rgba(168,85,247,0.2))"
+                  : "rgba(245,158,11,0.18)",
+                border: `1px solid ${vfpComplete ? "rgba(61,126,255,0.3)" : "rgba(245,158,11,0.3)"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: vfpComplete
+                  ? "0 4px 14px rgba(61,126,255,0.25)"
+                  : "0 4px 14px rgba(245,158,11,0.2)",
+              }}
+            >
+              <Flag style={{ width: 17, height: 17, color: vfpComplete ? "#5A93FF" : "#F59E0B" }} strokeWidth={2.25} />
             </div>
             <div>
-              <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 10,
+                  fontFamily: "monospace",
+                  color: vfpComplete ? "#A0B4D8" : "#C4A672",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.14em",
+                  fontWeight: 600,
+                }}
+              >
                 Valuable Final Product
               </p>
-              <p style={{ margin: "2px 0 0", fontSize: 15, fontWeight: 700, color: "#E2E8F8" }}>
+              <p style={{ margin: "3px 0 0", fontSize: 16, fontWeight: 700, color: "#E2E8F8", letterSpacing: "-0.01em" }}>
                 {vfpComplete ? "Estamos construyendo esto" : "Sin VFP definido"}
               </p>
             </div>
           </div>
-          <button onClick={() => setEditingVFP(true)} style={{
-            display: "flex", alignItems: "center", gap: 5, padding: "6px 12px",
-            background: vfpComplete ? "rgba(61,126,255,0.12)" : "#F59E0B",
-            color: vfpComplete ? "#3D7EFF" : "#fff",
-            border: vfpComplete ? "1px solid rgba(61,126,255,0.4)" : "none",
-            borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-          }}>
+          <button
+            onClick={() => setEditingVFP(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "7px 14px",
+              background: vfpComplete
+                ? "rgba(61,126,255,0.14)"
+                : "#F59E0B",
+              color: vfpComplete ? "#7AABFF" : "#fff",
+              border: vfpComplete ? "1px solid rgba(61,126,255,0.45)" : "none",
+              borderRadius: 7,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              boxShadow: vfpComplete
+                ? "0 2px 8px rgba(61,126,255,0.18)"
+                : "0 4px 14px rgba(245,158,11,0.35), 0 1px 0 rgba(255,255,255,0.1) inset",
+              transition: "transform 150ms ease, box-shadow 150ms ease, filter 150ms ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.filter = "brightness(1.08)";
+              if (vfpComplete) {
+                e.currentTarget.style.boxShadow = "0 6px 16px rgba(61,126,255,0.3)";
+              } else {
+                e.currentTarget.style.boxShadow = "0 8px 22px rgba(245,158,11,0.5), 0 1px 0 rgba(255,255,255,0.14) inset";
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.filter = "brightness(1)";
+              e.currentTarget.style.boxShadow = vfpComplete
+                ? "0 2px 8px rgba(61,126,255,0.18)"
+                : "0 4px 14px rgba(245,158,11,0.35), 0 1px 0 rgba(255,255,255,0.1) inset";
+            }}
+          >
             {vfpComplete ? "Editar VFP" : "Definir VFP"}
           </button>
         </div>
 
         {vfpComplete ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 12,
+              position: "relative",
+            }}
+          >
             {[
-              { k: "producto", label: "Producto", v: vfp!.producto },
-              { k: "para", label: "Para", v: vfp!.para },
-              { k: "quien", label: "Quién", v: vfp!.quien },
-              { k: "aDiferenciaDe", label: "A diferencia de", v: vfp!.aDiferenciaDe },
-              { k: "terminadoCuando", label: "Terminado cuando", v: vfp!.terminadoCuando },
-            ].filter(f => f.v).map(f => (
-              <div key={f.k}>
-                <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>{f.label}</p>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#E2E8F8", lineHeight: 1.5 }}>{f.v}</p>
-              </div>
-            ))}
+              { k: "producto", label: "Producto", v: vfp!.producto, accent: "#3D7EFF" },
+              { k: "para", label: "Para", v: vfp!.para, accent: "#3D7EFF" },
+              { k: "quien", label: "Quién", v: vfp!.quien, accent: "#A855F7" },
+              { k: "aDiferenciaDe", label: "A diferencia de", v: vfp!.aDiferenciaDe, accent: "#A855F7" },
+              { k: "terminadoCuando", label: "Terminado cuando", v: vfp!.terminadoCuando, accent: "#10D9A0" },
+            ]
+              .filter((f) => f.v)
+              .map((f) => (
+                <div
+                  key={f.k}
+                  style={{
+                    padding: "12px 14px",
+                    background: "rgba(8,11,18,0.45)",
+                    border: "1px solid rgba(255,255,255,0.04)",
+                    borderLeft: `2px solid ${f.accent}`,
+                    borderRadius: 8,
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 9,
+                      fontFamily: "monospace",
+                      color: f.accent,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.12em",
+                      fontWeight: 600,
+                      opacity: 0.85,
+                    }}
+                  >
+                    {f.label}
+                  </p>
+                  <p style={{ margin: "5px 0 0", fontSize: 13, color: "#E2E8F8", lineHeight: 1.55 }}>{f.v}</p>
+                </div>
+              ))}
           </div>
         ) : (
-          <p style={{ margin: 0, fontSize: 13, color: "#C4CFEA", lineHeight: 1.6 }}>
-            Antes de crear tareas, definí <strong>qué es estar terminado</strong>. Sin VFP, este proyecto es backlog basura.
-            Forzar claridad al inicio es el único modo de evitar que se vuelva una lista infinita.
+          <p style={{ margin: 0, fontSize: 13.5, color: "#C4CFEA", lineHeight: 1.65, position: "relative" }}>
+            Antes de crear tareas, definí <strong style={{ color: "#F59E0B" }}>qué es estar terminado</strong>. Sin VFP, este proyecto es
+            backlog basura. Forzar claridad al inicio es el único modo de evitar que se vuelva una lista infinita.
           </p>
         )}
       </div>
