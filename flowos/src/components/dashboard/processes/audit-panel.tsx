@@ -50,20 +50,20 @@ interface Metrics {
 // ─── Event metadata ──────────────────────────────────────────────────────────
 
 const EVENT_META: Record<string, { label: string; color: string }> = {
-  instance_started: { label: "Instancia iniciada", color: "#3D7EFF" },
-  instance_completed: { label: "Instancia completada", color: "#10D9A0" },
-  instance_failed: { label: "Instancia fallida", color: "#F43F5E" },
-  instance_cancelled: { label: "Instancia cancelada", color: "#F59E0B" },
-  instance_paused: { label: "Instancia pausada", color: "#7A8BAD" },
-  node_entered: { label: "Nodo iniciado", color: "#7A8BAD" },
-  node_completed: { label: "Nodo completado", color: "#10D9A0" },
-  inbox_task_created: { label: "Tarea creada", color: "#3D7EFF" },
-  inbox_task_claimed: { label: "Tarea reclamada", color: "#A855F7" },
-  inbox_task_completed: { label: "Tarea completada", color: "#10D9A0" },
-  milestone_linked_completed: { label: "Hito vinculado completado", color: "#A855F7" },
-  project_auto_created: { label: "Proyecto auto-creado", color: "#A855F7" },
-  definition_published: { label: "Proceso publicado", color: "#10D9A0" },
-  definition_archived: { label: "Proceso archivado", color: "#F59E0B" },
+  instance_started: { label: "Instancia iniciada", color: "var(--c-accent-blue)" },
+  instance_completed: { label: "Instancia completada", color: "var(--c-accent-emerald)" },
+  instance_failed: { label: "Instancia fallida", color: "var(--c-accent-red)" },
+  instance_cancelled: { label: "Instancia cancelada", color: "var(--c-accent-amber)" },
+  instance_paused: { label: "Instancia pausada", color: "var(--c-text-muted)" },
+  node_entered: { label: "Nodo iniciado", color: "var(--c-text-muted)" },
+  node_completed: { label: "Nodo completado", color: "var(--c-accent-emerald)" },
+  inbox_task_created: { label: "Tarea creada", color: "var(--c-accent-blue)" },
+  inbox_task_claimed: { label: "Tarea reclamada", color: "var(--c-accent-violet)" },
+  inbox_task_completed: { label: "Tarea completada", color: "var(--c-accent-emerald)" },
+  milestone_linked_completed: { label: "Hito vinculado completado", color: "var(--c-accent-violet)" },
+  project_auto_created: { label: "Proyecto auto-creado", color: "var(--c-accent-violet)" },
+  definition_published: { label: "Proceso publicado", color: "var(--c-accent-emerald)" },
+  definition_archived: { label: "Proceso archivado", color: "var(--c-accent-amber)" },
 };
 
 function formatDuration(ms: number | null): string {
@@ -103,8 +103,8 @@ function StatCard({
   return (
     <div
       style={{
-        background: "#0E1220",
-        border: "1px solid #1E2540",
+        background: "var(--c-bg-surface)",
+        border: "1px solid var(--c-border)",
         borderRadius: 10,
         padding: 14,
       }}
@@ -126,7 +126,7 @@ function StatCard({
         <p
           style={{
             fontSize: 10,
-            color: "#7A8BAD",
+            color: "var(--c-text-muted)",
             textTransform: "uppercase",
             letterSpacing: "0.06em",
             margin: 0,
@@ -140,7 +140,7 @@ function StatCard({
         style={{
           fontSize: 22,
           fontWeight: 700,
-          color: "#E2E8F8",
+          color: "var(--c-text-primary)",
           margin: 0,
           fontVariantNumeric: "tabular-nums",
         }}
@@ -215,7 +215,7 @@ export default function AuditPanel({
         position: "fixed",
         inset: 0,
         zIndex: 70,
-        background: "rgba(0,0,0,0.7)",
+        background: "var(--c-shadow-heavy)",
         display: "flex",
         alignItems: "stretch",
         justifyContent: "center",
@@ -227,8 +227,8 @@ export default function AuditPanel({
     >
       <div
         style={{
-          background: "#080B12",
-          border: "1px solid #1E2540",
+          background: "var(--c-bg-base)",
+          border: "1px solid var(--c-border)",
           borderRadius: 12,
           width: "100%",
           maxWidth: 1200,
@@ -241,21 +241,21 @@ export default function AuditPanel({
         <div
           style={{
             padding: "14px 18px",
-            borderBottom: "1px solid #1E2540",
+            borderBottom: "1px solid var(--c-border)",
             display: "flex",
             alignItems: "center",
             gap: 12,
           }}
         >
-          <Activity size={18} style={{ color: "#3D7EFF" }} strokeWidth={1.75} />
+          <Activity size={18} style={{ color: "var(--c-accent-blue)" }} strokeWidth={1.75} />
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>
               Auditoría y métricas
             </p>
             <p
               style={{
                 fontSize: 11,
-                color: "#7A8BAD",
+                color: "var(--c-text-muted)",
                 margin: "2px 0 0",
                 fontFamily: "monospace",
               }}
@@ -269,8 +269,8 @@ export default function AuditPanel({
             aria-label="Refrescar"
             style={{
               background: "transparent",
-              border: "1px solid #1E2540",
-              color: "#7A8BAD",
+              border: "1px solid var(--c-border)",
+              color: "var(--c-text-muted)",
               padding: "5px 10px",
               borderRadius: 6,
               cursor: "pointer",
@@ -290,7 +290,7 @@ export default function AuditPanel({
             style={{
               background: "transparent",
               border: "none",
-              color: "#7A8BAD",
+              color: "var(--c-text-muted)",
               cursor: "pointer",
               padding: 4,
             }}
@@ -310,7 +310,7 @@ export default function AuditPanel({
                 padding: 48,
               }}
             >
-              <Loader2 size={20} className="animate-spin" style={{ color: "#3D7EFF" }} />
+              <Loader2 size={20} className="animate-spin" style={{ color: "var(--c-accent-blue)" }} />
             </div>
           ) : (
             <>
@@ -320,7 +320,7 @@ export default function AuditPanel({
                   <p
                     style={{
                       fontSize: 10,
-                      color: "#7A8BAD",
+                      color: "var(--c-text-muted)",
                       textTransform: "uppercase",
                       letterSpacing: "0.1em",
                       margin: "0 0 12px",
@@ -341,25 +341,25 @@ export default function AuditPanel({
                       icon={Activity}
                       label="Instancias totales"
                       value={metrics.totalInstances}
-                      color="#3D7EFF"
+                      color="var(--c-accent-blue)"
                     />
                     <StatCard
                       icon={TrendingUp}
                       label="Tasa de éxito"
                       value={`${metrics.successRate}%`}
-                      color="#10D9A0"
+                      color="var(--c-accent-emerald)"
                     />
                     <StatCard
                       icon={Clock}
                       label="Duración promedio"
                       value={formatDuration(metrics.avgInstanceDurationMs)}
-                      color="#A855F7"
+                      color="var(--c-accent-violet)"
                     />
                     <StatCard
                       icon={AlertTriangle}
                       label="Fallidas + canceladas"
                       value={metrics.failedInstances + metrics.cancelledInstances}
-                      color="#F43F5E"
+                      color="var(--c-accent-red)"
                     />
                   </div>
 
@@ -369,7 +369,7 @@ export default function AuditPanel({
                       <p
                         style={{
                           fontSize: 10,
-                          color: "#7A8BAD",
+                          color: "var(--c-text-muted)",
                           textTransform: "uppercase",
                           letterSpacing: "0.1em",
                           margin: "0 0 12px",
@@ -380,8 +380,8 @@ export default function AuditPanel({
                       </p>
                       <div
                         style={{
-                          background: "#0E1220",
-                          border: "1px solid #1E2540",
+                          background: "var(--c-bg-surface)",
+                          border: "1px solid var(--c-border)",
                           borderRadius: 10,
                           marginBottom: 24,
                           overflow: "hidden",
@@ -392,9 +392,9 @@ export default function AuditPanel({
                             display: "grid",
                             gridTemplateColumns: "2fr 1fr 1fr 1fr",
                             padding: "10px 14px",
-                            borderBottom: "1px solid #1E2540",
+                            borderBottom: "1px solid var(--c-border)",
                             fontSize: 10,
-                            color: "#7A8BAD",
+                            color: "var(--c-text-muted)",
                             fontFamily: "monospace",
                             textTransform: "uppercase",
                             letterSpacing: "0.06em",
@@ -416,10 +416,10 @@ export default function AuditPanel({
                                 padding: "10px 14px",
                                 borderBottom:
                                   i < metrics.nodeStats.length - 1
-                                    ? "1px solid #1E2540"
+                                    ? "1px solid var(--c-border)"
                                     : "none",
                                 fontSize: 12,
-                                color: "#C4CFEA",
+                                color: "var(--c-text-secondary)",
                                 alignItems: "center",
                               }}
                             >
@@ -437,7 +437,7 @@ export default function AuditPanel({
                                   <span title="Cuello de botella">
                                     <AlertTriangle
                                       size={11}
-                                      style={{ color: "#F59E0B", flexShrink: 0 }}
+                                      style={{ color: "var(--c-accent-amber)", flexShrink: 0 }}
                                     />
                                   </span>
                                 )}
@@ -447,7 +447,7 @@ export default function AuditPanel({
                                 style={{
                                   textAlign: "right",
                                   fontFamily: "monospace",
-                                  color: "#7A8BAD",
+                                  color: "var(--c-text-muted)",
                                 }}
                               >
                                 {s.completedCount}
@@ -456,7 +456,7 @@ export default function AuditPanel({
                                 style={{
                                   textAlign: "right",
                                   fontFamily: "monospace",
-                                  color: isBottleneck ? "#F59E0B" : "#E2E8F8",
+                                  color: isBottleneck ? "var(--c-accent-amber)" : "var(--c-text-primary)",
                                   fontWeight: isBottleneck ? 600 : 400,
                                 }}
                               >
@@ -466,7 +466,7 @@ export default function AuditPanel({
                                 style={{
                                   textAlign: "right",
                                   fontFamily: "monospace",
-                                  color: "#7A8BAD",
+                                  color: "var(--c-text-muted)",
                                 }}
                               >
                                 {formatDuration(s.maxDurationMs)}
@@ -494,7 +494,7 @@ export default function AuditPanel({
                 <p
                   style={{
                     fontSize: 10,
-                    color: "#7A8BAD",
+                    color: "var(--c-text-muted)",
                     textTransform: "uppercase",
                     letterSpacing: "0.1em",
                     margin: 0,
@@ -508,9 +508,9 @@ export default function AuditPanel({
                     value={eventFilter}
                     onChange={(e) => setEventFilter(e.target.value)}
                     style={{
-                      background: "#141928",
-                      border: "1px solid #1E2540",
-                      color: "#C4CFEA",
+                      background: "var(--c-bg-elevated)",
+                      border: "1px solid var(--c-border)",
+                      color: "var(--c-text-secondary)",
                       padding: "5px 8px",
                       borderRadius: 6,
                       fontSize: 11,
@@ -529,9 +529,9 @@ export default function AuditPanel({
                       value={instanceFilter}
                       onChange={(e) => setInstanceFilter(e.target.value)}
                       style={{
-                        background: "#141928",
-                        border: "1px solid #1E2540",
-                        color: "#C4CFEA",
+                        background: "var(--c-bg-elevated)",
+                        border: "1px solid var(--c-border)",
+                        color: "var(--c-text-secondary)",
                         padding: "5px 8px",
                         borderRadius: 6,
                         fontSize: 11,
@@ -555,29 +555,29 @@ export default function AuditPanel({
                   style={{
                     padding: 48,
                     textAlign: "center",
-                    color: "#7A8BAD",
-                    border: "1px dashed #1E2540",
+                    color: "var(--c-text-muted)",
+                    border: "1px dashed var(--c-border)",
                     borderRadius: 10,
-                    background: "#0E1220",
+                    background: "var(--c-bg-surface)",
                   }}
                 >
                   <Activity
                     size={28}
-                    style={{ color: "#1E2540", margin: "0 auto 10px", display: "block" }}
+                    style={{ color: "var(--c-border)", margin: "0 auto 10px", display: "block" }}
                     strokeWidth={1.5}
                   />
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>
                     Sin eventos registrados
                   </p>
-                  <p style={{ fontSize: 12, color: "#7A8BAD", margin: "6px 0 0" }}>
+                  <p style={{ fontSize: 12, color: "var(--c-text-muted)", margin: "6px 0 0" }}>
                     El audit trail empieza a poblarse cuando se inicia la primera instancia.
                   </p>
                 </div>
               ) : (
                 <div
                   style={{
-                    background: "#0E1220",
-                    border: "1px solid #1E2540",
+                    background: "var(--c-bg-surface)",
+                    border: "1px solid var(--c-border)",
                     borderRadius: 10,
                     overflow: "hidden",
                   }}
@@ -585,7 +585,7 @@ export default function AuditPanel({
                   {events.map((e, i) => {
                     const meta = EVENT_META[e.event] ?? {
                       label: e.event,
-                      color: "#7A8BAD",
+                      color: "var(--c-text-muted)",
                     };
                     return (
                       <div
@@ -593,7 +593,7 @@ export default function AuditPanel({
                         style={{
                           padding: "10px 14px",
                           borderBottom:
-                            i < events.length - 1 ? "1px solid #1E2540" : "none",
+                            i < events.length - 1 ? "1px solid var(--c-border)" : "none",
                           display: "flex",
                           alignItems: "center",
                           gap: 12,
@@ -612,14 +612,14 @@ export default function AuditPanel({
                           <p
                             style={{
                               fontSize: 12,
-                              color: "#E2E8F8",
+                              color: "var(--c-text-primary)",
                               margin: 0,
                               fontWeight: 500,
                             }}
                           >
                             {meta.label}
                             {e.nodeLabel && (
-                              <span style={{ color: "#7A8BAD", fontWeight: 400 }}>
+                              <span style={{ color: "var(--c-text-muted)", fontWeight: 400 }}>
                                 {" "}· {e.nodeLabel}
                               </span>
                             )}
@@ -627,7 +627,7 @@ export default function AuditPanel({
                           <p
                             style={{
                               fontSize: 11,
-                              color: "#7A8BAD",
+                              color: "var(--c-text-muted)",
                               margin: "2px 0 0",
                               fontFamily: "monospace",
                             }}
@@ -649,7 +649,7 @@ export default function AuditPanel({
                           <span
                             style={{
                               fontSize: 11,
-                              color: "#A855F7",
+                              color: "var(--c-accent-violet)",
                               fontFamily: "monospace",
                               flexShrink: 0,
                             }}

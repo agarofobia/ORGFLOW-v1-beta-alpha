@@ -16,7 +16,7 @@ export default function DashboardLayout({
     <ToastProvider>
       <ConfirmDialogProvider>
         <MobileNavProvider>
-          <div className="flex h-screen overflow-hidden" style={{ background: "#080B12" }}>
+          <div className="flex h-screen overflow-hidden" style={{ background: "var(--c-bg-base)" }}>
             <DashboardSidebar />
             <div className="flex flex-1 flex-col overflow-hidden">
               <DashboardTopbar />

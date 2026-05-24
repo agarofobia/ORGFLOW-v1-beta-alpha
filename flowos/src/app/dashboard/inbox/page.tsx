@@ -23,18 +23,18 @@ import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const PRIORITY_CONFIG = {
-  low: { label: "Baja", color: "#7A8BAD" },
-  medium: { label: "Media", color: "#3D7EFF" },
-  high: { label: "Alta", color: "#F59E0B" },
-  critical: { label: "Crítica", color: "#F43F5E" },
+  low: { label: "Baja", color: "var(--c-text-muted)" },
+  medium: { label: "Media", color: "var(--c-accent-blue)" },
+  high: { label: "Alta", color: "var(--c-accent-amber)" },
+  critical: { label: "Crítica", color: "var(--c-accent-red)" },
 };
 
 const STATUS_CONFIG = {
-  pending: { label: "Pendiente", color: "#F59E0B", icon: Clock },
-  claimed: { label: "En progreso", color: "#3D7EFF", icon: Play },
-  completed: { label: "Completada", color: "#10D9A0", icon: CheckCircle2 },
-  skipped: { label: "Omitida", color: "#7A8BAD", icon: ChevronDown },
-  cancelled: { label: "Cancelada", color: "#F43F5E", icon: AlertCircle },
+  pending: { label: "Pendiente", color: "var(--c-accent-amber)", icon: Clock },
+  claimed: { label: "En progreso", color: "var(--c-accent-blue)", icon: Play },
+  completed: { label: "Completada", color: "var(--c-accent-emerald)", icon: CheckCircle2 },
+  skipped: { label: "Omitida", color: "var(--c-text-muted)", icon: ChevronDown },
+  cancelled: { label: "Cancelada", color: "var(--c-accent-red)", icon: AlertCircle },
 };
 
 function formatDate(d: string | Date | null | undefined) {
@@ -48,10 +48,10 @@ function formatDate(d: string | Date | null | undefined) {
 }
 
 const INSTANCE_STATUS = {
-  running: { label: "En curso", color: "#3D7EFF" },
-  completed: { label: "Completado", color: "#10D9A0" },
-  cancelled: { label: "Cancelado", color: "#F43F5E" },
-  error: { label: "Error", color: "#F59E0B" },
+  running: { label: "En curso", color: "var(--c-accent-blue)" },
+  completed: { label: "Completado", color: "var(--c-accent-emerald)" },
+  cancelled: { label: "Cancelado", color: "var(--c-accent-red)" },
+  error: { label: "Error", color: "var(--c-accent-amber)" },
 };
 
 export default function InboxPage() {
@@ -169,17 +169,17 @@ export default function InboxPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
+          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
             BPM
           </p>
-          <h1 className="mt-1 text-xl font-semibold" style={{ color: "#E2E8F8" }}>
+          <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--c-text-primary)" }}>
             Bandeja de tareas
           </h1>
         </div>
       </div>
 
       {/* Main tabs */}
-      <div className="mb-6 flex gap-1 rounded-lg p-1" style={{ background: "#0A0F1C", border: "1px solid #1E2540", width: "fit-content" }}>
+      <div className="mb-6 flex gap-1 rounded-lg p-1" style={{ background: "var(--c-bg-darker)", border: "1px solid var(--c-border)", width: "fit-content" }}>
         {([
           { key: "tasks", label: "Mis tareas", icon: <Inbox className="h-3.5 w-3.5" /> },
           { key: "tracking", label: "Seguimiento", icon: <Eye className="h-3.5 w-3.5" /> },
@@ -189,8 +189,8 @@ export default function InboxPage() {
             onClick={() => setMainTab(key)}
             className="flex items-center gap-2 rounded px-4 py-1.5 text-sm font-medium transition-all"
             style={mainTab === key
-              ? { background: "rgba(61,126,255,0.15)", color: "#3D7EFF" }
-              : { color: "#7A8BAD" }
+              ? { background: "rgb(var(--c-accent-blue-rgb) / 0.15)", color: "var(--c-accent-blue)" }
+              : { color: "var(--c-text-muted)" }
             }
           >
             {icon} {label}
@@ -200,19 +200,19 @@ export default function InboxPage() {
 
       {mainTab === "tracking" && (
         <div>
-          <p className="mb-4 text-sm" style={{ color: "#7A8BAD" }}>
+          <p className="mb-4 text-sm" style={{ color: "var(--c-text-muted)" }}>
             Todas las instancias de proceso activas e históricas de la organización.
           </p>
           {trackingLoading ? (
             <div className="flex items-center justify-center py-24">
-              <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#3D7EFF" }} />
+              <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
             </div>
           ) : instances.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg py-24"
-              style={{ background: "#0E1220", border: "1px dashed #1E2540" }}>
-              <Eye className="mb-4 h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
-              <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>No hay instancias todavía</p>
-              <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>Las instancias aparecen al iniciar un proceso</p>
+              style={{ background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)" }}>
+              <Eye className="mb-4 h-10 w-10" style={{ color: "var(--c-border)" }} strokeWidth={1} />
+              <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>No hay instancias todavía</p>
+              <p className="mt-1 text-xs" style={{ color: "var(--c-text-muted)" }}>Las instancias aparecen al iniciar un proceso</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -221,28 +221,28 @@ export default function InboxPage() {
                 const history = Array.isArray(inst.history) ? inst.history as { nodeId: string; completedAt: string }[] : [];
                 return (
                   <div key={inst.id} className="rounded-lg p-4"
-                    style={{ background: "#0E1220", border: "1px solid #1E2540" }}>
+                    style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>{inst.processName}</p>
+                          <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>{inst.processName}</p>
                           <span className="rounded px-2 py-0.5 font-mono text-[10px] uppercase"
                             style={{ background: `${cfg.color}18`, color: cfg.color }}>
                             {cfg.label}
                           </span>
                         </div>
                         <div className="mt-1.5 flex flex-wrap gap-4">
-                          <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
-                            Nodo actual: <span style={{ color: "#C4CFEA" }}>{inst.currentNodeId}</span>
+                          <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
+                            Nodo actual: <span style={{ color: "var(--c-text-secondary)" }}>{inst.currentNodeId}</span>
                           </span>
-                          <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                          <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                             {history.length} pasos completados
                           </span>
-                          <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                          <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                             Iniciado: {formatDate(inst.startedAt)}
                           </span>
                           {inst.completedAt && (
-                            <span className="font-mono text-[10px]" style={{ color: "#10D9A0" }}>
+                            <span className="font-mono text-[10px]" style={{ color: "var(--c-accent-emerald)" }}>
                               Completado: {formatDate(inst.completedAt)}
                             </span>
                           )}
@@ -251,8 +251,8 @@ export default function InboxPage() {
                       <button
                         onClick={() => deleteInstance(inst.id)}
                         disabled={deletingInstance === inst.id}
-                        className="shrink-0 rounded p-1.5 transition-colors hover:bg-[#F43F5E20] disabled:opacity-50"
-                        style={{ color: "#7A8BAD" }}
+                        className="shrink-0 rounded p-1.5 transition-colors hover:bg-[rgb(var(--c-accent-red-rgb) / 0.13)] disabled:opacity-50"
+                        style={{ color: "var(--c-text-muted)" }}
                         title="Eliminar instancia"
                       >
                         {deletingInstance === inst.id
@@ -271,22 +271,22 @@ export default function InboxPage() {
       {mainTab === "tasks" && <>
       {/* Available processes */}
       <div className="mb-6">
-        <p className="mb-2 font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
+        <p className="mb-2 font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
           Iniciar proceso
         </p>
         {processes.length === 0 ? (
           <div
             className="flex items-center gap-3 rounded-lg px-4 py-3"
-            style={{ background: "#0E1220", border: "1px dashed #1E2540" }}
+            style={{ background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)" }}
           >
-            <GitBranch className="h-4 w-4" style={{ color: "#7A8BAD" }} />
-            <p className="flex-1 text-sm" style={{ color: "#7A8BAD" }}>
+            <GitBranch className="h-4 w-4" style={{ color: "var(--c-text-muted)" }} />
+            <p className="flex-1 text-sm" style={{ color: "var(--c-text-muted)" }}>
               Todavía no hay procesos activos disponibles
             </p>
             <button
               onClick={() => router.push("/dashboard/processes")}
               className="flex items-center gap-1.5 rounded px-3 py-1 text-xs"
-              style={{ background: "rgba(61,126,255,0.12)", color: "#3D7EFF", border: "1px solid rgba(61,126,255,0.25)" }}
+              style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.12)", color: "var(--c-accent-blue)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)" }}
             >
               <ExternalLink className="h-3 w-3" />
               Crear proceso
@@ -300,12 +300,12 @@ export default function InboxPage() {
                 onClick={() => startProcess(p.id)}
                 disabled={startingProcess === p.id}
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all hover:-translate-y-px disabled:opacity-50"
-                style={{ background: "#0E1220", border: "1px solid #1E2540", color: "#E2E8F8" }}
+                style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
               >
                 {startingProcess === p.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "#3D7EFF" }} />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
                 ) : (
-                  <Play className="h-3.5 w-3.5" fill="#10D9A0" style={{ color: "#10D9A0" }} />
+                  <Play className="h-3.5 w-3.5" fill="var(--c-accent-emerald)" style={{ color: "var(--c-accent-emerald)" }} />
                 )}
                 {p.name}
               </button>
@@ -315,7 +315,7 @@ export default function InboxPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="mb-6 flex gap-1 rounded-lg p-1" style={{ background: "#0E1220", border: "1px solid #1E2540", width: "fit-content" }}>
+      <div className="mb-6 flex gap-1 rounded-lg p-1" style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", width: "fit-content" }}>
         {FILTERS.map((f) => (
           <button
             key={f.value}
@@ -323,8 +323,8 @@ export default function InboxPage() {
             className="rounded px-4 py-1.5 text-sm font-medium transition-all"
             style={
               statusFilter === f.value
-                ? { background: "rgba(61,126,255,0.15)", color: "#3D7EFF" }
-                : { color: "#7A8BAD" }
+                ? { background: "rgb(var(--c-accent-blue-rgb) / 0.15)", color: "var(--c-accent-blue)" }
+                : { color: "var(--c-text-muted)" }
             }
           >
             {f.label}
@@ -335,18 +335,18 @@ export default function InboxPage() {
       {/* Task list */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#3D7EFF" }} />
+          <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
         </div>
       ) : tasks.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center rounded-lg py-24"
-          style={{ background: "#0E1220", border: "1px dashed #1E2540" }}
+          style={{ background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)" }}
         >
-          <Inbox className="mb-4 h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
-          <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>
+          <Inbox className="mb-4 h-10 w-10" style={{ color: "var(--c-border)" }} strokeWidth={1} />
+          <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>
             No hay tareas en esta sección
           </p>
-          <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>
+          <p className="mt-1 text-xs" style={{ color: "var(--c-text-muted)" }}>
             Las tareas aparecen cuando se inicia una instancia de proceso
           </p>
         </div>
@@ -361,13 +361,13 @@ export default function InboxPage() {
               <div
                 key={task.id}
                 className="rounded-lg p-4"
-                style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+                style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
               >
                 <div className="flex items-start justify-between gap-4">
                   {/* Left */}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>
+                      <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>
                         {task.nodeLabel}
                       </p>
                       <span
@@ -385,29 +385,29 @@ export default function InboxPage() {
                       </span>
                     </div>
 
-                    <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>
+                    <p className="mt-1 text-xs" style={{ color: "var(--c-text-muted)" }}>
                       {task.processName}
                     </p>
 
                     <div className="mt-2 flex flex-wrap items-center gap-4">
                       {task.assignedToDeptId && (
-                        <span className="flex items-center gap-1 font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                        <span className="flex items-center gap-1 font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                           <User className="h-3 w-3" />
                           Dept: {task.assignedToDeptId.slice(0, 8)}…
                         </span>
                       )}
                       {task.claimedBy && (
-                        <span className="flex items-center gap-1 font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                        <span className="flex items-center gap-1 font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                           <User className="h-3 w-3" />
                           {task.claimedBy.slice(0, 10)}…
                         </span>
                       )}
                       {task.dueDate && (
-                        <span className="font-mono text-[10px]" style={{ color: "#F59E0B" }}>
+                        <span className="font-mono text-[10px]" style={{ color: "var(--c-accent-amber)" }}>
                           Vence: {formatDate(task.dueDate)}
                         </span>
                       )}
-                      <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                      <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                         {formatDate(task.createdAt)}
                       </span>
                     </div>
@@ -421,9 +421,9 @@ export default function InboxPage() {
                         disabled={actionLoading === task.id + "claim"}
                         className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-60"
                         style={{
-                          background: "rgba(61,126,255,0.1)",
-                          color: "#3D7EFF",
-                          border: "1px solid rgba(61,126,255,0.2)",
+                          background: "rgb(var(--c-accent-blue-rgb) / 0.1)",
+                          color: "var(--c-accent-blue)",
+                          border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.2)",
                         }}
                       >
                         {actionLoading === task.id + "claim" ? (
@@ -436,8 +436,8 @@ export default function InboxPage() {
                       <button
                         onClick={() => handleAction(task.id, "skip")}
                         disabled={actionLoading === task.id + "skip"}
-                        className="rounded px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-60 hover:bg-[#1E2540]"
-                        style={{ color: "#7A8BAD" }}
+                        className="rounded px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-60 hover:bg-[var(--c-border)]"
+                        style={{ color: "var(--c-text-muted)" }}
                       >
                         Omitir
                       </button>
@@ -449,9 +449,9 @@ export default function InboxPage() {
                       onClick={() => setRunnerTaskId(task.id)}
                       className="flex shrink-0 items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-all"
                       style={{
-                        background: "rgba(16,217,160,0.1)",
-                        color: "#10D9A0",
-                        border: "1px solid rgba(16,217,160,0.2)",
+                        background: "rgb(var(--c-accent-emerald-rgb) / 0.1)",
+                        color: "var(--c-accent-emerald)",
+                        border: "1px solid rgb(var(--c-accent-emerald-rgb) / 0.2)",
                       }}
                     >
                       <CheckCircle2 className="h-3 w-3" />

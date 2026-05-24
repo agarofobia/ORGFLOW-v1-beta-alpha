@@ -19,7 +19,7 @@ const PRIORITY_WEIGHT: Record<NonNullable<Task["priority"]>, number> = {
 
 function Avatar({ name, color, size = 28 }: { name: string; color?: string; size?: number }) {
   const initials = name.split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
-  const bg = color ?? "#7A8BAD";
+  const bg = color ?? "var(--c-text-muted)";
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%", background: bg,
@@ -127,42 +127,42 @@ export default function WorkloadPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", background: "#080B12" }}>
-        <Loader2 className="animate-spin" style={{ color: "#3D7EFF", width: 22, height: 22 }} />
+      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", background: "var(--c-bg-base)" }}>
+        <Loader2 className="animate-spin" style={{ color: "var(--c-accent-blue)", width: 22, height: 22 }} />
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#080B12", overflow: "auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--c-bg-base)", overflow: "auto" }}>
       {/* Header */}
-      <div style={{ padding: "28px clamp(16px, 4vw, 32px) 18px", borderBottom: "1px solid #1E2540" }}>
-        <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+      <div style={{ padding: "28px clamp(16px, 4vw, 32px) 18px", borderBottom: "1px solid var(--c-border)" }}>
+        <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
           Workspace
         </p>
-        <h1 style={{ margin: "4px 0 0", fontSize: 22, fontWeight: 700, color: "#E2E8F8" }}>Carga de trabajo</h1>
-        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#7A8BAD" }}>
+        <h1 style={{ margin: "4px 0 0", fontSize: 22, fontWeight: 700, color: "var(--c-text-primary)" }}>Carga de trabajo</h1>
+        <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--c-text-muted)" }}>
           Tareas abiertas asignadas, agrupadas por posición del orgchart. Cross-project.
         </p>
 
         {/* Stats top */}
         <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-          <StatCard icon={<Activity size={14} />} label="Tareas abiertas" value={openTasks.length} color="#3D7EFF" />
-          <StatCard icon={<AlertTriangle size={14} />} label="Atrasadas" value={overdueTotal} color={overdueTotal > 0 ? "#F43F5E" : "#7A8BAD"} />
-          <StatCard icon={<CheckCircle2 size={14} />} label="Total completadas" value={tasks.length - openTasks.length} color="#10D9A0" />
-          <StatCard icon={<Clock size={14} />} label="Sin asignar" value={unassigned} color={unassigned > 0 ? "#F59E0B" : "#7A8BAD"} />
+          <StatCard icon={<Activity size={14} />} label="Tareas abiertas" value={openTasks.length} color="var(--c-accent-blue)" />
+          <StatCard icon={<AlertTriangle size={14} />} label="Atrasadas" value={overdueTotal} color={overdueTotal > 0 ? "var(--c-accent-red)" : "var(--c-text-muted)"} />
+          <StatCard icon={<CheckCircle2 size={14} />} label="Total completadas" value={tasks.length - openTasks.length} color="var(--c-accent-emerald)" />
+          <StatCard icon={<Clock size={14} />} label="Sin asignar" value={unassigned} color={unassigned > 0 ? "var(--c-accent-amber)" : "var(--c-text-muted)"} />
         </div>
 
         {/* Group by toggle */}
-        <div style={{ marginTop: 16, display: "inline-flex", background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6, overflow: "hidden" }}>
+        <div style={{ marginTop: 16, display: "inline-flex", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6, overflow: "hidden" }}>
           {([
             { v: "employee" as const, label: "Por persona" },
             { v: "department" as const, label: "Por departamento" },
           ]).map(({ v, label }) => (
             <button key={v} onClick={() => setGroupBy(v)} style={{
               padding: "6px 14px", fontSize: 12, border: "none", cursor: "pointer",
-              background: groupBy === v ? "#1E2540" : "transparent",
-              color: groupBy === v ? "#E2E8F8" : "#7A8BAD",
+              background: groupBy === v ? "var(--c-border)" : "transparent",
+              color: groupBy === v ? "var(--c-text-primary)" : "var(--c-text-muted)",
             }}>{label}</button>
           ))}
         </div>
@@ -198,7 +198,7 @@ export default function WorkloadPage() {
 
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
   return (
-    <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: "12px 14px" }}>
+    <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, padding: "12px 14px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, color }}>
         {icon}
         <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</p>
@@ -210,10 +210,10 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
 
 function EmptyState() {
   return (
-    <div style={{ padding: "60px 24px", textAlign: "center", border: "1px dashed #1E2540", borderRadius: 12, background: "#0E1220" }}>
-      <UsersIcon style={{ width: 36, height: 36, margin: "0 auto 10px", color: "#1E2540" }} />
-      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#E2E8F8" }}>Nada asignado</p>
-      <p style={{ margin: "4px 0 0", fontSize: 12, color: "#7A8BAD" }}>
+    <div style={{ padding: "60px 24px", textAlign: "center", border: "1px dashed var(--c-border)", borderRadius: 12, background: "var(--c-bg-surface)" }}>
+      <UsersIcon style={{ width: 36, height: 36, margin: "0 auto 10px", color: "var(--c-border)" }} />
+      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)" }}>Nada asignado</p>
+      <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--c-text-muted)" }}>
         Asigná tareas a empleados del orgchart desde cualquier proyecto.
       </p>
     </div>
@@ -226,7 +226,7 @@ function EmployeeWorkloadCard({ emp, open, overdue, weight, maxWeight, projectsB
 }) {
   const [expanded, setExpanded] = useState(false);
   const loadPct = Math.round((weight / maxWeight) * 100);
-  const loadColor = overdue.length > 0 ? "#F43F5E" : loadPct > 70 ? "#F59E0B" : "#3D7EFF";
+  const loadColor = overdue.length > 0 ? "var(--c-accent-red)" : loadPct > 70 ? "var(--c-accent-amber)" : "var(--c-accent-blue)";
 
   // Tasks agrupados por proyecto
   const byProject = open.reduce((acc, t) => {
@@ -237,27 +237,27 @@ function EmployeeWorkloadCard({ emp, open, overdue, weight, maxWeight, projectsB
   }, new Map<string, Task[]>());
 
   return (
-    <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, overflow: "hidden" }}>
+    <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, overflow: "hidden" }}>
       <button onClick={() => setExpanded(p => !p)} style={{
         display: "flex", alignItems: "center", gap: 14, width: "100%",
         padding: "14px 18px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
       }}>
         <Avatar name={emp.fullName} color={emp.color} size={36} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#E2E8F8" }}>{emp.fullName}</p>
-          {emp.jobTitle && <p style={{ margin: 0, fontSize: 11, color: "#7A8BAD" }}>{emp.jobTitle}</p>}
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)" }}>{emp.fullName}</p>
+          {emp.jobTitle && <p style={{ margin: 0, fontSize: 11, color: "var(--c-text-muted)" }}>{emp.jobTitle}</p>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 120, height: 6, background: "#1E2540", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ width: 120, height: 6, background: "var(--c-border)", borderRadius: 3, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${loadPct}%`, background: loadColor, transition: "width 0.3s" }} />
           </div>
-          <span style={{ fontSize: 11, color: "#7A8BAD", fontFamily: "monospace", minWidth: 60, textAlign: "right" }}>
+          <span style={{ fontSize: 11, color: "var(--c-text-muted)", fontFamily: "monospace", minWidth: 60, textAlign: "right" }}>
             {open.length} tarea{open.length !== 1 ? "s" : ""}
           </span>
           {overdue.length > 0 && (
             <span style={{
               fontSize: 10, fontFamily: "monospace", padding: "2px 7px", borderRadius: 4,
-              background: "rgba(244,63,94,0.12)", color: "#F43F5E", border: "1px solid rgba(244,63,94,0.4)",
+              background: "rgb(var(--c-accent-red-rgb) / 0.12)", color: "var(--c-accent-red)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.4)",
             }}>
               {overdue.length} ATRASADA{overdue.length !== 1 ? "S" : ""}
             </span>
@@ -265,12 +265,12 @@ function EmployeeWorkloadCard({ emp, open, overdue, weight, maxWeight, projectsB
         </div>
       </button>
       {expanded && (
-        <div style={{ padding: "8px 18px 16px 18px", borderTop: "1px solid #1E2540", background: "#0A0E1A" }}>
+        <div style={{ padding: "8px 18px 16px 18px", borderTop: "1px solid var(--c-border)", background: "var(--c-bg-darkest)" }}>
           {Array.from(byProject.entries()).map(([projectId, taskList]) => {
             const proj = projectsById.get(projectId);
             return (
               <div key={projectId} style={{ marginTop: 12 }}>
-                <Link href={`/dashboard/projects?id=${projectId}`} style={{ fontSize: 11, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none" }}>
+                <Link href={`/dashboard/projects?id=${projectId}`} style={{ fontSize: 11, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none" }}>
                   {proj?.name ?? "Proyecto"}
                 </Link>
                 <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -279,14 +279,14 @@ function EmployeeWorkloadCard({ emp, open, overdue, weight, maxWeight, projectsB
                     return (
                       <div key={t.id} style={{
                         display: "flex", alignItems: "center", gap: 8,
-                        padding: "5px 10px", background: "#141928", border: "1px solid #1E2540", borderRadius: 5,
+                        padding: "5px 10px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 5,
                       }}>
-                        <span style={{ fontSize: 12, color: "#E2E8F8", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
+                        <span style={{ fontSize: 12, color: "var(--c-text-primary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
                         {t.priority && (
-                          <span style={{ fontSize: 9, fontFamily: "monospace", color: "#7A8BAD" }}>{t.priority.toUpperCase()}</span>
+                          <span style={{ fontSize: 9, fontFamily: "monospace", color: "var(--c-text-muted)" }}>{t.priority.toUpperCase()}</span>
                         )}
                         {t.dueDate && (
-                          <span style={{ fontSize: 10, fontFamily: "monospace", color: isOverdue ? "#F43F5E" : "#7A8BAD" }}>
+                          <span style={{ fontSize: 10, fontFamily: "monospace", color: isOverdue ? "var(--c-accent-red)" : "var(--c-text-muted)" }}>
                             {new Date(t.dueDate).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" })}
                           </span>
                         )}
@@ -308,7 +308,7 @@ function DepartmentWorkloadCard({ entry, employees }: {
   employees: Employee[];
 }) {
   const name = entry.dept?.name ?? "Sin departamento";
-  const color = entry.dept?.color ?? "#7A8BAD";
+  const color = entry.dept?.color ?? "var(--c-text-muted)";
   // Top 3 personas más cargadas del depto
   const empWorkload = entry.members.map(m => {
     const empOpen = entry.open.filter(t => {
@@ -319,30 +319,30 @@ function DepartmentWorkloadCard({ entry, employees }: {
   }).filter(x => x.open.length > 0).sort((a, b) => b.open.length - a.open.length);
 
   return (
-    <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderLeft: `3px solid ${color}`, borderRadius: 8, padding: 16 }}>
+    <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderLeft: `3px solid ${color}`, borderRadius: 8, padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#E2E8F8" }}>{name}</p>
-        <span style={{ fontSize: 10, fontFamily: "monospace", color: "#7A8BAD" }}>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)" }}>{name}</p>
+        <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)" }}>
           {entry.members.length} integrante{entry.members.length !== 1 ? "s" : ""}
         </span>
       </div>
-      <div style={{ marginTop: 12, display: "flex", gap: 14, fontSize: 11, color: "#7A8BAD" }}>
-        <span><strong style={{ color: "#3D7EFF", fontSize: 18 }}>{entry.open.length}</strong> abiertas</span>
+      <div style={{ marginTop: 12, display: "flex", gap: 14, fontSize: 11, color: "var(--c-text-muted)" }}>
+        <span><strong style={{ color: "var(--c-accent-blue)", fontSize: 18 }}>{entry.open.length}</strong> abiertas</span>
         {entry.overdue.length > 0 && (
-          <span><strong style={{ color: "#F43F5E", fontSize: 18 }}>{entry.overdue.length}</strong> atrasadas</span>
+          <span><strong style={{ color: "var(--c-accent-red)", fontSize: 18 }}>{entry.overdue.length}</strong> atrasadas</span>
         )}
       </div>
       {empWorkload.length > 0 && (
-        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #1E2540" }}>
-          <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--c-border)" }}>
+          <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             Más cargados
           </p>
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
             {empWorkload.slice(0, 3).map(({ emp, open }) => (
               <div key={emp.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Avatar name={emp.fullName} color={emp.color} size={20} />
-                <span style={{ fontSize: 12, color: "#C4CFEA", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.fullName}</span>
-                <span style={{ fontSize: 10, fontFamily: "monospace", color: "#7A8BAD" }}>{open.length}</span>
+                <span style={{ fontSize: 12, color: "var(--c-text-secondary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.fullName}</span>
+                <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)" }}>{open.length}</span>
               </div>
             ))}
           </div>

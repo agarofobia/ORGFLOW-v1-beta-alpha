@@ -68,7 +68,7 @@ export function DashboardSidebar() {
         <div
           onClick={() => setMobileOpen(false)}
           className="fixed inset-0 z-30 md:hidden"
-          style={{ background: "rgba(0,0,0,0.6)" }}
+          style={{ background: "var(--c-shadow-strong)" }}
         />
       )}
       <aside
@@ -80,30 +80,30 @@ export function DashboardSidebar() {
           "fixed left-0 top-0 z-40 transition-transform duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
-        style={{ background: "#080B12", borderRight: "1px solid #1E2540" }}
+        style={{ background: "var(--c-bg-base)", borderRight: "1px solid var(--c-border)" }}
       >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-5">
         <div
           className="flex h-7 w-7 items-center justify-center rounded-lg flex-shrink-0"
-          style={{ background: "#3D7EFF" }}
+          style={{ background: "var(--c-accent-blue)" }}
         >
           <Zap className="h-4 w-4 text-white" strokeWidth={2.5} fill="white" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold leading-none" style={{ color: "#E2E8F8" }}>
+          <p className="text-sm font-semibold leading-none" style={{ color: "var(--c-text-primary)" }}>
             FlowOS
           </p>
           <p
             className="mt-0.5 font-mono text-[9px] uppercase tracking-widest leading-none"
-            style={{ color: "#7A8BAD" }}
+            style={{ color: "var(--c-text-muted)" }}
           >
             BPM Suite
           </p>
         </div>
       </div>
 
-      <div style={{ height: "1px", background: "#1E2540" }} />
+      <div style={{ height: "1px", background: "var(--c-border)" }} />
 
       {/* Nav principal — agrupado por frecuencia de uso */}
       <nav className="flex-1 overflow-y-auto px-2 pt-3 pb-2">
@@ -111,7 +111,7 @@ export function DashboardSidebar() {
           <div key={group.label} style={{ marginTop: gi === 0 ? 0 : 14 }}>
             <p
               className="mb-1.5 px-3 font-mono text-[9px] font-medium uppercase tracking-widest"
-              style={{ color: "#7A8BAD" }}
+              style={{ color: "var(--c-text-muted)" }}
             >
               {group.label}
             </p>
@@ -129,17 +129,17 @@ export function DashboardSidebar() {
                         "group flex items-center justify-between rounded px-3 py-2 text-sm transition-all duration-150",
                         active
                           ? "font-medium"
-                          : "hover:bg-[#141928]"
+                          : "hover:bg-[var(--c-bg-elevated)]"
                       )}
                       style={
                         active
                           ? {
-                              background: "rgba(61,126,255,0.12)",
-                              borderLeft: "2px solid #3D7EFF",
-                              color: "#E2E8F8",
+                              background: "rgb(var(--c-accent-blue-rgb) / 0.12)",
+                              borderLeft: "2px solid var(--c-accent-blue)",
+                              color: "var(--c-text-primary)",
                               paddingLeft: "10px",
                             }
-                          : { color: "#7A8BAD" }
+                          : { color: "var(--c-text-muted)" }
                       }
                     >
                       <span className="flex items-center gap-2.5">
@@ -152,7 +152,7 @@ export function DashboardSidebar() {
                       {active && (
                         <ChevronRight
                           className="h-3.5 w-3.5 shrink-0"
-                          style={{ color: "#3D7EFF" }}
+                          style={{ color: "var(--c-accent-blue)" }}
                           strokeWidth={2}
                         />
                       )}
@@ -164,11 +164,11 @@ export function DashboardSidebar() {
           </div>
         ))}
 
-        <div style={{ height: "1px", background: "#1E2540", margin: "14px 0 10px" }} />
+        <div style={{ height: "1px", background: "var(--c-border)", margin: "14px 0 10px" }} />
 
         <p
           className="mb-1.5 px-3 font-mono text-[9px] font-medium uppercase tracking-widest"
-          style={{ color: "#7A8BAD" }}
+          style={{ color: "var(--c-text-muted)" }}
         >
           System
         </p>
@@ -181,17 +181,17 @@ export function DashboardSidebar() {
                   href={item.href}
                   className={cn(
                     "group flex items-center justify-between rounded px-3 py-2 text-sm transition-all duration-150",
-                    active ? "font-medium" : "hover:bg-[#141928]"
+                    active ? "font-medium" : "hover:bg-[var(--c-bg-elevated)]"
                   )}
                   style={
                     active
                       ? {
-                          background: "rgba(61,126,255,0.12)",
-                          borderLeft: "2px solid #3D7EFF",
-                          color: "#E2E8F8",
+                          background: "rgb(var(--c-accent-blue-rgb) / 0.12)",
+                          borderLeft: "2px solid var(--c-accent-blue)",
+                          color: "var(--c-text-primary)",
                           paddingLeft: "10px",
                         }
-                      : { color: "#7A8BAD" }
+                      : { color: "var(--c-text-muted)" }
                   }
                 >
                   <span className="flex items-center gap-2.5">
@@ -201,7 +201,7 @@ export function DashboardSidebar() {
                   {active && (
                     <ChevronRight
                       className="h-3.5 w-3.5 shrink-0"
-                      style={{ color: "#3D7EFF" }}
+                      style={{ color: "var(--c-accent-blue)" }}
                       strokeWidth={2}
                     />
                   )}
@@ -213,7 +213,7 @@ export function DashboardSidebar() {
       </nav>
 
       {/* Bottom: org + usuario */}
-      <div style={{ borderTop: "1px solid #1E2540" }}>
+      <div style={{ borderTop: "1px solid var(--c-border)" }}>
         {/* Org switcher */}
         <div className="px-3 py-3">
           <OrganizationSwitcher
@@ -222,19 +222,19 @@ export function DashboardSidebar() {
             afterCreateOrganizationUrl="/dashboard"
             appearance={{
               variables: {
-                colorPrimary: "#3D7EFF",
-                colorBackground: "#141928",
-                colorText: "#E2E8F8",
-                colorTextSecondary: "#7A8BAD",
-                colorInputBackground: "#1A2035",
-                colorNeutral: "#7A8BAD",
+                colorPrimary: "var(--c-accent-blue)",
+                colorBackground: "var(--c-bg-elevated)",
+                colorText: "var(--c-text-primary)",
+                colorTextSecondary: "var(--c-text-muted)",
+                colorInputBackground: "var(--c-bg-overlay)",
+                colorNeutral: "var(--c-text-muted)",
                 borderRadius: "0.375rem",
               },
               elements: {
                 rootBox: "w-full",
                 organizationSwitcherTrigger:
-                  "w-full justify-start gap-2 rounded px-2 py-1.5 text-xs hover:bg-[#141928] transition-colors",
-                organizationSwitcherTriggerIcon: "text-[#7A8BAD]",
+                  "w-full justify-start gap-2 rounded px-2 py-1.5 text-xs hover:bg-[var(--c-bg-elevated)] transition-colors",
+                organizationSwitcherTriggerIcon: "text-[var(--c-text-muted)]",
               },
             }}
           />
@@ -243,14 +243,14 @@ export function DashboardSidebar() {
         {/* User */}
         <div
           className="flex items-center gap-2.5 px-3 pb-4"
-          style={{ borderTop: "1px solid #1E2540", paddingTop: "10px" }}
+          style={{ borderTop: "1px solid var(--c-border)", paddingTop: "10px" }}
         >
           <UserButton afterSignOutUrl="/" />
           <div className="min-w-0">
-            <p className="truncate text-xs font-medium leading-none" style={{ color: "#E2E8F8" }}>
+            <p className="truncate text-xs font-medium leading-none" style={{ color: "var(--c-text-primary)" }}>
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="mt-1 font-mono text-[10px] leading-none" style={{ color: "#7A8BAD" }}>
+            <p className="mt-1 font-mono text-[10px] leading-none" style={{ color: "var(--c-text-muted)" }}>
               Admin
             </p>
           </div>

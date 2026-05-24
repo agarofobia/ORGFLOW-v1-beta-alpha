@@ -131,8 +131,8 @@ export function CommandPalette() {
         onKeyDown={onKeyDownList}
         style={{
           width: "100%", maxWidth: 560,
-          background: "#0E1220",
-          border: "1px solid #1E2540",
+          background: "var(--c-bg-surface)",
+          border: "1px solid var(--c-border)",
           borderRadius: 12,
           boxShadow: "0 24px 60px rgba(0,0,0,0.55)",
           overflow: "hidden",
@@ -142,9 +142,9 @@ export function CommandPalette() {
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "14px 16px",
-          borderBottom: "1px solid #1E2540",
+          borderBottom: "1px solid var(--c-border)",
         }}>
-          <Search style={{ width: 16, height: 16, color: "#7A8BAD" }} strokeWidth={1.75} />
+          <Search style={{ width: 16, height: 16, color: "var(--c-text-muted)" }} strokeWidth={1.75} />
           <input
             ref={inputRef}
             value={query}
@@ -152,14 +152,14 @@ export function CommandPalette() {
             placeholder="Buscar páginas, acciones…"
             style={{
               flex: 1, background: "transparent", border: "none", outline: "none",
-              color: "#E2E8F8", fontSize: 14, fontFamily: "inherit",
+              color: "var(--c-text-primary)", fontSize: 14, fontFamily: "inherit",
             }}
           />
           <span style={{
             fontSize: 10, fontFamily: "monospace",
-            color: "#7A8BAD", background: "#141928",
+            color: "var(--c-text-muted)", background: "var(--c-bg-elevated)",
             padding: "2px 6px", borderRadius: 4,
-            border: "1px solid #1E2540",
+            border: "1px solid var(--c-border)",
           }}>
             ESC
           </span>
@@ -168,7 +168,7 @@ export function CommandPalette() {
         {/* Resultados */}
         <div style={{ maxHeight: "55vh", overflowY: "auto", padding: 6 }}>
           {filtered.length === 0 ? (
-            <p style={{ padding: "24px 16px", textAlign: "center", color: "#7A8BAD", fontSize: 13 }}>
+            <p style={{ padding: "24px 16px", textAlign: "center", color: "var(--c-text-muted)", fontSize: 13 }}>
               Sin resultados para &quot;{query}&quot;
             </p>
           ) : (
@@ -183,28 +183,28 @@ export function CommandPalette() {
                   style={{
                     width: "100%", display: "flex", alignItems: "center", gap: 12,
                     padding: "10px 12px", borderRadius: 6,
-                    background: active ? "#141928" : "transparent",
-                    border: "none", color: "#E2E8F8",
+                    background: active ? "var(--c-bg-elevated)" : "transparent",
+                    border: "none", color: "var(--c-text-primary)",
                     cursor: "pointer", textAlign: "left",
                     fontFamily: "inherit",
                   }}
                 >
                   <div style={{
                     width: 28, height: 28, borderRadius: 6,
-                    background: active ? "rgba(61,126,255,0.18)" : "#141928",
-                    border: active ? "1px solid rgba(61,126,255,0.4)" : "1px solid #1E2540",
+                    background: active ? "rgb(var(--c-accent-blue-rgb) / 0.18)" : "var(--c-bg-elevated)",
+                    border: active ? "1px solid rgb(var(--c-accent-blue-rgb) / 0.4)" : "1px solid var(--c-border)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     flexShrink: 0,
                   }}>
-                    <Icon style={{ width: 14, height: 14, color: active ? "#3D7EFF" : "#7A8BAD" }} strokeWidth={1.75} />
+                    <Icon style={{ width: 14, height: 14, color: active ? "var(--c-accent-blue)" : "var(--c-text-muted)" }} strokeWidth={1.75} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "#E2E8F8" }}>{cmd.label}</p>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: "var(--c-text-primary)" }}>{cmd.label}</p>
                     {cmd.hint && (
-                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#7A8BAD" }}>{cmd.hint}</p>
+                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--c-text-muted)" }}>{cmd.hint}</p>
                     )}
                   </div>
-                  {active && <ArrowRight style={{ width: 14, height: 14, color: "#3D7EFF" }} />}
+                  {active && <ArrowRight style={{ width: 14, height: 14, color: "var(--c-accent-blue)" }} />}
                 </button>
               );
             })
@@ -214,8 +214,8 @@ export function CommandPalette() {
         {/* Footer hints */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "8px 16px", borderTop: "1px solid #1E2540",
-          fontSize: 10, fontFamily: "monospace", color: "#7A8BAD",
+          padding: "8px 16px", borderTop: "1px solid var(--c-border)",
+          fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)",
         }}>
           <span>↑↓ navegar · ⏎ ejecutar</span>
           <span>Ctrl+K abrir/cerrar</span>

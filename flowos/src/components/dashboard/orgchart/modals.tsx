@@ -22,12 +22,12 @@ function backdropClose(onClose: () => void) {
 
 // Estilos compartidos entre modales (formularios oscuros)
 const fieldStyle: React.CSSProperties = {
-  width: "100%", background: "#141928", border: "1px solid #1E2540",
-  borderRadius: 6, color: "#E2E8F8", fontSize: 13, padding: "7px 10px",
+  width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
+  borderRadius: 6, color: "var(--c-text-primary)", fontSize: 13, padding: "7px 10px",
   outline: "none", boxSizing: "border-box",
 };
 const labelStyle: React.CSSProperties = {
-  display: "block", fontSize: 10, color: "#7A8BAD", textTransform: "uppercase",
+  display: "block", fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase",
   letterSpacing: "0.06em", marginBottom: 4, fontFamily: "monospace",
 };
 
@@ -46,27 +46,27 @@ export function PersonPickerModal({ employees, onPick, onClose, onClearAssignmen
   );
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
       {...backdropClose(onClose)}>
-      <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, width: 480, maxHeight: "75vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>Asignar persona al puesto</p>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, width: 480, maxHeight: "75vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>Asignar persona al puesto</p>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
             <X size={15} />
           </button>
         </div>
-        <div style={{ padding: 12, borderBottom: "1px solid #1E2540" }}>
+        <div style={{ padding: 12, borderBottom: "1px solid var(--c-border)" }}>
           <input
             autoFocus
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar empleado..."
-            style={{ width: "100%", background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "#E2E8F8", outline: "none" }}
+            style={{ width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "var(--c-text-primary)", outline: "none" }}
           />
         </div>
         <div style={{ flex: 1, overflow: "auto", padding: 8 }}>
           {candidates.length === 0 ? (
-            <p style={{ padding: "24px", textAlign: "center", color: "#7A8BAD", fontSize: 12 }}>Sin coincidencias</p>
+            <p style={{ padding: "24px", textAlign: "center", color: "var(--c-text-muted)", fontSize: 12 }}>Sin coincidencias</p>
           ) : (
             candidates.map(e => {
               const initials = e.fullName.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
@@ -84,24 +84,24 @@ export function PersonPickerModal({ employees, onPick, onClose, onClearAssignmen
                     padding: "10px 12px", background: "transparent", border: "none",
                     borderRadius: 6, cursor: "pointer", textAlign: "left", marginBottom: 2,
                   }}
-                  onMouseEnter={ev => (ev.currentTarget.style.background = "#141928")}
+                  onMouseEnter={ev => (ev.currentTarget.style.background = "var(--c-bg-elevated)")}
                   onMouseLeave={ev => (ev.currentTarget.style.background = "transparent")}
                 >
                   <div style={{
                     width: 36, height: 36, borderRadius: "50%",
-                    background: (e.color ?? "#3D7EFF") + "33",
-                    border: `2px solid ${e.color ?? "#3D7EFF"}`,
+                    background: (e.color ?? "var(--c-accent-blue)") + "33",
+                    border: `2px solid ${e.color ?? "var(--c-accent-blue)"}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 12, fontWeight: 600, color: e.color ?? "#3D7EFF",
+                    fontSize: 12, fontWeight: 600, color: e.color ?? "var(--c-accent-blue)",
                     flexShrink: 0,
                   }}>
                     {initials}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {e.fullName}
                     </p>
-                    <p style={{ fontSize: 11, color: "#7A8BAD", margin: "1px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{ fontSize: 11, color: "var(--c-text-muted)", margin: "1px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {e.jobTitle ?? "Sin puesto"} · {tenure}
                     </p>
                   </div>
@@ -110,13 +110,13 @@ export function PersonPickerModal({ employees, onPick, onClose, onClearAssignmen
             })
           )}
         </div>
-        <div style={{ padding: "10px 14px", borderTop: "1px solid #1E2540", display: "flex", gap: 8 }}>
+        <div style={{ padding: "10px 14px", borderTop: "1px solid var(--c-border)", display: "flex", gap: 8 }}>
           <button onClick={() => { onClearAssignment(); onClose(); }}
-            style={{ flex: 1, padding: "7px 12px", background: "transparent", border: "1px solid #1E2540", borderRadius: 6, color: "#F43F5E", fontSize: 12, cursor: "pointer" }}>
+            style={{ flex: 1, padding: "7px 12px", background: "transparent", border: "1px solid var(--c-border)", borderRadius: 6, color: "var(--c-accent-red)", fontSize: 12, cursor: "pointer" }}>
             Dejar puesto vacante
           </button>
           <button onClick={onClose}
-            style={{ flex: 1, padding: "7px 12px", background: "#141928", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD", fontSize: 12, cursor: "pointer" }}>
+            style={{ flex: 1, padding: "7px 12px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, color: "var(--c-text-muted)", fontSize: 12, cursor: "pointer" }}>
             Cancelar
           </button>
         </div>
@@ -231,29 +231,29 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
 
   return (
     <>
-      <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
+      <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
         {...backdropClose(onClose)}>
         <div style={{
           width: "100%", maxWidth: 520, maxHeight: "88vh",
-          background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
+          background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12,
           display: "flex", flexDirection: "column", overflow: "hidden",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+          boxShadow: "0 20px 60px var(--c-shadow-heavy)",
         }} onClick={e => e.stopPropagation()}>
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F8", margin: 0 }}>Nuevo puesto</p>
-              <p style={{ fontSize: 11, color: "#7A8BAD", margin: "2px 0 0", fontFamily: "monospace" }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text-primary)", margin: 0 }}>Nuevo puesto</p>
+              <p style={{ fontSize: 11, color: "var(--c-text-muted)", margin: "2px 0 0", fontFamily: "monospace" }}>
                 {parentLabel}
               </p>
             </div>
-            <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+            <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
               <X size={16} />
             </button>
           </div>
 
           <form onSubmit={submit} style={{ flex: 1, overflow: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
-              <label style={labelStyle}>Puesto <span style={{ color: "#F43F5E" }}>*</span></label>
+              <label style={labelStyle}>Puesto <span style={{ color: "var(--c-accent-red)" }}>*</span></label>
               <input autoFocus value={jobTitle} onChange={e => setJobTitle(e.target.value)}
                 placeholder="ej: Gerente de Ventas" style={fieldStyle} />
             </div>
@@ -261,7 +261,7 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
             <div>
               <label style={labelStyle}>Color del puesto</label>
               <ColorPicker value={color} onChange={setColor} />
-              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+              <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
                 {parent?.kind === "employee" ? "Sugerido: el color del jefe" : "Elegí un color para identificar visualmente"}
               </p>
             </div>
@@ -275,7 +275,7 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
                 <option value="manager">Encargado</option>
                 <option value="member">Miembro</option>
               </select>
-              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+              <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
                 Auto: director = head del depto, encargado = tiene subordinados
               </p>
             </div>
@@ -285,7 +285,7 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
               <button type="button" onClick={() => setShowPicker(true)}
                 style={{
                   display: "flex", alignItems: "center", gap: 10, width: "100%",
-                  background: "#141928", border: "1px solid #1E2540", borderRadius: 6,
+                  background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6,
                   padding: "7px 10px", cursor: "pointer", textAlign: "left",
                 }}>
                 {assignedEmpId ? (
@@ -300,19 +300,19 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
                     }}>
                       {assignedName.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
                     </div>
-                    <span style={{ flex: 1, fontSize: 13, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ flex: 1, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {assignedName}
                     </span>
                     <button type="button" onClick={e => { e.stopPropagation(); setAssignedEmpId(null); }}
-                      style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+                      style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
                       <X size={13} />
                     </button>
                   </>
                 ) : (
-                  <span style={{ fontSize: 13, color: "#7A8BAD" }}>Click para seleccionar empleado…</span>
+                  <span style={{ fontSize: 13, color: "var(--c-text-muted)" }}>Click para seleccionar empleado…</span>
                 )}
               </button>
-              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+              <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
                 Si no asignás a nadie, queda vacante hasta que se cubra
               </p>
             </div>
@@ -329,7 +329,7 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
                     </option>
                   ))}
                 </select>
-                <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+                <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
                   Define la jerarquía y la posición visual (DIR → ENC → equipo)
                 </p>
               </div>
@@ -369,14 +369,14 @@ export function NewPositionModal({ parent, employees, departments, defaultColor,
             </div>
           </form>
 
-          <div style={{ padding: "12px 20px", borderTop: "1px solid #1E2540", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <div style={{ padding: "12px 20px", borderTop: "1px solid var(--c-border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button onClick={onClose} type="button"
-              style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "8px 14px", fontSize: 13, cursor: "pointer" }}>
+              style={{ background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "8px 14px", fontSize: 13, cursor: "pointer" }}>
               Cancelar
             </button>
             <button onClick={submit} disabled={!jobTitle.trim() || saving}
               style={{
-                background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6,
+                background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6,
                 padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
                 opacity: !jobTitle.trim() || saving ? 0.5 : 1,
                 display: "flex", alignItems: "center", gap: 6,
@@ -411,7 +411,7 @@ export function DivisionEditModal({ division, employees, onSave, onDelete, onClo
 }) {
   const [name, setName] = useState(division.name);
   const [subtitle, setSubtitle] = useState(division.subtitle ?? "");
-  const [color, setColor] = useState(division.color ?? "#3D7EFF");
+  const [color, setColor] = useState(division.color ?? "var(--c-accent-blue)");
   const [showFooter, setShowFooter] = useState(division.showFooter);
   const [footerText, setFooterText] = useState(division.footerText ?? "");
   const [seniorId, setSeniorId] = useState<string | null>(division.seniorEmployeeId ?? null);
@@ -440,19 +440,19 @@ export function DivisionEditModal({ division, employees, onSave, onDelete, onClo
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
       {...backdropClose(onClose)}>
       <div style={{
         width: "100%", maxWidth: 480,
-        background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+        background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12,
+        boxShadow: "0 20px 60px var(--c-shadow-heavy)",
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F8", margin: 0 }}>Editar división</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--c-text-primary)", margin: 0 }}>Editar división</p>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
             <X size={15} />
           </button>
         </div>
@@ -465,7 +465,7 @@ export function DivisionEditModal({ division, employees, onSave, onDelete, onClo
             <label style={labelStyle}>Subtítulo</label>
             <input value={subtitle} onChange={e => setSubtitle(e.target.value)}
               placeholder="ej: COMERCIAL, OPERACIONES, R&D…" style={fieldStyle} />
-            <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
               Aparece debajo del título — dejá vacío para no mostrar
             </p>
           </div>
@@ -477,7 +477,7 @@ export function DivisionEditModal({ division, employees, onSave, onDelete, onClo
           <div>
             <label style={labelStyle}>Senior de la división</label>
             <button type="button" onClick={() => setShowPicker(true)}
-              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 10px", cursor: "pointer", textAlign: "left" }}>
+              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 10px", cursor: "pointer", textAlign: "left" }}>
               {seniorEmp ? (
                 <>
                   <div style={{
@@ -490,36 +490,36 @@ export function DivisionEditModal({ division, employees, onSave, onDelete, onClo
                   }}>
                     {seniorEmp.fullName.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
                   </div>
-                  <span style={{ flex: 1, fontSize: 13, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {seniorEmp.fullName} {seniorEmp.jobTitle && <span style={{ color: "#7A8BAD" }}>· {seniorEmp.jobTitle}</span>}
+                  <span style={{ flex: 1, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {seniorEmp.fullName} {seniorEmp.jobTitle && <span style={{ color: "var(--c-text-muted)" }}>· {seniorEmp.jobTitle}</span>}
                   </span>
                   <button type="button" onClick={ev => { ev.stopPropagation(); setSeniorId(null); }}
-                    style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+                    style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
                     <X size={13} />
                   </button>
                 </>
               ) : (
-                <span style={{ fontSize: 13, color: "#7A8BAD" }}>Click para asignar el director/senior…</span>
+                <span style={{ fontSize: 13, color: "var(--c-text-muted)" }}>Click para asignar el director/senior…</span>
               )}
             </button>
-            <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
               Aparece en la esquina superior del header
             </p>
           </div>
 
           <div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: "#C4CFEA", fontSize: 13 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: "var(--c-text-secondary)", fontSize: 13 }}>
               <input type="checkbox" checked={isConnectable} onChange={e => setIsConnectable(e.target.checked)}
                 style={{ width: 16, height: 16, accentColor: color }} />
               Permitir conectar líneas a esta división
             </label>
-            <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0 24px", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0 24px", fontFamily: "monospace" }}>
               Apagado = no se pueden crear edges hacia/desde esta división
             </p>
           </div>
 
           <div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: "#C4CFEA", fontSize: 13 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: "var(--c-text-secondary)", fontSize: 13 }}>
               <input type="checkbox" checked={showFooter} onChange={e => setShowFooter(e.target.checked)}
                 style={{ width: 16, height: 16, accentColor: color }} />
               Mostrar pie de página en la división
@@ -536,17 +536,17 @@ export function DivisionEditModal({ division, employees, onSave, onDelete, onClo
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 4 }}>
             <button type="button" onClick={onDelete}
-              style={{ background: "transparent", color: "#F43F5E", border: "1px solid rgba(244,63,94,0.3)", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              style={{ background: "transparent", color: "var(--c-accent-red)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.3)", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
               <Trash2 size={12} />
               Eliminar
             </button>
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" onClick={onClose}
-                style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>
+                style={{ background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>
                 Cancelar
               </button>
               <button type="submit" disabled={!name.trim() || saving}
-                style={{ background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: !name.trim() || saving ? 0.5 : 1 }}>
+                style={{ background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: !name.trim() || saving ? 0.5 : 1 }}>
                 {saving ? "..." : "Guardar"}
               </button>
             </div>
@@ -601,16 +601,16 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
       {...backdropClose(onClose)}>
-      <div style={{ width: "100%", maxWidth: 420, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}
+      <div style={{ width: "100%", maxWidth: 420, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, boxShadow: "0 20px 60px var(--c-shadow-heavy)" }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F8", margin: 0 }}>Editar departamento</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--c-text-primary)", margin: 0 }}>Editar departamento</p>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
             <X size={15} />
           </button>
         </div>
@@ -626,37 +626,37 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
           <div>
             <label style={labelStyle}>Encargado del departamento</label>
             <button type="button" onClick={() => setShowPicker(true)}
-              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 10px", cursor: "pointer", textAlign: "left" }}>
+              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 10px", cursor: "pointer", textAlign: "left" }}>
               {headEmp ? (
                 <>
                   <div style={{ width: 22, height: 22, borderRadius: "50%", background: (headEmp.color ?? color) + "33", border: `2px solid ${headEmp.color ?? color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: headEmp.color ?? color, flexShrink: 0 }}>
                     {headEmp.fullName.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
                   </div>
-                  <span style={{ flex: 1, fontSize: 13, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {headEmp.fullName} {headEmp.jobTitle && <span style={{ color: "#7A8BAD" }}>· {headEmp.jobTitle}</span>}
+                  <span style={{ flex: 1, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {headEmp.fullName} {headEmp.jobTitle && <span style={{ color: "var(--c-text-muted)" }}>· {headEmp.jobTitle}</span>}
                   </span>
                   <button type="button" onClick={ev => { ev.stopPropagation(); setHeadId(null); }}
-                    style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+                    style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
                     <X size={13} />
                   </button>
                 </>
               ) : (
-                <span style={{ fontSize: 13, color: "#7A8BAD" }}>Click para asignar encargado…</span>
+                <span style={{ fontSize: 13, color: "var(--c-text-muted)" }}>Click para asignar encargado…</span>
               )}
             </button>
-            <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
               Aparece en el header del departamento
             </p>
           </div>
 
           {/* Promover head: si está activo, el head se renderiza como tarjeta arriba del depto */}
           <div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: "#C4CFEA", fontSize: 13 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: "var(--c-text-secondary)", fontSize: 13 }}>
               <input type="checkbox" checked={promoteHead} onChange={e => setPromoteHead(e.target.checked)}
                 style={{ width: 16, height: 16, accentColor: color }} />
               Mostrar al head arriba del departamento
             </label>
-            <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0 24px", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0 24px", fontFamily: "monospace" }}>
               Por defecto el director queda dentro del depto. Activar para promoverlo arriba.
             </p>
           </div>
@@ -670,16 +670,16 @@ export function DepartmentEditModal({ department, employees, onSave, onClose }: 
               <option value="compact">Compacto — tarjetas chicas, sin indent</option>
               <option value="manual">Manual — sin auto-posición, drag libre</option>
             </select>
-            <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
               Cambia cómo se acomodan los puestos dentro del depto.
             </p>
           </div>
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>
+            <button type="button" onClick={onClose} style={{ background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer" }}>
               Cancelar
             </button>
-            <button type="submit" disabled={!name.trim() || saving} style={{ background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: !name.trim() || saving ? 0.5 : 1 }}>
+            <button type="submit" disabled={!name.trim() || saving} style={{ background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: !name.trim() || saving ? 0.5 : 1 }}>
               {saving ? "..." : "Guardar"}
             </button>
           </div>
@@ -715,20 +715,20 @@ export function QuickPromptModal({ title, placeholder, initialValue, onConfirm, 
     } finally { setSaving(false); }
   };
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
       {...backdropClose(onClose)}>
-      <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 20, width: 380 }} onClick={e => e.stopPropagation()}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: "0 0 12px" }}>{title}</p>
+      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, padding: 20, width: 380 }} onClick={e => e.stopPropagation()}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: "0 0 12px" }}>{title}</p>
         <input autoFocus value={value} onChange={e => setValue(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") onClose(); }}
           placeholder={placeholder}
-          style={{ width: "100%", background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "#E2E8F8", outline: "none", boxSizing: "border-box" }} />
+          style={{ width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "var(--c-text-primary)", outline: "none", boxSizing: "border-box" }} />
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
-          <button onClick={onClose} style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+          <button onClick={onClose} style={{ background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
             Cancelar
           </button>
           <button onClick={submit} disabled={!value.trim() || saving}
-            style={{ background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: !value.trim() || saving ? 0.5 : 1 }}>
+            style={{ background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: !value.trim() || saving ? 0.5 : 1 }}>
             {saving ? "..." : "Crear"}
           </button>
         </div>
@@ -745,9 +745,9 @@ export function RenameModal({ initialValue, title, onSave, onClose }: {
   const [value, setValue] = useState(initialValue);
   const [saving, setSaving] = useState(false);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 20, width: 360 }} onClick={e => e.stopPropagation()}>
-        <p className="mb-3 font-mono text-[10px] uppercase" style={{ color: "#7A8BAD" }}>{title}</p>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, padding: 20, width: 360 }} onClick={e => e.stopPropagation()}>
+        <p className="mb-3 font-mono text-[10px] uppercase" style={{ color: "var(--c-text-muted)" }}>{title}</p>
         <input autoFocus value={value} onChange={e => setValue(e.target.value)}
           onKeyDown={e => {
             if (e.key === "Enter" && value.trim()) {
@@ -757,13 +757,13 @@ export function RenameModal({ initialValue, title, onSave, onClose }: {
             if (e.key === "Escape") onClose();
           }}
           className="w-full rounded px-3 py-2 text-sm outline-none mb-3"
-          style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }} />
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="rounded px-3 py-1.5 text-xs" style={{ background: "transparent", border: "1px solid #1E2540", color: "#7A8BAD" }}>Cancelar</button>
+          <button onClick={onClose} className="rounded px-3 py-1.5 text-xs" style={{ background: "transparent", border: "1px solid var(--c-border)", color: "var(--c-text-muted)" }}>Cancelar</button>
           <button onClick={() => { setSaving(true); onSave(value.trim()).finally(() => { setSaving(false); onClose(); }); }}
             disabled={!value.trim() || saving}
             className="rounded px-3 py-1.5 text-xs text-white disabled:opacity-50"
-            style={{ background: "#3D7EFF" }}>
+            style={{ background: "var(--c-accent-blue)" }}>
             {saving ? "..." : "Guardar"}
           </button>
         </div>

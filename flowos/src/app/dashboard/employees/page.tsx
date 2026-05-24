@@ -50,20 +50,20 @@ const DEFAULT_ONBOARDING: OnboardingItem[] = [
   { id: "8", label: "Credenciales de herramientas", done: false },
 ];
 
-const PRESET_COLORS = ["#3D7EFF","#10D9A0","#F59E0B","#F43F5E","#A855F7","#EC4899","#06B6D4","#84CC16"];
+const PRESET_COLORS = ["var(--c-accent-blue)","var(--c-accent-emerald)","var(--c-accent-amber)","var(--c-accent-red)","var(--c-accent-violet)","var(--c-accent-pink)","var(--c-accent-cyan)","var(--c-accent-lime)"];
 const STATUS_LABELS: Record<string, string> = { active: "Activo", inactive: "Inactivo", on_leave: "Licencia" };
-const STATUS_COLORS: Record<string, string> = { active: "#10D9A0", inactive: "#7A8BAD", on_leave: "#F59E0B" };
+const STATUS_COLORS: Record<string, string> = { active: "var(--c-accent-emerald)", inactive: "var(--c-text-muted)", on_leave: "var(--c-accent-amber)" };
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 const labelStyle: React.CSSProperties = {
-  display: "block", fontSize: 11, fontWeight: 600, color: "#7A8BAD",
+  display: "block", fontSize: 11, fontWeight: 600, color: "var(--c-text-muted)",
   letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6,
 };
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", backgroundColor: "#141928", border: "1px solid #1E2540",
-  borderRadius: 6, color: "#E2E8F8", fontSize: 13, padding: "9px 12px",
+  width: "100%", backgroundColor: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
+  borderRadius: 6, color: "var(--c-text-primary)", fontSize: 13, padding: "9px 12px",
   outline: "none", boxSizing: "border-box",
 };
 
@@ -79,14 +79,14 @@ function getInitials(name: string) {
 
 function Avatar({ name, color, size = 40, imageUrl }: { name: string; color?: string; size?: number; imageUrl?: string | null }) {
   const vacant = isVacant({ fullName: name });
-  const bg = vacant ? "#3A4560" : (color || "#3D7EFF");
+  const bg = vacant ? "var(--c-text-placeholder)" : (color || "var(--c-accent-blue)");
   const [imageError, setImageError] = useState(false);
   const hasImage = imageUrl && !imageError && !vacant;
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%",
-      backgroundColor: vacant ? "#141928" : bg + "33",
-      border: `2px dashed ${vacant ? "#3A4560" : bg}`,
+      backgroundColor: vacant ? "var(--c-bg-elevated)" : bg + "33",
+      border: `2px dashed ${vacant ? "var(--c-text-placeholder)" : bg}`,
       borderStyle: vacant ? "dashed" : "solid",
       display: "flex", alignItems: "center", justifyContent: "center",
       flexShrink: 0,
@@ -102,7 +102,7 @@ function Avatar({ name, color, size = 40, imageUrl }: { name: string; color?: st
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
       ) : vacant ? (
-        <UserPlus size={size * 0.42} strokeWidth={1.5} color="#7A8BAD" />
+        <UserPlus size={size * 0.42} strokeWidth={1.5} color="var(--c-text-muted)" />
       ) : (
         getInitials(name)
       )}
@@ -122,13 +122,13 @@ function MetricChip({ color, value, label }: { color: string; value: number; lab
     }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
       <span style={{ color, fontWeight: 700 }}>{value}</span>
-      <span style={{ color: "#7A8BAD" }}>{label}</span>
+      <span style={{ color: "var(--c-text-muted)" }}>{label}</span>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const color = STATUS_COLORS[status] || "#7A8BAD";
+  const color = STATUS_COLORS[status] || "var(--c-text-muted)";
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, backgroundColor: color + "20", color, border: `1px solid ${color}40` }}>
       <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: color }} />
@@ -158,14 +158,14 @@ function AddEmployeeModal({ onClose, onCreated }: { onClose: () => void; onCreat
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.6)" }} onClick={onClose}>
-      <div style={{ width: "100%", maxWidth: 480, backgroundColor: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 32 }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--c-shadow-strong)" }} onClick={onClose}>
+      <div style={{ width: "100%", maxWidth: 480, backgroundColor: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, padding: 32 }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-          <h2 style={{ color: "#E2E8F8", fontSize: 18, fontWeight: 600, margin: 0 }}>Nuevo empleado</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#7A8BAD", cursor: "pointer" }}><X size={18} /></button>
+          <h2 style={{ color: "var(--c-text-primary)", fontSize: 18, fontWeight: 600, margin: 0 }}>Nuevo empleado</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {error && <p style={{ color: "#F43F5E", fontSize: 13, margin: 0 }}>{error}</p>}
+          {error && <p style={{ color: "var(--c-accent-red)", fontSize: 13, margin: 0 }}>{error}</p>}
           <div><label style={labelStyle}>Nombre completo *</label><input style={inputStyle} value={form.fullName} onChange={e => setForm({ ...form, fullName: e.target.value })} placeholder="Ana García" /></div>
           <div><label style={labelStyle}>Puesto</label><input style={inputStyle} value={form.jobTitle} onChange={e => setForm({ ...form, jobTitle: e.target.value })} placeholder="Diseñadora UX" /></div>
           <div><label style={labelStyle}>Email</label><input style={inputStyle} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="ana@empresa.com" /></div>
@@ -175,11 +175,11 @@ function AddEmployeeModal({ onClose, onCreated }: { onClose: () => void; onCreat
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
               {PRESET_COLORS.map(c => (
                 <button key={c} type="button" onClick={() => { setForm({ ...form, color: c }); setCustomColor(""); }}
-                  style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: c, border: form.color === c && !customColor ? "3px solid #E2E8F8" : "3px solid transparent", cursor: "pointer", outline: "none", flexShrink: 0 }} />
+                  style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: c, border: form.color === c && !customColor ? "3px solid var(--c-text-primary)" : "3px solid transparent", cursor: "pointer", outline: "none", flexShrink: 0 }} />
               ))}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: customColor || form.color, border: "2px solid #1E2540", flexShrink: 0 }} />
+              <div style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: customColor || form.color, border: "2px solid var(--c-border)", flexShrink: 0 }} />
               <input
                 type="text"
                 value={customColor}
@@ -188,19 +188,19 @@ function AddEmployeeModal({ onClose, onCreated }: { onClose: () => void; onCreat
                   setCustomColor(val);
                   if (/^#[0-9A-Fa-f]{6}$/.test(val)) setForm({ ...form, color: val });
                 }}
-                placeholder="#3D7EFF"
+                placeholder="var(--c-accent-blue)"
                 maxLength={7}
                 style={{ ...inputStyle, flex: 1, fontFamily: "monospace", letterSpacing: "0.05em" }}
               />
               <input type="color" value={form.color} onChange={e => { setForm({ ...form, color: e.target.value }); setCustomColor(e.target.value); }}
-                style={{ width: 36, height: 36, border: "1px solid #1E2540", borderRadius: 6, background: "#141928", cursor: "pointer", padding: 2 }} />
+                style={{ width: 36, height: 36, border: "1px solid var(--c-border)", borderRadius: 6, background: "var(--c-bg-elevated)", cursor: "pointer", padding: 2 }} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-            <button type="submit" disabled={saving} style={{ flex: 1, padding: "10px 0", backgroundColor: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
+            <button type="submit" disabled={saving} style={{ flex: 1, padding: "10px 0", backgroundColor: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "Creando..." : "Crear empleado"}
             </button>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px 0", backgroundColor: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, fontSize: 14, cursor: "pointer" }}>Cancelar</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px 0", backgroundColor: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, fontSize: 14, cursor: "pointer" }}>Cancelar</button>
           </div>
         </form>
       </div>
@@ -219,17 +219,17 @@ function ArchiveModal({ employee, onClose, onArchived }: { employee: Employee; o
     setLoading(false);
   };
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.7)" }} onClick={onClose}>
-      <div style={{ backgroundColor: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 32, maxWidth: 400, width: "100%" }} onClick={e => e.stopPropagation()}>
-        <h3 style={{ color: "#E2E8F8", fontSize: 16, fontWeight: 600, margin: "0 0 12px" }}>Archivar empleado</h3>
-        <p style={{ color: "#7A8BAD", fontSize: 14, margin: "0 0 24px", lineHeight: 1.6 }}>
-          ¿Archivás a <strong style={{ color: "#E2E8F8" }}>{employee.fullName}</strong>? Pasará a inactivo y seguirá visible en el filtro de inactivos.
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--c-shadow-heavy)" }} onClick={onClose}>
+      <div style={{ backgroundColor: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, padding: 32, maxWidth: 400, width: "100%" }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ color: "var(--c-text-primary)", fontSize: 16, fontWeight: 600, margin: "0 0 12px" }}>Archivar empleado</h3>
+        <p style={{ color: "var(--c-text-muted)", fontSize: 14, margin: "0 0 24px", lineHeight: 1.6 }}>
+          ¿Archivás a <strong style={{ color: "var(--c-text-primary)" }}>{employee.fullName}</strong>? Pasará a inactivo y seguirá visible en el filtro de inactivos.
         </p>
         <div style={{ display: "flex", gap: 12 }}>
-          <button onClick={handleArchive} disabled={loading} style={{ flex: 1, padding: "10px 0", backgroundColor: "#F43F5E", color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={handleArchive} disabled={loading} style={{ flex: 1, padding: "10px 0", backgroundColor: "var(--c-accent-red)", color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             {loading ? "Archivando..." : "Archivar"}
           </button>
-          <button onClick={onClose} style={{ flex: 1, padding: "10px 0", backgroundColor: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, fontSize: 14, cursor: "pointer" }}>Cancelar</button>
+          <button onClick={onClose} style={{ flex: 1, padding: "10px 0", backgroundColor: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, fontSize: 14, cursor: "pointer" }}>Cancelar</button>
         </div>
       </div>
     </div>
@@ -247,9 +247,9 @@ function StatusDropdown({ value, onChange }: {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const options: { v: EmpStatus; label: string; color: string }[] = [
-    { v: "active",   label: "Activo",   color: "#10D9A0" },
-    { v: "inactive", label: "Inactivo", color: "#7A8BAD" },
-    { v: "on_leave", label: "Licencia", color: "#F59E0B" },
+    { v: "active",   label: "Activo",   color: "var(--c-accent-emerald)" },
+    { v: "inactive", label: "Inactivo", color: "var(--c-text-muted)" },
+    { v: "on_leave", label: "Licencia", color: "var(--c-accent-amber)" },
   ];
   const current = options.find(o => o.v === value) ?? options[0];
 
@@ -270,8 +270,8 @@ function StatusDropdown({ value, onChange }: {
         onClick={() => setOpen(o => !o)}
         style={{
           display: "flex", alignItems: "center", gap: 6,
-          backgroundColor: "#141928",
-          border: `1px solid ${open ? current.color + "66" : "#1E2540"}`,
+          backgroundColor: "var(--c-bg-elevated)",
+          border: `1px solid ${open ? current.color + "66" : "var(--c-border)"}`,
           borderRadius: 6,
           color: current.color,
           fontSize: 12, fontWeight: 500,
@@ -291,11 +291,11 @@ function StatusDropdown({ value, onChange }: {
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", right: 0,
-          backgroundColor: "#0E1220",
-          border: "1px solid #1E2540",
+          backgroundColor: "var(--c-bg-surface)",
+          border: "1px solid var(--c-border)",
           borderRadius: 6,
           minWidth: 130,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          boxShadow: "0 8px 24px var(--c-shadow-strong)",
           padding: 4,
           zIndex: 100,
         }}>
@@ -307,7 +307,7 @@ function StatusDropdown({ value, onChange }: {
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 width: "100%",
-                background: opt.v === value ? "#1E2540" : "transparent",
+                background: opt.v === value ? "var(--c-border)" : "transparent",
                 border: "none",
                 borderRadius: 4,
                 color: opt.color,
@@ -317,8 +317,8 @@ function StatusDropdown({ value, onChange }: {
                 textAlign: "left",
                 fontWeight: opt.v === value ? 600 : 400,
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#1E2540")}
-              onMouseLeave={e => (e.currentTarget.style.background = opt.v === value ? "#1E2540" : "transparent")}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--c-border)")}
+              onMouseLeave={e => (e.currentTarget.style.background = opt.v === value ? "var(--c-border)" : "transparent")}
             >
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: opt.color }} />
               {opt.label}
@@ -344,7 +344,7 @@ function FilterDropdown<T extends string>({ value, onChange, options, label, acc
   const ref = useRef<HTMLDivElement>(null);
   const current = options.find(o => o.v === value);
   const isActive = value !== ("" as T) && value !== ("all" as T);
-  const accent = accentColor ?? "#3D7EFF";
+  const accent = accentColor ?? "var(--c-accent-blue)";
 
   useEffect(() => {
     if (!open) return;
@@ -362,10 +362,10 @@ function FilterDropdown<T extends string>({ value, onChange, options, label, acc
         onClick={() => setOpen(o => !o)}
         style={{
           display: "flex", alignItems: "center", gap: 6,
-          background: isActive ? `${accent}15` : "#0E1220",
-          border: `1px solid ${isActive ? `${accent}50` : "#1E2540"}`,
+          background: isActive ? `${accent}15` : "var(--c-bg-surface)",
+          border: `1px solid ${isActive ? `${accent}50` : "var(--c-border)"}`,
           borderRadius: 20,
-          color: isActive ? accent : "#7A8BAD",
+          color: isActive ? accent : "var(--c-text-muted)",
           fontSize: 11, fontWeight: 500,
           padding: "5px 12px",
           cursor: "pointer",
@@ -381,13 +381,13 @@ function FilterDropdown<T extends string>({ value, onChange, options, label, acc
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", left: 0,
-          backgroundColor: "#0E1220",
-          border: "1px solid #1E2540",
+          backgroundColor: "var(--c-bg-surface)",
+          border: "1px solid var(--c-border)",
           borderRadius: 8,
           minWidth: 180,
           maxHeight: 260,
           overflowY: "auto",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          boxShadow: "0 8px 24px var(--c-shadow-strong)",
           padding: 4,
           zIndex: 100,
         }}>
@@ -399,18 +399,18 @@ function FilterDropdown<T extends string>({ value, onChange, options, label, acc
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 width: "100%",
-                background: opt.v === value ? "#1E2540" : "transparent",
+                background: opt.v === value ? "var(--c-border)" : "transparent",
                 border: "none",
                 borderRadius: 4,
-                color: opt.color || "#E2E8F8",
+                color: opt.color || "var(--c-text-primary)",
                 fontSize: 12,
                 padding: "6px 10px",
                 cursor: "pointer",
                 textAlign: "left",
                 fontWeight: opt.v === value ? 600 : 400,
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#1E2540")}
-              onMouseLeave={e => (e.currentTarget.style.background = opt.v === value ? "#1E2540" : "transparent")}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--c-border)")}
+              onMouseLeave={e => (e.currentTarget.style.background = opt.v === value ? "var(--c-border)" : "transparent")}
             >
               {opt.color && <span style={{ width: 6, height: 6, borderRadius: "50%", background: opt.color }} />}
               {opt.label}
@@ -560,18 +560,18 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   return (
-    <div style={{ position: "fixed", right: 0, top: 0, height: "100vh", width: 500, backgroundColor: "#0E1220", borderLeft: "1px solid #1E2540", boxShadow: "-4px 0 32px rgba(0,0,0,0.5)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ position: "fixed", right: 0, top: 0, height: "100vh", width: 500, backgroundColor: "var(--c-bg-surface)", borderLeft: "1px solid var(--c-border)", boxShadow: "-4px 0 32px var(--c-shadow-strong)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Header */}
-      <div style={{ padding: "20px 24px 0", borderBottom: "1px solid #1E2540" }}>
+      <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--c-border)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 16 }}>
           <Avatar name={local.fullName} color={local.color} size={52} imageUrl={local.imageUrl} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <input style={{ background: "none", border: "none", outline: "none", color: "#E2E8F8", fontSize: 18, fontWeight: 700, width: "100%", padding: 0, marginBottom: 2 }}
+            <input style={{ background: "none", border: "none", outline: "none", color: "var(--c-text-primary)", fontSize: 18, fontWeight: 700, width: "100%", padding: 0, marginBottom: 2 }}
               value={local.fullName} onChange={e => setLocal({ ...local, fullName: e.target.value })} placeholder="Nombre completo" />
-            <input style={{ background: "none", border: "none", outline: "none", color: "#7A8BAD", fontSize: 13, width: "100%", padding: 0 }}
+            <input style={{ background: "none", border: "none", outline: "none", color: "var(--c-text-muted)", fontSize: 13, width: "100%", padding: 0 }}
               value={local.jobTitle || ""} onChange={e => setLocal({ ...local, jobTitle: e.target.value })} placeholder="Puesto" />
             {locationText && (
-              <p style={{ color: "#3D7EFF", fontSize: 11, margin: "3px 0 0", fontWeight: 500, letterSpacing: "0.02em" }}>{locationText}</p>
+              <p style={{ color: "var(--c-accent-blue)", fontSize: 11, margin: "3px 0 0", fontWeight: 500, letterSpacing: "0.02em" }}>{locationText}</p>
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -579,7 +579,7 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
               value={local.status}
               onChange={v => setLocal({ ...local, status: v })}
             />
-            <button onClick={onClose} style={{ background: "none", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 4 }}><X size={16} /></button>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--c-text-muted)", cursor: "pointer", padding: 4 }}><X size={16} /></button>
           </div>
         </div>
         {/* Link UI — vincular este puesto a la cuenta del usuario logueado */}
@@ -588,14 +588,14 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
           const linkedToOther = employee.userId && employee.userId !== myInternalUserId;
           if (isMine) {
             return (
-              <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(61,126,255,0.08)", border: "1px solid rgba(61,126,255,0.3)", borderRadius: 6 }}>
-                <span style={{ fontSize: 11, color: "#3D7EFF", fontWeight: 600, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgb(var(--c-accent-blue-rgb) / 0.08)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.3)", borderRadius: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--c-accent-blue)", fontWeight: 600, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   ★ Tu puesto
                 </span>
-                <span style={{ fontSize: 11, color: "#7A8BAD", flex: 1 }}>
+                <span style={{ fontSize: 11, color: "var(--c-text-muted)", flex: 1 }}>
                   Las tareas de este puesto aparecen en &quot;Mi día&quot;.
                 </span>
-                <button onClick={onUnlink} style={{ fontSize: 10, padding: "3px 8px", background: "transparent", border: "1px solid #F43F5E55", color: "#F43F5E", borderRadius: 4, cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase" }}>
+                <button onClick={onUnlink} style={{ fontSize: 10, padding: "3px 8px", background: "transparent", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.33)", color: "var(--c-accent-red)", borderRadius: 4, cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase" }}>
                   Desvincular
                 </button>
               </div>
@@ -603,17 +603,17 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
           }
           if (linkedToOther && !isAdmin) {
             return (
-              <div style={{ marginBottom: 14, padding: "7px 12px", background: "rgba(122,139,173,0.06)", border: "1px solid #1E2540", borderRadius: 6 }}>
-                <span style={{ fontSize: 11, color: "#7A8BAD" }}>Este puesto ya está vinculado a otra cuenta.</span>
+              <div style={{ marginBottom: 14, padding: "7px 12px", background: "rgba(122,139,173,0.06)", border: "1px solid var(--c-border)", borderRadius: 6 }}>
+                <span style={{ fontSize: 11, color: "var(--c-text-muted)" }}>Este puesto ya está vinculado a otra cuenta.</span>
               </div>
             );
           }
           return (
-            <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(16,217,160,0.05)", border: "1px dashed rgba(16,217,160,0.3)", borderRadius: 6 }}>
-              <span style={{ fontSize: 11, color: "#7A8BAD", flex: 1 }}>
+            <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgb(var(--c-accent-emerald-rgb) / 0.05)", border: "1px dashed rgb(var(--c-accent-emerald-rgb) / 0.3)", borderRadius: 6 }}>
+              <span style={{ fontSize: 11, color: "var(--c-text-muted)", flex: 1 }}>
                 {linkedToOther ? "Vinculado a otra cuenta (admin puede sobrescribir)." : "¿Este es tu puesto?"}
               </span>
-              <button onClick={onLink} style={{ fontSize: 11, padding: "4px 12px", background: "#10D9A0", border: "none", color: "#080B12", fontWeight: 600, borderRadius: 4, cursor: "pointer" }}>
+              <button onClick={onLink} style={{ fontSize: 11, padding: "4px 12px", background: "var(--c-accent-emerald)", border: "none", color: "var(--c-bg-base)", fontWeight: 600, borderRadius: 4, cursor: "pointer" }}>
                 Soy yo
               </button>
             </div>
@@ -623,7 +623,7 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
         {/* Tabs */}
         <div style={{ display: "flex" }}>
           {(["perfil", "onboarding", "procesos"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: tab === t ? "2px solid #3D7EFF" : "2px solid transparent", color: tab === t ? "#3D7EFF" : "#7A8BAD", fontSize: 13, fontWeight: 500, cursor: "pointer", textTransform: "capitalize" }}>
+            <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 16px", background: "none", border: "none", borderBottom: tab === t ? "2px solid var(--c-accent-blue)" : "2px solid transparent", color: tab === t ? "var(--c-accent-blue)" : "var(--c-text-muted)", fontSize: 13, fontWeight: 500, cursor: "pointer", textTransform: "capitalize" }}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
@@ -683,7 +683,7 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
                   <Avatar name={local.fullName} color={local.color} size={48} imageUrl={uploadingPhoto ? null : local.imageUrl} />
                   <div style={{
                     position: "absolute", inset: 0, borderRadius: "50%",
-                    background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center",
+                    background: "var(--c-shadow-medium)", display: "flex", alignItems: "center",
                     justifyContent: "center", opacity: 0, transition: "opacity 0.15s",
                   }}
                     onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
@@ -706,12 +706,12 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
                   <button
                     type="button"
                     onClick={() => setLocal({ ...local, imageUrl: null })}
-                    style={{ padding: "8px 10px", backgroundColor: "transparent", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD", cursor: "pointer" }}
+                    style={{ padding: "8px 10px", backgroundColor: "transparent", border: "1px solid var(--c-border)", borderRadius: 6, color: "var(--c-text-muted)", cursor: "pointer" }}
                     title="Quitar foto"
                   ><X size={13} /></button>
                 )}
               </div>
-              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "4px 0 0", fontFamily: "monospace" }}>
+              <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "4px 0 0", fontFamily: "monospace" }}>
                 Subí una foto (clic en el avatar) o pegá una URL pública. Se guarda al hacer clic en Guardar.
               </p>
             </div>
@@ -730,10 +730,10 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
             )}
 
             <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-              <button onClick={save} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 20px", backgroundColor: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
+              <button onClick={save} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 20px", backgroundColor: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
                 <Save size={14} />{saving ? "Guardando..." : "Guardar"}
               </button>
-              <button onClick={() => onArchive(local)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 20px", backgroundColor: "transparent", color: "#F43F5E", border: "1px solid #F43F5E40", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+              <button onClick={() => onArchive(local)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 20px", backgroundColor: "transparent", color: "var(--c-accent-red)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.25)", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
                 <Archive size={14} />Archivar
               </button>
             </div>
@@ -745,11 +745,11 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
           <div>
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.06em" }}>Progreso</span>
-                <span style={{ fontSize: 12, color: "#E2E8F8", fontWeight: 600 }}>{doneCount}/{onboarding.length}</span>
+                <span style={{ fontSize: 12, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Progreso</span>
+                <span style={{ fontSize: 12, color: "var(--c-text-primary)", fontWeight: 600 }}>{doneCount}/{onboarding.length}</span>
               </div>
-              <div style={{ height: 4, backgroundColor: "#1E2540", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${progressPct}%`, backgroundColor: progressPct === 100 ? "#10D9A0" : "#3D7EFF", borderRadius: 4, transition: "width 0.3s ease" }} />
+              <div style={{ height: 4, backgroundColor: "var(--c-border)", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${progressPct}%`, backgroundColor: progressPct === 100 ? "var(--c-accent-emerald)" : "var(--c-accent-blue)", borderRadius: 4, transition: "width 0.3s ease" }} />
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -773,8 +773,8 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
                     style={{
                       display: "flex", alignItems: "center", gap: 10,
                       padding: "10px 12px",
-                      backgroundColor: item.done ? "#10D9A008" : "#141928",
-                      border: `1px solid ${isDragOver ? "#3D7EFF" : item.done ? "#10D9A030" : "#1E2540"}`,
+                      backgroundColor: item.done ? "rgb(var(--c-accent-emerald-rgb) / 0.03)" : "var(--c-bg-elevated)",
+                      border: `1px solid ${isDragOver ? "var(--c-accent-blue)" : item.done ? "rgb(var(--c-accent-emerald-rgb) / 0.19)" : "var(--c-border)"}`,
                       borderRadius: 6,
                       cursor: "pointer",
                       opacity: isDragging ? 0.4 : 1,
@@ -789,7 +789,7 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
                           display: "flex", flexDirection: "column", gap: 2,
                           padding: "0 2px",
                           cursor: "grab",
-                          color: "#3A4560",
+                          color: "var(--c-text-placeholder)",
                           flexShrink: 0,
                         }}
                         title="Arrastrá para reordenar"
@@ -799,10 +799,10 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
                         <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor" }} />
                       </div>
                     )}
-                    <div style={{ width: 18, height: 18, borderRadius: 4, border: item.done ? "none" : "2px solid #1E2540", backgroundColor: item.done ? "#10D9A0" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {item.done && <Check size={11} color="#080B12" strokeWidth={3} />}
+                    <div style={{ width: 18, height: 18, borderRadius: 4, border: item.done ? "none" : "2px solid var(--c-border)", backgroundColor: item.done ? "var(--c-accent-emerald)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {item.done && <Check size={11} color="var(--c-bg-base)" strokeWidth={3} />}
                     </div>
-                    <span style={{ fontSize: 13, color: item.done ? "#7A8BAD" : "#E2E8F8", textDecoration: item.done ? "line-through" : "none", flex: 1 }}>{item.label}</span>
+                    <span style={{ fontSize: 13, color: item.done ? "var(--c-text-muted)" : "var(--c-text-primary)", textDecoration: item.done ? "line-through" : "none", flex: 1 }}>{item.label}</span>
                   </div>
                 );
               })}
@@ -812,7 +812,7 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
                 <input style={{ ...inputStyle, flex: 1 }} value={newCheckItem} onChange={e => setNewCheckItem(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCheckItem(); } }}
                   placeholder="Agregar ítem personalizado..." />
-                <button onClick={addCheckItem} style={{ padding: "0 14px", backgroundColor: "#141928", border: "1px solid #1E2540", borderRadius: 6, color: "#3D7EFF", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                <button onClick={addCheckItem} style={{ padding: "0 14px", backgroundColor: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, color: "var(--c-accent-blue)", cursor: "pointer", display: "flex", alignItems: "center" }}>
                   <Plus size={16} />
                 </button>
               </div>
@@ -824,23 +824,23 @@ function EmployeePanel({ employee, onClose, onUpdated, onArchive, isAdmin, myEmp
         {tab === "procesos" && (
           <div>
             {!processesLoaded ? (
-              <p style={{ color: "#7A8BAD", fontSize: 14 }}>Cargando...</p>
+              <p style={{ color: "var(--c-text-muted)", fontSize: 14 }}>Cargando...</p>
             ) : processes.length === 0 ? (
-              <div style={{ padding: 32, textAlign: "center", border: "1px dashed #1E2540", borderRadius: 8 }}>
-                <p style={{ color: "#7A8BAD", fontSize: 14, margin: "0 0 8px" }}>Sin historial de procesos.</p>
+              <div style={{ padding: 32, textAlign: "center", border: "1px dashed var(--c-border)", borderRadius: 8 }}>
+                <p style={{ color: "var(--c-text-muted)", fontSize: 14, margin: "0 0 8px" }}>Sin historial de procesos.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {processes.slice(0, 10).map(p => (
-                  <div key={p.id} style={{ padding: "10px 14px", backgroundColor: "#141928", border: "1px solid #1E2540", borderRadius: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: "#E2E8F8", fontSize: 13 }}>{p.name || p.id}</span>
-                    {p.status && <span style={{ color: "#7A8BAD", fontSize: 12 }}>{p.status}</span>}
+                  <div key={p.id} style={{ padding: "10px 14px", backgroundColor: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: "var(--c-text-primary)", fontSize: 13 }}>{p.name || p.id}</span>
+                    {p.status && <span style={{ color: "var(--c-text-muted)", fontSize: 12 }}>{p.status}</span>}
                   </div>
                 ))}
               </div>
             )}
             <div style={{ marginTop: 20 }}>
-              <a href="/dashboard/inbox" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#3D7EFF", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>
+              <a href="/dashboard/inbox" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--c-accent-blue)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>
                 Ver en bandeja <ExternalLink size={13} />
               </a>
             </div>
@@ -963,66 +963,66 @@ export default function EmployeesPage() {
   // Group logic
   type Group = { label: string; color: string; employees: Employee[] };
   const getGroups = (): Group[] => {
-    if (groupBy === "none") return [{ label: "Todos", color: "#3D7EFF", employees: filtered }];
+    if (groupBy === "none") return [{ label: "Todos", color: "var(--c-accent-blue)", employees: filtered }];
     if (groupBy === "division") {
       const groups: Group[] = divisions.map(d => ({
-        label: d.name, color: "#3D7EFF",
+        label: d.name, color: "var(--c-accent-blue)",
         employees: filtered.filter(e => e.divisionId === d.id),
       })).filter(g => g.employees.length > 0);
       const ungrouped = filtered.filter(e => !e.divisionId);
-      if (ungrouped.length > 0) groups.push({ label: "Sin división", color: "#7A8BAD", employees: ungrouped });
+      if (ungrouped.length > 0) groups.push({ label: "Sin división", color: "var(--c-text-muted)", employees: ungrouped });
       return groups;
     }
     // dept
     const groups: Group[] = allDepartments.map(d => ({
-      label: d.name, color: "#3D7EFF",
+      label: d.name, color: "var(--c-accent-blue)",
       employees: filtered.filter(e => e.departmentId === d.id),
     })).filter(g => g.employees.length > 0);
     const ungrouped = filtered.filter(e => !e.departmentId);
-    if (ungrouped.length > 0) groups.push({ label: "Sin departamento", color: "#7A8BAD", employees: ungrouped });
+    if (ungrouped.length > 0) groups.push({ label: "Sin departamento", color: "var(--c-text-muted)", employees: ungrouped });
     return groups;
   };
 
   const groups = getGroups();
 
   return (
-    <div style={{ height: "100%", minHeight: "calc(100vh - 56px)", backgroundColor: "#080B12", overflow: "hidden", position: "relative" }}>
+    <div style={{ height: "100%", minHeight: "calc(100vh - 56px)", backgroundColor: "var(--c-bg-base)", overflow: "hidden", position: "relative" }}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         {/* Header */}
-        <div style={{ padding: "24px clamp(16px, 4vw, 32px) 16px", borderBottom: "1px solid #1E2540" }}>
+        <div style={{ padding: "24px clamp(16px, 4vw, 32px) 16px", borderBottom: "1px solid var(--c-border)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
               <div>
-                <p style={{ fontSize: 10, letterSpacing: "0.1em", color: "#7A8BAD", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "monospace" }}>Equipo</p>
-                <h1 style={{ color: "#E2E8F8", fontSize: 20, fontWeight: 700, margin: 0 }}>Empleados</h1>
+                <p style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--c-text-muted)", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "monospace" }}>Equipo</p>
+                <h1 style={{ color: "var(--c-text-primary)", fontSize: 20, fontWeight: 700, margin: 0 }}>Empleados</h1>
               </div>
               {/* Métricas inline */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <MetricChip color="#10D9A0" label="activos"   value={metrics.active} />
-                {metrics.onLeave > 0 && <MetricChip color="#F59E0B" label="licencia"  value={metrics.onLeave} />}
-                {metrics.vacant  > 0 && <MetricChip color="#7A8BAD" label="vacantes"  value={metrics.vacant}  />}
-                {metrics.deptsWithStaff > 0 && <MetricChip color="#3D7EFF" label="deptos" value={metrics.deptsWithStaff} />}
+                <MetricChip color="var(--c-accent-emerald)" label="activos"   value={metrics.active} />
+                {metrics.onLeave > 0 && <MetricChip color="var(--c-accent-amber)" label="licencia"  value={metrics.onLeave} />}
+                {metrics.vacant  > 0 && <MetricChip color="var(--c-text-muted)" label="vacantes"  value={metrics.vacant}  />}
+                {metrics.deptsWithStaff > 0 && <MetricChip color="var(--c-accent-blue)" label="deptos" value={metrics.deptsWithStaff} />}
               </div>
             </div>
-            <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", backgroundColor: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", backgroundColor: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               <Plus size={14} />Nuevo
             </button>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             {/* Search */}
             <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
-              <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#7A8BAD" }} />
+              <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-text-muted)" }} />
               <input style={{ ...inputStyle, paddingLeft: 30, fontSize: 12 }} placeholder="Buscar empleado..." value={search} onChange={e => setSearch(e.target.value)} />
-              {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#7A8BAD", cursor: "pointer" }}><X size={12} /></button>}
+              {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}><X size={12} /></button>}
             </div>
             {/* Estado: filtro detallado */}
             <FilterDropdown
               value={statusFilter}
               onChange={v => setStatusFilter(v)}
               label="Estado"
-              accentColor={STATUS_COLORS[statusFilter] ?? "#3D7EFF"}
+              accentColor={STATUS_COLORS[statusFilter] ?? "var(--c-accent-blue)"}
               options={[
-                { v: "all",       label: "Todos los estados", color: "#7A8BAD" },
+                { v: "all",       label: "Todos los estados", color: "var(--c-text-muted)" },
                 { v: "active",    label: "Activo",    color: STATUS_COLORS.active },
                 { v: "inactive",  label: "Inactivo",  color: STATUS_COLORS.inactive },
                 { v: "on_leave",  label: "Licencia",  color: STATUS_COLORS.on_leave },
@@ -1035,7 +1035,7 @@ export default function EmployeesPage() {
               label="División"
               options={[
                 { v: "", label: "Todas las divisiones" },
-                ...divisions.map(d => ({ v: d.id, label: d.name, color: "#3D7EFF" })),
+                ...divisions.map(d => ({ v: d.id, label: d.name, color: "var(--c-accent-blue)" })),
               ]}
             />
             {/* Departamento: filtro por uno específico */}
@@ -1052,16 +1052,16 @@ export default function EmployeesPage() {
             {(statusFilter !== "all" || divFilter || deptFilter || search) && (
               <button
                 onClick={() => { setStatusFilter("all"); setDivFilter(""); setDeptFilter(""); setSearch(""); }}
-                style={{ padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 500, border: "1px solid #F43F5E40", background: "transparent", color: "#F43F5E", cursor: "pointer" }}
+                style={{ padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 500, border: "1px solid rgb(var(--c-accent-red-rgb) / 0.25)", background: "transparent", color: "var(--c-accent-red)", cursor: "pointer" }}
               >
                 Limpiar filtros
               </button>
             )}
             {/* Group by — secundario, separado */}
-            <div style={{ marginLeft: "auto", display: "flex", gap: 3, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 20, padding: 3 }}>
-              <span style={{ padding: "3px 8px", fontSize: 10, color: "#7A8BAD", fontFamily: "monospace", textTransform: "uppercase", display: "flex", alignItems: "center" }}>Agrupar:</span>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 3, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 20, padding: 3 }}>
+              <span style={{ padding: "3px 8px", fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace", textTransform: "uppercase", display: "flex", alignItems: "center" }}>Agrupar:</span>
               {([["none", "—"], ["division", "División"], ["dept", "Depto"]] as [typeof groupBy, string][]).map(([val, lbl]) => (
-                <button key={val} onClick={() => setGroupBy(val)} style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500, border: "none", cursor: "pointer", background: groupBy === val ? "#1E2540" : "transparent", color: groupBy === val ? "#E2E8F8" : "#7A8BAD" }}>
+                <button key={val} onClick={() => setGroupBy(val)} style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500, border: "none", cursor: "pointer", background: groupBy === val ? "var(--c-border)" : "transparent", color: groupBy === val ? "var(--c-text-primary)" : "var(--c-text-muted)" }}>
                   {lbl}
                 </button>
               ))}
@@ -1072,17 +1072,17 @@ export default function EmployeesPage() {
         {/* Lista */}
         <div style={{ flex: 1, overflow: "auto" }}>
           {loading ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#7A8BAD", fontSize: 14 }}>Cargando...</div>
+            <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-muted)", fontSize: 14 }}>Cargando...</div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#7A8BAD", fontSize: 14 }}>{search ? "Sin resultados." : "Sin empleados aún."}</div>
+            <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-muted)", fontSize: 14 }}>{search ? "Sin resultados." : "Sin empleados aún."}</div>
           ) : groups.map(group => (
             <div key={group.label}>
               {/* Group header */}
               {groupBy !== "none" && (
-                <div style={{ padding: "10px clamp(16px, 4vw, 32px) 6px", borderBottom: "1px solid #1E2540", background: "#0A0E1A", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ padding: "10px clamp(16px, 4vw, 32px) 6px", borderBottom: "1px solid var(--c-border)", background: "var(--c-bg-darkest)", display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 3, height: 14, borderRadius: 2, background: group.color }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#E2E8F8", textTransform: "uppercase", letterSpacing: "0.08em" }}>{group.label}</span>
-                  <span style={{ fontSize: 10, color: "#7A8BAD", background: "#141928", borderRadius: 4, padding: "1px 6px", fontFamily: "monospace" }}>{group.employees.length}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--c-text-primary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{group.label}</span>
+                  <span style={{ fontSize: 10, color: "var(--c-text-muted)", background: "var(--c-bg-elevated)", borderRadius: 4, padding: "1px 6px", fontFamily: "monospace" }}>{group.employees.length}</span>
                 </div>
               )}
               {group.employees.map(emp => {
@@ -1094,15 +1094,15 @@ export default function EmployeesPage() {
                 const secondary = vacant ? "Vacante — buscar candidato" : (emp.jobTitle || "Sin puesto definido");
                 return (
                   <div key={emp.id} onClick={() => setSelected(isSelected ? null : emp)}
-                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px clamp(16px, 4vw, 32px)", cursor: "pointer", backgroundColor: isSelected ? "#141928" : "transparent", borderLeft: isSelected ? "3px solid #3D7EFF" : "3px solid transparent", borderBottom: "1px solid #1E254040", transition: "background 0.15s", opacity: vacant ? 0.78 : 1 }}>
+                    style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px clamp(16px, 4vw, 32px)", cursor: "pointer", backgroundColor: isSelected ? "var(--c-bg-elevated)" : "transparent", borderLeft: isSelected ? "3px solid var(--c-accent-blue)" : "3px solid transparent", borderBottom: "1px solid rgb(var(--c-border-rgb) / 0.25)", transition: "background 0.15s", opacity: vacant ? 0.78 : 1 }}>
                     <Avatar name={emp.fullName} color={emp.color} size={38} imageUrl={emp.imageUrl} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ color: vacant ? "#7A8BAD" : "#E2E8F8", fontSize: 14, fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: vacant ? "italic" : "normal" }}>{primary}</p>
-                      <p style={{ color: "#7A8BAD", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{secondary}</p>
+                      <p style={{ color: vacant ? "var(--c-text-muted)" : "var(--c-text-primary)", fontSize: 14, fontWeight: 600, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontStyle: vacant ? "italic" : "normal" }}>{primary}</p>
+                      <p style={{ color: "var(--c-text-muted)", fontSize: 12, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{secondary}</p>
                     </div>
                     {vacant ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, backgroundColor: "#7A8BAD20", color: "#7A8BAD", border: "1px dashed #7A8BAD60" }}>
-                        <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#7A8BAD" }} />
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, backgroundColor: "rgb(122 139 173 / 0.13)", color: "var(--c-text-muted)", border: "1px dashed rgb(122 139 173 / 0.38)" }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "var(--c-text-muted)" }} />
                         Vacante
                       </span>
                     ) : (
@@ -1116,8 +1116,8 @@ export default function EmployeesPage() {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "10px clamp(16px, 4vw, 32px)", borderTop: "1px solid #1E2540" }}>
-          <p style={{ color: "#7A8BAD", fontSize: 12, margin: 0 }}>
+        <div style={{ padding: "10px clamp(16px, 4vw, 32px)", borderTop: "1px solid var(--c-border)" }}>
+          <p style={{ color: "var(--c-text-muted)", fontSize: 12, margin: 0 }}>
             {loading ? "—" : `${filtered.length} empleado${filtered.length !== 1 ? "s" : ""}`}
           </p>
         </div>
@@ -1126,7 +1126,7 @@ export default function EmployeesPage() {
       {/* ── Overlay backdrop + panel ── */}
       {selected && (
         <>
-          <div onClick={() => setSelected(null)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.35)", zIndex: 49 }} />
+          <div onClick={() => setSelected(null)} style={{ position: "fixed", inset: 0, backgroundColor: "var(--c-shadow-medium)", zIndex: 49 }} />
           <EmployeePanel
             key={selected.id}
             employee={selected}

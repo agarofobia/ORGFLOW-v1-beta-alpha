@@ -25,9 +25,9 @@ import type { ProcessDefinition } from "@/db/schema";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const STATUS_CONFIG = {
-  draft: { label: "Borrador", color: "#7A8BAD", bg: "rgba(122,139,173,0.12)" },
-  active: { label: "Activo", color: "#10D9A0", bg: "rgba(16,217,160,0.12)" },
-  archived: { label: "Archivado", color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
+  draft: { label: "Borrador", color: "var(--c-text-muted)", bg: "rgba(122,139,173,0.12)" },
+  active: { label: "Activo", color: "var(--c-accent-emerald)", bg: "rgb(var(--c-accent-emerald-rgb) / 0.12)" },
+  archived: { label: "Archivado", color: "var(--c-accent-amber)", bg: "rgb(var(--c-accent-amber-rgb) / 0.12)" },
 };
 
 const STATUS_ICONS = {
@@ -232,10 +232,10 @@ export default function ProcessesPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
+          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
             BPM
           </p>
-          <h1 className="mt-1 text-xl font-semibold" style={{ color: "#E2E8F8" }}>
+          <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--c-text-primary)" }}>
             Procesos
           </h1>
         </div>
@@ -245,9 +245,9 @@ export default function ProcessesPage() {
             disabled={creatingFolder}
             className="flex items-center gap-2 rounded px-3 py-2 text-sm font-medium transition-all hover:-translate-y-px disabled:opacity-60"
             style={{
-              background: "rgba(61,126,255,0.08)",
-              border: "1px solid rgba(61,126,255,0.2)",
-              color: "#7A8BAD",
+              background: "rgb(var(--c-accent-blue-rgb) / 0.08)",
+              border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.2)",
+              color: "var(--c-text-muted)",
             }}
           >
             {creatingFolder ? (
@@ -262,8 +262,8 @@ export default function ProcessesPage() {
             disabled={creating}
             className="flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px disabled:opacity-60"
             style={{
-              background: "#3D7EFF",
-              boxShadow: "0 0 16px rgba(61,126,255,0.35)",
+              background: "var(--c-accent-blue)",
+              boxShadow: "0 0 16px rgb(var(--c-accent-blue-rgb) / 0.35)",
             }}
           >
             {creating ? (
@@ -281,17 +281,17 @@ export default function ProcessesPage() {
         <button
           onClick={() => navigateToBreadcrumb(-1)}
           className="text-xs transition-colors hover:text-white"
-          style={{ color: breadcrumbs.length === 0 ? "#E2E8F8" : "#7A8BAD" }}
+          style={{ color: breadcrumbs.length === 0 ? "var(--c-text-primary)" : "var(--c-text-muted)" }}
         >
           Todos los procesos
         </button>
         {breadcrumbs.map((bc, i) => (
           <span key={bc.id} className="flex items-center gap-1">
-            <ChevronRight className="h-3 w-3" style={{ color: "#1E2540" }} />
+            <ChevronRight className="h-3 w-3" style={{ color: "var(--c-border)" }} />
             <button
               onClick={() => navigateToBreadcrumb(i)}
               className="text-xs transition-colors hover:text-white"
-              style={{ color: i === breadcrumbs.length - 1 ? "#E2E8F8" : "#7A8BAD" }}
+              style={{ color: i === breadcrumbs.length - 1 ? "var(--c-text-primary)" : "var(--c-text-muted)" }}
             >
               {bc.name}
             </button>
@@ -302,13 +302,13 @@ export default function ProcessesPage() {
       {/* Search */}
       {items.length > 0 && (
         <div className="mb-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#7A8BAD" }} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--c-text-muted)" }} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar…"
             className="w-full rounded-lg py-2 pl-9 pr-4 text-sm outline-none"
-            style={{ background: "#0E1220", border: "1px solid #1E2540", color: "#E2E8F8" }}
+            style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
           />
         </div>
       )}
@@ -316,19 +316,19 @@ export default function ProcessesPage() {
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#3D7EFF" }} />
+          <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
         </div>
       ) : filtered.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center rounded-lg py-24"
-          style={{ background: "#0E1220", border: "1px dashed #1E2540" }}
+          style={{ background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)" }}
         >
-          <GitBranch className="mb-4 h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
-          <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>
+          <GitBranch className="mb-4 h-10 w-10" style={{ color: "var(--c-border)" }} strokeWidth={1} />
+          <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>
             {search ? "Sin resultados" : "Carpeta vacía"}
           </p>
           {!search && (
-            <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>
+            <p className="mt-1 text-xs" style={{ color: "var(--c-text-muted)" }}>
               Creá un proceso o subcarpeta aquí
             </p>
           )}
@@ -343,34 +343,34 @@ export default function ProcessesPage() {
                 <div
                   key={item.id}
                   onClick={() => navigateIntoFolder(item)}
-                  className="group flex cursor-pointer items-center gap-4 rounded-lg p-4 transition-all hover:border-[#3D7EFF40]"
-                  style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+                  className="group flex cursor-pointer items-center gap-4 rounded-lg p-4 transition-all hover:border-[rgb(var(--c-accent-blue-rgb) / 0.25)]"
+                  style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
                 >
                   <div
                     className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg"
-                    style={{ background: "rgba(245,158,11,0.08)" }}
+                    style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.08)" }}
                   >
-                    <Folder className="h-5 w-5" style={{ color: "#F59E0B" }} strokeWidth={1.5} />
+                    <Folder className="h-5 w-5" style={{ color: "var(--c-accent-amber)" }} strokeWidth={1.5} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium" style={{ color: "#E2E8F8" }}>
+                    <p className="truncate text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>
                       {item.name}
                     </p>
-                    <p className="mt-0.5 font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                    <p className="mt-0.5 font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                       Carpeta · {formatDate(item.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       onClick={(e) => handleDelete(item, e)}
-                      className="rounded p-1.5 transition-colors hover:bg-[#F43F5E20]"
-                      style={{ color: "#7A8BAD" }}
+                      className="rounded p-1.5 transition-colors hover:bg-[rgb(var(--c-accent-red-rgb) / 0.13)]"
+                      style={{ color: "var(--c-text-muted)" }}
                       title="Eliminar carpeta"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: "#1E2540" }} />
+                  <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: "var(--c-border)" }} />
                 </div>
               );
             }
@@ -383,21 +383,21 @@ export default function ProcessesPage() {
               <div
                 key={item.id}
                 onClick={() => router.push(`/dashboard/processes/${item.id}`)}
-                className="group flex cursor-pointer items-center gap-4 rounded-lg p-4 transition-all hover:border-[#3D7EFF40]"
-                style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+                className="group flex cursor-pointer items-center gap-4 rounded-lg p-4 transition-all hover:border-[rgb(var(--c-accent-blue-rgb) / 0.25)]"
+                style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
               >
                 {/* Icon */}
                 <div
                   className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg"
-                  style={{ background: "rgba(61,126,255,0.1)" }}
+                  style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.1)" }}
                 >
-                  <GitBranch className="h-5 w-5" style={{ color: "#3D7EFF" }} strokeWidth={1.75} />
+                  <GitBranch className="h-5 w-5" style={{ color: "var(--c-accent-blue)" }} strokeWidth={1.75} />
                 </div>
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-3">
-                    <p className="truncate text-sm font-medium" style={{ color: "#E2E8F8" }}>
+                    <p className="truncate text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>
                       {item.name}
                     </p>
                     <span
@@ -409,13 +409,13 @@ export default function ProcessesPage() {
                     </span>
                   </div>
                   <div className="mt-1 flex items-center gap-4">
-                    <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                    <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                       {item.category}
                     </span>
-                    <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                    <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                       {nodesCount} nodos · v{item.version}
                     </span>
-                    <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                    <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                       {formatDate(item.createdAt)}
                     </span>
                   </div>
@@ -428,9 +428,9 @@ export default function ProcessesPage() {
                       onClick={(e) => handleStart(item.id, e)}
                       className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-all"
                       style={{
-                        background: "rgba(16,217,160,0.1)",
-                        color: "#10D9A0",
-                        border: "1px solid rgba(16,217,160,0.2)",
+                        background: "rgb(var(--c-accent-emerald-rgb) / 0.1)",
+                        color: "var(--c-accent-emerald)",
+                        border: "1px solid rgb(var(--c-accent-emerald-rgb) / 0.2)",
                       }}
                     >
                       <Play className="h-3 w-3" fill="currentColor" />
@@ -442,16 +442,16 @@ export default function ProcessesPage() {
                       e.stopPropagation();
                       router.push(`/dashboard/processes/${item.id}`);
                     }}
-                    className="rounded p-1.5 transition-colors hover:bg-[#1E2540]"
-                    style={{ color: "#7A8BAD" }}
+                    className="rounded p-1.5 transition-colors hover:bg-[var(--c-border)]"
+                    style={{ color: "var(--c-text-muted)" }}
                     title="Editar"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={(e) => openMoveModal(item, e)}
-                    className="rounded p-1.5 transition-colors hover:bg-[#1E2540]"
-                    style={{ color: "#7A8BAD" }}
+                    className="rounded p-1.5 transition-colors hover:bg-[var(--c-border)]"
+                    style={{ color: "var(--c-text-muted)" }}
                     title="Mover a carpeta"
                   >
                     <MoveRight className="h-3.5 w-3.5" />
@@ -459,16 +459,16 @@ export default function ProcessesPage() {
                   <button
                     onClick={(e) => handleDuplicate(item, e)}
                     disabled={duplicating === item.id}
-                    className="rounded p-1.5 transition-colors hover:bg-[#1E2540] disabled:opacity-50"
-                    style={{ color: "#7A8BAD" }}
+                    className="rounded p-1.5 transition-colors hover:bg-[var(--c-border)] disabled:opacity-50"
+                    style={{ color: "var(--c-text-muted)" }}
                     title="Duplicar"
                   >
                     {duplicating === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
                   </button>
                   <button
                     onClick={(e) => handleDelete(item, e)}
-                    className="rounded p-1.5 transition-colors hover:bg-[#F43F5E20]"
-                    style={{ color: "#7A8BAD" }}
+                    className="rounded p-1.5 transition-colors hover:bg-[rgb(var(--c-accent-red-rgb) / 0.13)]"
+                    style={{ color: "var(--c-text-muted)" }}
                     title="Eliminar"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -484,33 +484,33 @@ export default function ProcessesPage() {
       {movingProcess && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.6)" }}
+          style={{ background: "var(--c-shadow-strong)" }}
           onClick={() => setMovingProcess(null)}
         >
           <div
             className="w-80 rounded-xl p-5"
-            style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+            style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="mb-4 text-sm font-semibold" style={{ color: "#E2E8F8" }}>
+            <p className="mb-4 text-sm font-semibold" style={{ color: "var(--c-text-primary)" }}>
               Mover "{movingProcess.name}"
             </p>
             {loadingFolders ? (
               <div className="flex justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#3D7EFF" }} />
+                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
               </div>
             ) : (
               <div className="flex flex-col gap-1">
                 <button
                   onClick={() => handleMoveTo(null)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-[#1E2540]"
-                  style={{ color: "#E2E8F8" }}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-[var(--c-border)]"
+                  style={{ color: "var(--c-text-primary)" }}
                 >
-                  <FolderOpen className="h-4 w-4" style={{ color: "#7A8BAD" }} />
+                  <FolderOpen className="h-4 w-4" style={{ color: "var(--c-text-muted)" }} />
                   Raíz (sin carpeta)
                 </button>
                 {allFolders.length === 0 && (
-                  <p className="px-3 py-2 text-xs" style={{ color: "#7A8BAD" }}>
+                  <p className="px-3 py-2 text-xs" style={{ color: "var(--c-text-muted)" }}>
                     No hay carpetas creadas todavía
                   </p>
                 )}
@@ -518,10 +518,10 @@ export default function ProcessesPage() {
                   <button
                     key={f.id}
                     onClick={() => handleMoveTo(f.id)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-[#1E2540]"
-                    style={{ color: "#E2E8F8" }}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-[var(--c-border)]"
+                    style={{ color: "var(--c-text-primary)" }}
                   >
-                    <Folder className="h-4 w-4" style={{ color: "#F59E0B" }} />
+                    <Folder className="h-4 w-4" style={{ color: "var(--c-accent-amber)" }} />
                     {f.name}
                   </button>
                 ))}
@@ -529,8 +529,8 @@ export default function ProcessesPage() {
             )}
             <button
               onClick={() => setMovingProcess(null)}
-              className="mt-4 w-full rounded-lg py-2 text-xs transition-colors hover:bg-[#1E2540]"
-              style={{ color: "#7A8BAD" }}
+              className="mt-4 w-full rounded-lg py-2 text-xs transition-colors hover:bg-[var(--c-border)]"
+              style={{ color: "var(--c-text-muted)" }}
             >
               Cancelar
             </button>

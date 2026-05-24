@@ -604,7 +604,7 @@ function OrgChartFlow() {
           id: s.id,
           fullName: s.fullName,
           jobTitle: s.jobTitle || "Sin asignar",
-          color: s.color || "#3D7EFF",
+          color: s.color || "var(--c-accent-blue)",
           isVacant: s.fullName === "[Puesto vacante]",
           imageUrl: (s as Employee & { imageUrl?: string | null }).imageUrl ?? null,
           unit: u ? { id: u.id, name: u.name, color: u.color, isHead: u.headEmployeeId === s.id } : null,
@@ -814,7 +814,7 @@ function OrgChartFlow() {
       data: {
         fullName: emp.fullName,
         jobTitle: emp.jobTitle || "Sin asignar",
-        color: emp.color || "#3D7EFF",
+        color: emp.color || "var(--c-accent-blue)",
         status: emp.status,
       },
     };
@@ -851,7 +851,7 @@ function OrgChartFlow() {
         position: pos,
         data: {
           name: d.name,
-          color: d.color ?? "#3D7EFF",
+          color: d.color ?? "var(--c-accent-blue)",
           isDivision: true,
           subtitle: d.subtitle,
           footerText: d.footerText,
@@ -991,7 +991,7 @@ function OrgChartFlow() {
           data: {
             fullName: emp.fullName,
             jobTitle: emp.jobTitle || "Sin asignar",
-            color: emp.color || "#3D7EFF",
+            color: emp.color || "var(--c-accent-blue)",
             status: emp.status,
             imageUrl: (emp as Employee & { imageUrl?: string | null }).imageUrl ?? null,
             role: effectiveRole,
@@ -1034,7 +1034,7 @@ function OrgChartFlow() {
         data: {
           fullName: emp.fullName,
           jobTitle: emp.jobTitle || "Sin asignar",
-          color: emp.color || "#3D7EFF",
+          color: emp.color || "var(--c-accent-blue)",
           status: emp.status,
           imageUrl: (emp as Employee & { imageUrl?: string | null }).imageUrl ?? null,
           role: effectiveRole,
@@ -1616,7 +1616,7 @@ function OrgChartFlow() {
         });
       }
       if (action === "new-position-in" && div) {
-        setNewPosition({ kind: "division", id: t.id, name: div.name, color: div.color ?? "#3D7EFF" });
+        setNewPosition({ kind: "division", id: t.id, name: div.name, color: div.color ?? "var(--c-accent-blue)" });
         setOpenNewPosition(true);
       }
       if (action === "toggle-collapse") {
@@ -1732,7 +1732,7 @@ function OrgChartFlow() {
         setNewPosition({
           kind: "employee", id: emp.id,
           fullName: emp.fullName, jobTitle: emp.jobTitle ?? "",
-          color: emp.color ?? "#3D7EFF",
+          color: emp.color ?? "var(--c-accent-blue)",
         });
         setOpenNewPosition(true);
       }
@@ -1948,7 +1948,7 @@ function OrgChartFlow() {
 
       const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(viewportEl, {
-        backgroundColor: "#080B12",
+        backgroundColor: "var(--c-bg-base)",
         width: imageWidth,
         height: imageHeight,
         // pixelRatio 2 = imagen al doble de densidad, ideal para zoom + lectura
@@ -2026,11 +2026,11 @@ function OrgChartFlow() {
 
   if (error) {
     return (
-      <div className="flex h-full flex-col items-center justify-center" style={{ background: "#080B12" }}>
+      <div className="flex h-full flex-col items-center justify-center" style={{ background: "var(--c-bg-base)" }}>
         <div className="flex max-w-sm flex-col items-center gap-2 rounded-lg p-5 text-center"
-          style={{ background: "#0E1220", border: "1px solid rgba(244,63,94,0.3)" }}>
-          <p className="text-sm font-medium" style={{ color: "#F43F5E" }}>Error al cargar empleados</p>
-          <p className="text-xs leading-relaxed" style={{ color: "#7A8BAD" }}>{error.message}</p>
+          style={{ background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.3)" }}>
+          <p className="text-sm font-medium" style={{ color: "var(--c-accent-red)" }}>Error al cargar empleados</p>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--c-text-muted)" }}>{error.message}</p>
         </div>
       </div>
     );
@@ -2127,14 +2127,14 @@ function OrgChartFlow() {
         panOnDrag={[0, 1]}
         panActivationKeyCode="Space"
         className={locked ? "flowos-locked" : ""}
-        style={{ background: "#080B12" }}
+        style={{ background: "var(--c-bg-base)" }}
       >
-        <Background color="#1E2540" gap={32} size={1} />
+        <Background color="var(--c-border)" gap={32} size={1} />
         <Controls />
         <MiniMap
           nodeColor={(n) => {
             const data = n.data as { color?: string };
-            return data?.color || "#3D7EFF";
+            return data?.color || "var(--c-accent-blue)";
           }}
           maskColor="rgba(8,11,18,0.7)"
         />
@@ -2147,21 +2147,21 @@ function OrgChartFlow() {
                 className="flex items-center gap-0.5"
                 style={{
                   background: "rgba(14,18,32,0.95)",
-                  border: "1px solid #1E2540",
+                  border: "1px solid var(--c-border)",
                   borderRadius: 10,
                   padding: "6px 8px",
                   backdropFilter: "blur(10px)",
-                  boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+                  boxShadow: "0 6px 24px var(--c-shadow-strong)",
                 }}
               >
                 {/* Vista / utilidades */}
                 <button
                   onClick={() => setSearchOpen(prev => !prev)}
                   title="Buscar (Ctrl+F)"
-                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-border)]"
                   style={{
-                    background: searchOpen ? "rgba(61,126,255,0.18)" : "transparent",
-                    color: searchOpen ? "#3D7EFF" : "#C4CFEA",
+                    background: searchOpen ? "rgb(var(--c-accent-blue-rgb) / 0.18)" : "transparent",
+                    color: searchOpen ? "var(--c-accent-blue)" : "var(--c-text-secondary)",
                   }}
                 >
                   <Search className="h-4 w-4" />
@@ -2170,8 +2170,8 @@ function OrgChartFlow() {
                   onClick={() => { if (!autoLayoutPending) handleAutoLayout(); }}
                   disabled={autoLayoutPending}
                   title="Auto-layout (dagre)"
-                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
-                  style={{ color: "#A855F7", opacity: autoLayoutPending ? 0.6 : 1 }}
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-border)]"
+                  style={{ color: "var(--c-accent-violet)", opacity: autoLayoutPending ? 0.6 : 1 }}
                 >
                   {autoLayoutPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </button>
@@ -2179,20 +2179,20 @@ function OrgChartFlow() {
                   onClick={handleExportPng}
                   disabled={exportingPng}
                   title="Exportar PNG"
-                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
-                  style={{ color: "#10D9A0", opacity: exportingPng ? 0.6 : 1 }}
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-border)]"
+                  style={{ color: "var(--c-accent-emerald)", opacity: exportingPng ? 0.6 : 1 }}
                 >
                   {exportingPng ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 </button>
 
-                <div style={{ width: 1, height: 22, background: "#1E2540", margin: "0 6px" }} />
+                <div style={{ width: 1, height: 22, background: "var(--c-border)", margin: "0 6px" }} />
 
                 {/* Crear */}
                 <button
                   onClick={() => { setPendingCreatePos(null); setShowAddGroup("division"); setShowAddEmp(false); }}
                   title="Nueva división"
-                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[rgba(61,126,255,0.15)]"
-                  style={{ color: "#3D7EFF" }}
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[rgb(var(--c-accent-blue-rgb) / 0.15)]"
+                  style={{ color: "var(--c-accent-blue)" }}
                 >
                   <Layers className="h-4 w-4" />
                 </button>
@@ -2208,20 +2208,20 @@ function OrgChartFlow() {
                   onClick={() => { setPendingCreatePos(null); setShowAddEmp(true); setShowAddGroup(null); }}
                   title="Nuevo puesto"
                   className="flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white transition-all hover:brightness-110"
-                  style={{ background: "#3D7EFF", boxShadow: "0 0 12px rgba(61,126,255,0.35)", marginLeft: 2 }}
+                  style={{ background: "var(--c-accent-blue)", boxShadow: "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.35)", marginLeft: 2 }}
                 >
                   <UserPlus className="h-4 w-4" />
                   Puesto
                 </button>
 
-                <div style={{ width: 1, height: 22, background: "#1E2540", margin: "0 6px" }} />
+                <div style={{ width: 1, height: 22, background: "var(--c-border)", margin: "0 6px" }} />
 
                 {/* Toggles compactos — icono + mini switch */}
                 {[
-                  { on: globalConnectable, setter: setGlobalConnectable, key: "global-connectable", color: "#10D9A0", label: "Conectables", icon: "🔗" },
-                  { on: linkedResize, setter: setLinkedResize, key: "linked-resize", color: "#A855F7", label: "Tamaño vinculado", icon: "📐" },
-                  { on: showRoleBadges, setter: setShowRoleBadges, key: "show-badges", color: "#F59E0B", label: "Badges DIR/ENC", icon: "🏷️" },
-                  { on: !locked, setter: (v: boolean) => setLocked(!v), key: "locked", color: "#3D7EFF", label: locked ? "Bloqueado" : "Editable", icon: locked ? "🔒" : "🔓" },
+                  { on: globalConnectable, setter: setGlobalConnectable, key: "global-connectable", color: "var(--c-accent-emerald)", label: "Conectables", icon: "🔗" },
+                  { on: linkedResize, setter: setLinkedResize, key: "linked-resize", color: "var(--c-accent-violet)", label: "Tamaño vinculado", icon: "📐" },
+                  { on: showRoleBadges, setter: setShowRoleBadges, key: "show-badges", color: "var(--c-accent-amber)", label: "Badges DIR/ENC", icon: "🏷️" },
+                  { on: !locked, setter: (v: boolean) => setLocked(!v), key: "locked", color: "var(--c-accent-blue)", label: locked ? "Bloqueado" : "Editable", icon: locked ? "🔒" : "🔓" },
                 ].map(t => (
                   <button
                     key={t.key}
@@ -2231,7 +2231,7 @@ function OrgChartFlow() {
                       try { localStorage.setItem(`flowos-orgchart-${t.key}`, String(t.key === "locked" ? !next : next)); } catch {}
                     }}
                     title={`${t.label}: ${t.on ? "ON" : "OFF"}`}
-                    className="flex h-9 items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-[#1E2540]"
+                    className="flex h-9 items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-[var(--c-border)]"
                     style={{ background: "transparent", border: "none", cursor: "pointer" }}
                   >
                     <span style={{ fontSize: 13, opacity: t.on ? 1 : 0.5, filter: t.on ? "none" : "grayscale(1)" }}>{t.icon}</span>
@@ -2255,23 +2255,23 @@ function OrgChartFlow() {
                           background: "#fff",
                           borderRadius: "50%",
                           transition: "left 160ms ease",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                          boxShadow: "0 1px 2px var(--c-shadow-soft)",
                         }}
                       />
                     </span>
                   </button>
                 ))}
 
-                <div style={{ width: 1, height: 22, background: "#1E2540", margin: "0 6px" }} />
+                <div style={{ width: 1, height: 22, background: "var(--c-border)", margin: "0 6px" }} />
 
                 {/* Historia */}
                 <button
                   onClick={doUndo}
                   disabled={undoStack.length === 0}
                   title="Deshacer (Ctrl+Z)"
-                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-border)]"
                   style={{
-                    color: undoStack.length === 0 ? "#3A4560" : "#C4CFEA",
+                    color: undoStack.length === 0 ? "var(--c-text-placeholder)" : "var(--c-text-secondary)",
                     cursor: undoStack.length === 0 ? "not-allowed" : "pointer",
                     fontSize: 16,
                   }}
@@ -2282,9 +2282,9 @@ function OrgChartFlow() {
                   onClick={doRedo}
                   disabled={redoStack.length === 0}
                   title="Rehacer (Ctrl+Shift+Z)"
-                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[#1E2540]"
+                  className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-border)]"
                   style={{
-                    color: redoStack.length === 0 ? "#3A4560" : "#C4CFEA",
+                    color: redoStack.length === 0 ? "var(--c-text-placeholder)" : "var(--c-text-secondary)",
                     cursor: redoStack.length === 0 ? "not-allowed" : "pointer",
                     fontSize: 16,
                   }}
@@ -2356,8 +2356,8 @@ function OrgChartFlow() {
         {!selectedEmpNode && !showAddEmp && !showAddGroup && (
           <Panel position="top-left" className="m-4">
             <div className="flex items-center gap-2 px-3 py-2 text-xs"
-              style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD" }}>
-              <Sparkles className="h-3.5 w-3.5" style={{ color: "#3D7EFF" }} />
+              style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6, color: "var(--c-text-muted)" }}>
+              <Sparkles className="h-3.5 w-3.5" style={{ color: "var(--c-accent-blue)" }} />
               Click derecho para crear · Drag para mover · Delete para conexiones
             </div>
           </Panel>
@@ -2366,7 +2366,7 @@ function OrgChartFlow() {
         {/* Stats badge */}
         <Panel position="bottom-left" className="m-4 mb-16">
           <div className="flex gap-3 px-3 py-2 text-[10px] font-mono"
-            style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6, color: "#7A8BAD" }}>
+            style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6, color: "var(--c-text-muted)" }}>
             <span className="flex items-center gap-1"><Layers size={11} /> {divisions.length}</span>
             <span className="flex items-center gap-1"><FolderPlus size={11} /> {departments.length}</span>
             <span className="flex items-center gap-1"><Users size={11} /> {employees.length}</span>
@@ -2397,7 +2397,7 @@ function OrgChartFlow() {
           parent={newPosition}
           employees={employees}
           departments={departments}
-          defaultColor={newPosition?.color ?? "#3D7EFF"}
+          defaultColor={newPosition?.color ?? "var(--c-accent-blue)"}
           onCreate={handleNewPositionCreate}
           onClose={() => { setOpenNewPosition(false); setNewPosition(null); }}
         />
@@ -2443,22 +2443,22 @@ function OrgChartFlow() {
         const adoptable = departments.filter(d => d.divisionId !== adoptingDivisionId);
         return (
           <div
-            style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
             onMouseDown={e => { if (e.target === e.currentTarget) setAdoptingDivisionId(null); }}
           >
-            <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#E2E8F8" }}>Adoptar departamento</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 10, color: "#7A8BAD" }}>→ {targetDiv?.name ?? ""}</p>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>Adoptar departamento</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>→ {targetDiv?.name ?? ""}</p>
                 </div>
-                <button onClick={() => setAdoptingDivisionId(null)} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+                <button onClick={() => setAdoptingDivisionId(null)} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div style={{ overflowY: "auto", padding: 8 }}>
                 {adoptable.length === 0 ? (
-                  <p style={{ color: "#7A8BAD", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos disponibles</p>
+                  <p style={{ color: "var(--c-text-muted)", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos disponibles</p>
                 ) : adoptable.map(dept => {
                   const fromDiv = divisions.find(d => d.id === dept.divisionId);
                   return (
@@ -2482,15 +2482,15 @@ function OrgChartFlow() {
                         width: "100%", padding: "10px 12px", borderRadius: 8,
                         border: "none", cursor: "pointer", background: "transparent", textAlign: "left",
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "#141928"; }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "var(--c-bg-elevated)"; }}
                       onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
                     >
-                      <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "#3D7EFF", flexShrink: 0 }} />
+                      <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "var(--c-accent-blue)", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {dept.name}
                         </p>
-                        <p style={{ margin: "1px 0 0", fontSize: 10, color: "#7A8BAD" }}>
+                        <p style={{ margin: "1px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>
                           {fromDiv ? `En: ${fromDiv.name}` : "Sin división"}
                         </p>
                       </div>
@@ -2506,19 +2506,19 @@ function OrgChartFlow() {
       {/* Move employee to department picker */}
       {movingEmployeeId && (
         <div
-          style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
           onMouseDown={e => { if (e.target === e.currentTarget) setMovingEmployeeId(null); }}
         >
-          <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#E2E8F8" }}>Mover a departamento</p>
-              <button onClick={() => setMovingEmployeeId(null)} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+          <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>Mover a departamento</p>
+              <button onClick={() => setMovingEmployeeId(null)} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div style={{ overflowY: "auto", padding: 8 }}>
               {departments.length === 0 ? (
-                <p style={{ color: "#7A8BAD", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos</p>
+                <p style={{ color: "var(--c-text-muted)", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos</p>
               ) : departments.map(dept => {
                 const emp = (employees ?? []).find(e => e.id === movingEmployeeId);
                 const isCurrent = emp?.departmentId === dept.id;
@@ -2542,23 +2542,23 @@ function OrgChartFlow() {
                       display: "flex", alignItems: "center", gap: 10,
                       width: "100%", padding: "10px 12px", borderRadius: 8,
                       border: "none", cursor: isCurrent ? "default" : "pointer",
-                      background: isCurrent ? "rgba(61,126,255,0.08)" : "transparent",
+                      background: isCurrent ? "rgb(var(--c-accent-blue-rgb) / 0.08)" : "transparent",
                       opacity: isCurrent ? 0.6 : 1,
                       textAlign: "left",
                     }}
-                    onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = "#141928"; }}
+                    onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = "var(--c-bg-elevated)"; }}
                     onMouseLeave={e => { if (!isCurrent) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "#3D7EFF", flexShrink: 0 }} />
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "var(--c-accent-blue)", flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {dept.name}
                       </p>
                       {parentDiv && (
-                        <p style={{ margin: "1px 0 0", fontSize: 10, color: "#7A8BAD" }}>{parentDiv.name}</p>
+                        <p style={{ margin: "1px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>{parentDiv.name}</p>
                       )}
                     </div>
-                    {isCurrent && <span style={{ fontSize: 10, color: "#3D7EFF", flexShrink: 0 }}>actual</span>}
+                    {isCurrent && <span style={{ fontSize: 10, color: "var(--c-accent-blue)", flexShrink: 0 }}>actual</span>}
                   </button>
                 );
               })}

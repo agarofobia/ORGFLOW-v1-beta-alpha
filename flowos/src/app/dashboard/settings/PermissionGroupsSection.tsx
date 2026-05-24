@@ -77,14 +77,14 @@ function moduleActionCount(perms: PermissionsMap, mod: Module): number {
 function ModuleBadges({ modules }: { modules: PermissionsMap }) {
   const active = MODULES.filter((m) => moduleActionCount(modules, m) > 0);
   if (!active.length)
-    return <span className="text-xs" style={{ color: "#7A8BAD" }}>Sin acceso a módulos</span>;
+    return <span className="text-xs" style={{ color: "var(--c-text-muted)" }}>Sin acceso a módulos</span>;
   return (
     <div className="flex flex-wrap gap-1.5">
       {active.map((m) => (
         <span
           key={m}
           className="rounded px-2 py-0.5 font-mono text-[10px]"
-          style={{ background: "rgba(61,126,255,0.12)", color: "#7AABFF", border: "1px solid rgba(61,126,255,0.2)" }}
+          style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.12)", color: "#7AABFF", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.2)" }}
         >
           {MODULE_LABELS[m]} ({moduleActionCount(modules, m)})
         </span>
@@ -114,15 +114,15 @@ function ModuleEditor({
   };
 
   return (
-    <div className="mt-4 overflow-hidden rounded-lg" style={{ border: "1px solid #1E2540" }}>
+    <div className="mt-4 overflow-hidden rounded-lg" style={{ border: "1px solid var(--c-border)" }}>
       <table className="w-full text-xs">
         <thead>
-          <tr style={{ background: "#0A0F1C" }}>
-            <th className="px-3 py-2 text-left font-mono uppercase tracking-widest" style={{ color: "#7A8BAD", width: 120 }}>
+          <tr style={{ background: "var(--c-bg-darker)" }}>
+            <th className="px-3 py-2 text-left font-mono uppercase tracking-widest" style={{ color: "var(--c-text-muted)", width: 120 }}>
               Módulo
             </th>
             {ACTIONS.map((a) => (
-              <th key={a} className="px-2 py-2 text-center font-mono uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
+              <th key={a} className="px-2 py-2 text-center font-mono uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
                 {a}
               </th>
             ))}
@@ -132,9 +132,9 @@ function ModuleEditor({
           {MODULES.map((mod, i) => (
             <tr
               key={mod}
-              style={{ background: i % 2 === 0 ? "#0E1220" : "#0A0F1C", borderTop: "1px solid #1E2540" }}
+              style={{ background: i % 2 === 0 ? "var(--c-bg-surface)" : "var(--c-bg-darker)", borderTop: "1px solid var(--c-border)" }}
             >
-              <td className="px-3 py-2 font-medium" style={{ color: "#C4CFEA" }}>
+              <td className="px-3 py-2 font-medium" style={{ color: "var(--c-text-secondary)" }}>
                 {MODULE_LABELS[mod]}
               </td>
               {ACTIONS.map((action) => (
@@ -144,8 +144,8 @@ function ModuleEditor({
                     className="mx-auto flex h-5 w-5 items-center justify-center rounded transition-all"
                     style={
                       modules[mod]?.[action]
-                        ? { background: "#3D7EFF", color: "#fff" }
-                        : { background: "#141928", border: "1px solid #1E2540", color: "#4A5568" }
+                        ? { background: "var(--c-accent-blue)", color: "#fff" }
+                        : { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-dim)" }
                     }
                   >
                     {modules[mod]?.[action] && (
@@ -235,7 +235,7 @@ function AssignmentPickerModal({
     <div
       style={{
         position: "fixed", inset: 0, zIndex: 60,
-        background: "rgba(0,0,0,0.65)",
+        background: "var(--c-shadow-strong)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "clamp(12px, 4vh, 32px)",
       }}
@@ -243,30 +243,30 @@ function AssignmentPickerModal({
     >
       <div
         style={{
-          background: "#0E1220", border: "1px solid #1E2540",
+          background: "var(--c-bg-surface)", border: "1px solid var(--c-border)",
           borderRadius: 12, width: "100%", maxWidth: 520,
           maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden",
         }}
       >
         {/* Header */}
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", gap: 10 }}>
-          <ShieldCheck size={16} style={{ color: "#3D7EFF" }} />
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", gap: 10 }}>
+          <ShieldCheck size={16} style={{ color: "var(--c-accent-blue)" }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>
               Asignar a grupo
             </p>
-            <p style={{ fontSize: 11, color: "#7A8BAD", margin: "2px 0 0", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 11, color: "var(--c-text-muted)", margin: "2px 0 0", fontFamily: "monospace" }}>
               {groupName}
             </p>
           </div>
           <button onClick={onClose} title="Cerrar" aria-label="Cerrar"
-            style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 4 }}>
+            style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer", padding: 4 }}>
             <X size={16} />
           </button>
         </div>
 
         {/* Type selector */}
-        <div style={{ padding: "12px 18px", borderBottom: "1px solid #1E2540" }}>
+        <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--c-border)" }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
             {(["employee", "department", "division"] as const).map(t => {
               const Icon = SUBJECT_TYPE_ICONS[t];
@@ -278,9 +278,9 @@ function AssignmentPickerModal({
                   style={{
                     display: "flex", alignItems: "center", gap: 5,
                     padding: "6px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer",
-                    background: active ? "rgba(61,126,255,0.15)" : "#141928",
-                    border: active ? "1px solid rgba(61,126,255,0.4)" : "1px solid #1E2540",
-                    color: active ? "#3D7EFF" : "#7A8BAD",
+                    background: active ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "var(--c-bg-elevated)",
+                    border: active ? "1px solid rgb(var(--c-accent-blue-rgb) / 0.4)" : "1px solid var(--c-border)",
+                    color: active ? "var(--c-accent-blue)" : "var(--c-text-muted)",
                   }}
                 >
                   <Icon size={12} />
@@ -290,16 +290,16 @@ function AssignmentPickerModal({
             })}
           </div>
           <div style={{ position: "relative" }}>
-            <Search size={12} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#7A8BAD" }} />
+            <Search size={12} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-text-muted)" }} />
             <input
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={`Buscar ${SUBJECT_TYPE_LABELS[type].toLowerCase()}…`}
               style={{
-                width: "100%", background: "#141928", border: "1px solid #1E2540",
+                width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
                 borderRadius: 6, padding: "7px 10px 7px 28px", fontSize: 12,
-                color: "#E2E8F8", outline: "none",
+                color: "var(--c-text-primary)", outline: "none",
               }}
             />
           </div>
@@ -308,11 +308,11 @@ function AssignmentPickerModal({
         {/* List */}
         <div style={{ flex: 1, overflow: "auto", padding: 8 }}>
           {loading ? (
-            <p style={{ textAlign: "center", padding: 24, color: "#7A8BAD", fontSize: 12 }}>
+            <p style={{ textAlign: "center", padding: 24, color: "var(--c-text-muted)", fontSize: 12 }}>
               Cargando…
             </p>
           ) : filtered.length === 0 ? (
-            <p style={{ textAlign: "center", padding: 24, color: "#7A8BAD", fontSize: 12 }}>
+            <p style={{ textAlign: "center", padding: 24, color: "var(--c-text-muted)", fontSize: 12 }}>
               {query ? "Sin resultados" : "Sin elementos en la org"}
             </p>
           ) : (
@@ -328,23 +328,23 @@ function AssignmentPickerModal({
                   style={{
                     width: "100%", display: "flex", alignItems: "center", gap: 10,
                     padding: "8px 12px", marginBottom: 2, borderRadius: 6,
-                    background: already ? "#080B12" : "transparent",
+                    background: already ? "var(--c-bg-base)" : "transparent",
                     border: "1px solid transparent", textAlign: "left",
                     cursor: already || isBusy ? "default" : "pointer",
                     opacity: already ? 0.5 : 1,
-                    color: "#C4CFEA", fontSize: 12,
+                    color: "var(--c-text-secondary)", fontSize: 12,
                   }}
-                  onMouseEnter={e => { if (!already && !isBusy) e.currentTarget.style.background = "#141928"; }}
+                  onMouseEnter={e => { if (!already && !isBusy) e.currentTarget.style.background = "var(--c-bg-elevated)"; }}
                   onMouseLeave={e => { if (!already) e.currentTarget.style.background = "transparent"; }}
                 >
                   <span style={{ flex: 1 }}>{s.name}</span>
                   {already && (
-                    <span style={{ fontSize: 10, color: "#10D9A0", fontFamily: "monospace" }}>
+                    <span style={{ fontSize: 10, color: "var(--c-accent-emerald)", fontFamily: "monospace" }}>
                       ✓ asignado
                     </span>
                   )}
                   {isBusy && (
-                    <span style={{ fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+                    <span style={{ fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
                       …
                     </span>
                   )}
@@ -402,7 +402,7 @@ function AssignmentsBlock({
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0, fontFamily: "monospace" }}>
+        <p style={{ fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0, fontFamily: "monospace" }}>
           Asignado a · {assignments.length}
         </p>
         <button
@@ -410,9 +410,9 @@ function AssignmentsBlock({
           style={{
             display: "flex", alignItems: "center", gap: 4,
             padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer",
-            background: "rgba(61,126,255,0.12)",
-            border: "1px solid rgba(61,126,255,0.3)",
-            color: "#3D7EFF",
+            background: "rgb(var(--c-accent-blue-rgb) / 0.12)",
+            border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.3)",
+            color: "var(--c-accent-blue)",
           }}
         >
           <Plus size={11} />
@@ -421,9 +421,9 @@ function AssignmentsBlock({
       </div>
 
       {loading ? (
-        <p style={{ fontSize: 11, color: "#7A8BAD", padding: 8 }}>Cargando…</p>
+        <p style={{ fontSize: 11, color: "var(--c-text-muted)", padding: 8 }}>Cargando…</p>
       ) : assignments.length === 0 ? (
-        <p style={{ fontSize: 11, color: "#7A8BAD", padding: "8px 0", fontStyle: "italic" }}>
+        <p style={{ fontSize: 11, color: "var(--c-text-muted)", padding: "8px 0", fontStyle: "italic" }}>
           Sin asignaciones — este grupo no afecta a nadie todavía.
         </p>
       ) : (
@@ -438,12 +438,12 @@ function AssignmentsBlock({
                 key={a.id}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
-                  background: "#141928", border: "1px solid #1E2540",
+                  background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
                   borderRadius: 14, padding: "4px 4px 4px 10px",
-                  fontSize: 11, color: "#C4CFEA",
+                  fontSize: 11, color: "var(--c-text-secondary)",
                 }}
               >
-                <Icon size={11} style={{ color: "#7A8BAD" }} />
+                <Icon size={11} style={{ color: "var(--c-text-muted)" }} />
                 <span>{a.displayName}</span>
                 <button
                   onClick={() => remove(a)}
@@ -451,11 +451,11 @@ function AssignmentsBlock({
                   aria-label="Quitar asignación"
                   style={{
                     background: "transparent", border: "none",
-                    color: "#7A8BAD", cursor: "pointer", padding: 2,
+                    color: "var(--c-text-muted)", cursor: "pointer", padding: 2,
                     display: "flex", alignItems: "center", borderRadius: 8,
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.color = "#F43F5E"; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = "#7A8BAD"; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "var(--c-accent-red)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "var(--c-text-muted)"; }}
                 >
                   <X size={11} />
                 </button>
@@ -466,7 +466,7 @@ function AssignmentsBlock({
       )}
 
       {isPreset && (
-        <p style={{ fontSize: 10, color: "#7A8BAD", marginTop: 8, fontStyle: "italic" }}>
+        <p style={{ fontSize: 10, color: "var(--c-text-muted)", marginTop: 8, fontStyle: "italic" }}>
           Tip: los presets se pueden asignar pero no editar. Si necesitás otros permisos, creá un grupo custom.
         </p>
       )}
@@ -516,30 +516,30 @@ function GroupRow({
   return (
     <div
       className="rounded-lg transition-all"
-      style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+      style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
     >
       <div
         className="flex cursor-pointer items-center gap-3 p-4"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: group.isPreset ? "rgba(245,158,11,0.12)" : "rgba(61,126,255,0.12)" }}>
+          style={{ background: group.isPreset ? "rgb(var(--c-accent-amber-rgb) / 0.12)" : "rgb(var(--c-accent-blue-rgb) / 0.12)" }}>
           {group.isPreset
-            ? <Lock className="h-4 w-4" style={{ color: "#F59E0B" }} />
-            : <ShieldCheck className="h-4 w-4" style={{ color: "#3D7EFF" }} />
+            ? <Lock className="h-4 w-4" style={{ color: "var(--c-accent-amber)" }} />
+            : <ShieldCheck className="h-4 w-4" style={{ color: "var(--c-accent-blue)" }} />
           }
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm" style={{ color: "#E2E8F8" }}>{group.name}</span>
+            <span className="font-semibold text-sm" style={{ color: "var(--c-text-primary)" }}>{group.name}</span>
             {group.isPreset && (
-              <span className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase" style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.2)" }}>
+              <span className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase" style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.12)", color: "var(--c-accent-amber)", border: "1px solid rgb(var(--c-accent-amber-rgb) / 0.2)" }}>
                 Preset
               </span>
             )}
           </div>
           {group.description && (
-            <p className="mt-0.5 text-xs truncate" style={{ color: "#7A8BAD" }}>{group.description}</p>
+            <p className="mt-0.5 text-xs truncate" style={{ color: "var(--c-text-muted)" }}>{group.description}</p>
           )}
         </div>
         <div className="mr-2 hidden sm:block">
@@ -549,32 +549,32 @@ function GroupRow({
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(group.id); }}
             className="rounded p-1.5 transition-colors hover:bg-red-500/10"
-            style={{ color: "#7A8BAD" }}
+            style={{ color: "var(--c-text-muted)" }}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         )}
         {expanded
-          ? <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "#7A8BAD" }} />
-          : <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "#7A8BAD" }} />
+          ? <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "var(--c-text-muted)" }} />
+          : <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--c-text-muted)" }} />
         }
       </div>
 
       {expanded && (
-        <div className="border-t px-4 pb-4" style={{ borderColor: "#1E2540" }}>
+        <div className="border-t px-4 pb-4" style={{ borderColor: "var(--c-border)" }}>
           <ModuleEditor modules={modules} onChange={setModules} />
           {!group.isPreset && (
             <button
               onClick={save}
               disabled={saving}
               className="mt-3 rounded px-4 py-1.5 text-sm font-medium text-white transition-all"
-              style={{ background: "#3D7EFF", opacity: saving ? 0.6 : 1 }}
+              style={{ background: "var(--c-accent-blue)", opacity: saving ? 0.6 : 1 }}
             >
               {saving ? "Guardando…" : "Guardar cambios"}
             </button>
           )}
           {group.isPreset && (
-            <p className="mt-3 text-xs" style={{ color: "#7A8BAD" }}>
+            <p className="mt-3 text-xs" style={{ color: "var(--c-text-muted)" }}>
               Los grupos preset no se pueden editar directamente. Para permisos custom, creá un grupo nuevo.
             </p>
           )}
@@ -647,13 +647,13 @@ export default function PermissionGroupsSection() {
     <section className="mt-12">
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
+          <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
             Sistema
           </p>
-          <h2 className="mt-1 text-lg font-semibold" style={{ color: "#E2E8F8" }}>
+          <h2 className="mt-1 text-lg font-semibold" style={{ color: "var(--c-text-primary)" }}>
             Grupos de permisos
           </h2>
-          <p className="mt-1 text-sm" style={{ color: "#7A8BAD" }}>
+          <p className="mt-1 text-sm" style={{ color: "var(--c-text-muted)" }}>
             Definí qué puede hacer cada grupo en cada módulo y asigná empleados, departamentos o divisiones a cada grupo.
           </p>
         </div>
@@ -663,7 +663,7 @@ export default function PermissionGroupsSection() {
               onClick={seedPresets}
               disabled={seeding}
               className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-all"
-              style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.25)" }}
+              style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.12)", color: "var(--c-accent-amber)", border: "1px solid rgb(var(--c-accent-amber-rgb) / 0.25)" }}
             >
               <Sparkles className="h-3.5 w-3.5" />
               {seeding ? "Creando…" : "Crear presets"}
@@ -672,7 +672,7 @@ export default function PermissionGroupsSection() {
           <button
             onClick={() => setCreating((v) => !v)}
             className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-white transition-all"
-            style={{ background: "#3D7EFF" }}
+            style={{ background: "var(--c-accent-blue)" }}
           >
             <Plus className="h-3.5 w-3.5" />
             Nuevo grupo
@@ -690,19 +690,19 @@ export default function PermissionGroupsSection() {
             onKeyDown={(e) => { if (e.key === "Enter") createGroup(); if (e.key === "Escape") setCreating(false); }}
             placeholder="Nombre del grupo…"
             className="flex-1 rounded px-3 py-2 text-sm outline-none"
-            style={{ background: "#141928", border: "1px solid #3D7EFF", color: "#E2E8F8" }}
+            style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-accent-blue)", color: "var(--c-text-primary)" }}
           />
           <button
             onClick={createGroup}
             className="rounded px-4 py-2 text-sm font-medium text-white"
-            style={{ background: "#3D7EFF" }}
+            style={{ background: "var(--c-accent-blue)" }}
           >
             Crear
           </button>
           <button
             onClick={() => setCreating(false)}
             className="rounded px-3 py-2 text-sm"
-            style={{ color: "#7A8BAD", background: "#141928", border: "1px solid #1E2540" }}
+            style={{ color: "var(--c-text-muted)", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}
           >
             Cancelar
           </button>
@@ -710,17 +710,17 @@ export default function PermissionGroupsSection() {
       )}
 
       {loading ? (
-        <p className="text-sm py-8 text-center" style={{ color: "#7A8BAD" }}>Cargando grupos…</p>
+        <p className="text-sm py-8 text-center" style={{ color: "var(--c-text-muted)" }}>Cargando grupos…</p>
       ) : groups.length === 0 ? (
         <div
           className="rounded-lg p-8 text-center"
-          style={{ background: "#0E1220", border: "1px dashed #1E2540" }}
+          style={{ background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)" }}
         >
-          <ShieldCheck className="mx-auto mb-3 h-8 w-8" style={{ color: "#1E2540" }} />
-          <p className="text-sm font-medium" style={{ color: "#C4CFEA" }}>
+          <ShieldCheck className="mx-auto mb-3 h-8 w-8" style={{ color: "var(--c-border)" }} />
+          <p className="text-sm font-medium" style={{ color: "var(--c-text-secondary)" }}>
             No hay grupos de permisos
           </p>
-          <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>
+          <p className="mt-1 text-xs" style={{ color: "var(--c-text-muted)" }}>
             Creá los presets para empezar rápido o definí grupos personalizados.
           </p>
         </div>

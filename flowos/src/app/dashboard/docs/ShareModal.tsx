@@ -117,25 +117,25 @@ export default function ShareModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.6)" }}
+      style={{ background: "var(--c-shadow-strong)" }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         className="w-full max-w-md rounded-xl p-6"
-        style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+        style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Share2 className="h-4 w-4" style={{ color: "#3D7EFF" }} />
-            <span className="font-semibold text-sm" style={{ color: "#E2E8F8" }}>Compartir documento</span>
+            <Share2 className="h-4 w-4" style={{ color: "var(--c-accent-blue)" }} />
+            <span className="font-semibold text-sm" style={{ color: "var(--c-text-primary)" }}>Compartir documento</span>
           </div>
-          <button onClick={onClose} title="Cerrar (Esc)" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+          <button onClick={onClose} title="Cerrar (Esc)" aria-label="Cerrar" className="rounded p-1 hover:bg-[var(--c-border)]" style={{ color: "var(--c-text-muted)" }}>
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <p className="mb-5 text-xs truncate" style={{ color: "#7A8BAD" }}>{documentTitle}</p>
+        <p className="mb-5 text-xs truncate" style={{ color: "var(--c-text-muted)" }}>{documentTitle}</p>
 
         {/* Grant form */}
         <div className="mb-5 flex flex-col gap-2">
@@ -147,8 +147,8 @@ export default function ShareModal({
                 className="flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 text-xs font-medium transition-all"
                 style={
                   granteeType === t
-                    ? { background: "rgba(61,126,255,0.15)", border: "1px solid rgba(61,126,255,0.4)", color: "#7AABFF" }
-                    : { background: "#141928", border: "1px solid #1E2540", color: "#7A8BAD" }
+                    ? { background: "rgb(var(--c-accent-blue-rgb) / 0.15)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.4)", color: "#7AABFF" }
+                    : { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-muted)" }
                 }
               >
                 {GRANTEE_ICONS[t]}
@@ -162,7 +162,7 @@ export default function ShareModal({
               value={granteeId}
               onChange={(e) => setGranteeId(e.target.value)}
               className="flex-1 rounded px-3 py-2 text-sm outline-none"
-              style={{ background: "#141928", border: "1px solid #1E2540", color: granteeId ? "#E2E8F8" : "#7A8BAD" }}
+              style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: granteeId ? "var(--c-text-primary)" : "var(--c-text-muted)" }}
             >
               <option value="">Seleccionar…</option>
               {options.map((o) => (
@@ -173,7 +173,7 @@ export default function ShareModal({
               onClick={addGrant}
               disabled={!granteeId || saving}
               className="rounded px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
-              style={{ background: "#3D7EFF" }}
+              style={{ background: "var(--c-accent-blue)" }}
             >
               {saving ? "…" : "Dar acceso"}
             </button>
@@ -182,13 +182,13 @@ export default function ShareModal({
 
         {/* Current grants */}
         <div>
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
             Accesos activos ({grants.length})
           </p>
           {loading ? (
-            <p className="py-4 text-center text-xs" style={{ color: "#7A8BAD" }}>Cargando…</p>
+            <p className="py-4 text-center text-xs" style={{ color: "var(--c-text-muted)" }}>Cargando…</p>
           ) : grants.length === 0 ? (
-            <p className="py-4 text-center text-xs" style={{ color: "#4A5568" }}>
+            <p className="py-4 text-center text-xs" style={{ color: "var(--c-text-dim)" }}>
               Sin accesos específicos — solo admins pueden verlo.
             </p>
           ) : (
@@ -197,15 +197,15 @@ export default function ShareModal({
                 <div
                   key={g.id}
                   className="flex items-center gap-2 rounded px-3 py-2"
-                  style={{ background: "#141928", border: "1px solid #1E2540" }}
+                  style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}
                 >
-                  <span style={{ color: "#7A8BAD" }}>{GRANTEE_ICONS[g.granteeType]}</span>
-                  <span className="flex-1 text-xs" style={{ color: "#C4CFEA" }}>{getGranteeName(g)}</span>
-                  <span className="font-mono text-[9px]" style={{ color: "#4A5568" }}>{GRANTEE_LABELS[g.granteeType]}</span>
+                  <span style={{ color: "var(--c-text-muted)" }}>{GRANTEE_ICONS[g.granteeType]}</span>
+                  <span className="flex-1 text-xs" style={{ color: "var(--c-text-secondary)" }}>{getGranteeName(g)}</span>
+                  <span className="font-mono text-[9px]" style={{ color: "var(--c-text-dim)" }}>{GRANTEE_LABELS[g.granteeType]}</span>
                   <button
                     onClick={() => revokeGrant(g.id)}
                     className="rounded p-1 hover:bg-red-500/10"
-                    style={{ color: "#7A8BAD" }}
+                    style={{ color: "var(--c-text-muted)" }}
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>

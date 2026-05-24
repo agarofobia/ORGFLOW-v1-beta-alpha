@@ -46,15 +46,15 @@ interface Doc {
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
 function fileIcon(fileType: string) {
-  if (fileType.startsWith("image/")) return <ImageIcon className="h-4 w-4 shrink-0" style={{ color: "#10D9A0" }} strokeWidth={1.75} />;
-  if (fileType === "application/pdf") return <FileText className="h-4 w-4 shrink-0" style={{ color: "#F43F5E" }} strokeWidth={1.75} />;
+  if (fileType.startsWith("image/")) return <ImageIcon className="h-4 w-4 shrink-0" style={{ color: "var(--c-accent-emerald)" }} strokeWidth={1.75} />;
+  if (fileType === "application/pdf") return <FileText className="h-4 w-4 shrink-0" style={{ color: "var(--c-accent-red)" }} strokeWidth={1.75} />;
   if (fileType.includes("spreadsheet") || fileType.includes("excel") || fileType.includes("csv"))
-    return <Table className="h-4 w-4 shrink-0" style={{ color: "#10D9A0" }} strokeWidth={1.75} />;
+    return <Table className="h-4 w-4 shrink-0" style={{ color: "var(--c-accent-emerald)" }} strokeWidth={1.75} />;
   if (fileType.includes("word") || fileType.includes("document"))
-    return <FileText className="h-4 w-4 shrink-0" style={{ color: "#3D7EFF" }} strokeWidth={1.75} />;
+    return <FileText className="h-4 w-4 shrink-0" style={{ color: "var(--c-accent-blue)" }} strokeWidth={1.75} />;
   if (fileType.includes("code") || fileType.includes("json") || fileType.includes("javascript"))
-    return <FileCode className="h-4 w-4 shrink-0" style={{ color: "#A855F7" }} strokeWidth={1.75} />;
-  return <File className="h-4 w-4 shrink-0" style={{ color: "#7A8BAD" }} strokeWidth={1.75} />;
+    return <FileCode className="h-4 w-4 shrink-0" style={{ color: "var(--c-accent-violet)" }} strokeWidth={1.75} />;
+  return <File className="h-4 w-4 shrink-0" style={{ color: "var(--c-text-muted)" }} strokeWidth={1.75} />;
 }
 
 function formatSize(bytes: number) {
@@ -308,20 +308,20 @@ export default function DocsPage() {
           src={src}
           title={fileName}
           className="h-96 w-full rounded-lg"
-          style={{ border: "1px solid #1E2540" }}
+          style={{ border: "1px solid var(--c-border)" }}
         />
       );
     }
     return (
       <div className="flex flex-col items-center gap-4 py-10">
         {fileIcon(fileType)}
-        <p className="text-sm" style={{ color: "#7A8BAD" }}>
+        <p className="text-sm" style={{ color: "var(--c-text-muted)" }}>
           Vista previa no disponible para este tipo de archivo.
         </p>
         <button
           onClick={() => downloadDoc(doc)}
           className="flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-all"
-          style={{ background: "#3D7EFF", boxShadow: "0 0 12px rgba(61,126,255,0.3)" }}
+          style={{ background: "var(--c-accent-blue)", boxShadow: "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.3)" }}
         >
           <Download className="h-4 w-4" strokeWidth={2} />
           Descargar
@@ -333,7 +333,7 @@ export default function DocsPage() {
   return (
     <div
       className="flex h-full"
-      style={{ background: "#080B12" }}
+      style={{ background: "var(--c-bg-base)" }}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
@@ -341,25 +341,25 @@ export default function DocsPage() {
       {/* Sidebar */}
       <aside
         className="flex w-60 flex-col flex-shrink-0"
-        style={{ borderRight: "1px solid #1E2540", background: "#080B12" }}
+        style={{ borderRight: "1px solid var(--c-border)", background: "var(--c-bg-base)" }}
       >
         {/* Búsqueda */}
-        <div className="p-3" style={{ borderBottom: "1px solid #1E2540" }}>
+        <div className="p-3" style={{ borderBottom: "1px solid var(--c-border)" }}>
           <div
             className="flex items-center gap-2 rounded px-2.5 py-1.5"
-            style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+            style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
           >
-            <Search className="h-3.5 w-3.5 shrink-0" style={{ color: "#7A8BAD" }} strokeWidth={1.75} />
+            <Search className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-text-muted)" }} strokeWidth={1.75} />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar…"
               className="flex-1 bg-transparent text-xs outline-none"
-              style={{ color: "#E2E8F8" }}
+              style={{ color: "var(--c-text-primary)" }}
             />
             {search && (
-              <button onClick={() => setSearch("")} style={{ color: "#7A8BAD" }}>
+              <button onClick={() => setSearch("")} style={{ color: "var(--c-text-muted)" }}>
                 <X className="h-3 w-3" />
               </button>
             )}
@@ -371,15 +371,15 @@ export default function DocsPage() {
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
               className="flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 text-xs font-medium transition-colors"
-              style={{ background: "#3D7EFF", color: "#fff" }}
+              style={{ background: "var(--c-accent-blue)", color: "#fff" }}
             >
               {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" strokeWidth={2} />}
               Subir
             </button>
             <button
               onClick={() => setCreatingFolder(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 text-xs transition-colors hover:bg-[#141928]"
-              style={{ border: "1px solid #1E2540", color: "#7A8BAD" }}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 text-xs transition-colors hover:bg-[var(--c-bg-elevated)]"
+              style={{ border: "1px solid var(--c-border)", color: "var(--c-text-muted)" }}
             >
               <Folder className="h-3 w-3" strokeWidth={1.75} />
               Carpeta
@@ -404,9 +404,9 @@ export default function DocsPage() {
                 onKeyDown={(e) => { if (e.key === "Enter") createFolder(); if (e.key === "Escape") setCreatingFolder(false); }}
                 placeholder="Nombre…"
                 className="flex-1 rounded px-2.5 py-1.5 text-xs outline-none"
-                style={{ background: "#0E1220", border: "1px solid #F59E0B40", color: "#E2E8F8" }}
+                style={{ background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-amber-rgb) / 0.25)", color: "var(--c-text-primary)" }}
               />
-              <button onClick={createFolder} className="rounded px-2 py-1" style={{ background: "#F59E0B20", color: "#F59E0B" }}>
+              <button onClick={createFolder} className="rounded px-2 py-1" style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.13)", color: "var(--c-accent-amber)" }}>
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -417,7 +417,7 @@ export default function DocsPage() {
         <nav className="flex-1 overflow-y-auto p-2">
           {loading ? (
             <div className="flex justify-center py-6">
-              <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#3D7EFF" }} />
+              <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
             </div>
           ) : search.trim() ? (
             // Búsqueda activa → resultado flat sin tree (más útil)
@@ -427,7 +427,7 @@ export default function DocsPage() {
                 return d.title.toLowerCase().includes(search.toLowerCase());
               });
               if (matches.length === 0) {
-                return <p className="px-2 py-4 text-center text-xs" style={{ color: "#7A8BAD" }}>Sin resultados</p>;
+                return <p className="px-2 py-4 text-center text-xs" style={{ color: "var(--c-text-muted)" }}>Sin resultados</p>;
               }
               return matches.map(d => (
                 <TreeNode
@@ -458,7 +458,7 @@ export default function DocsPage() {
               return d.parentId === null;
             });
             if (rootDocs.length === 0) {
-              return <p className="px-2 py-4 text-center text-xs" style={{ color: "#7A8BAD" }}>Sin archivos aún</p>;
+              return <p className="px-2 py-4 text-center text-xs" style={{ color: "var(--c-text-muted)" }}>Sin archivos aún</p>;
             }
             // Ordenamos: carpetas primero (alfabético) + archivos después (alfabético)
             const sorted = [
@@ -488,7 +488,7 @@ export default function DocsPage() {
           })()}
         </nav>
 
-        <div className="px-3 pb-2 font-mono text-[9px]" style={{ color: "#3A4560" }}>
+        <div className="px-3 pb-2 font-mono text-[9px]" style={{ color: "var(--c-text-placeholder)" }}>
           {files.length} archivo{files.length !== 1 ? "s" : ""} · {folders.length} carpeta{folders.length !== 1 ? "s" : ""}
         </div>
       </aside>
@@ -498,9 +498,9 @@ export default function DocsPage() {
         {/* Topbar con breadcrumb */}
         <div
           className="flex items-center gap-2 px-6 py-3 text-sm"
-          style={{ borderBottom: "1px solid #1E2540", color: "#7A8BAD" }}
+          style={{ borderBottom: "1px solid var(--c-border)", color: "var(--c-text-muted)" }}
         >
-          <button onClick={() => { setCurrentFolder(null); setSelectedDoc(null); }} style={{ color: currentFolder ? "#7A8BAD" : "#E2E8F8" }}>
+          <button onClick={() => { setCurrentFolder(null); setSelectedDoc(null); }} style={{ color: currentFolder ? "var(--c-text-muted)" : "var(--c-text-primary)" }}>
             Documentos
           </button>
           {breadcrumb.map((b) => (
@@ -508,20 +508,20 @@ export default function DocsPage() {
               <ChevronRight className="h-3.5 w-3.5" />
               <button
                 onClick={() => { setCurrentFolder(b.id); setSelectedDoc(null); }}
-                style={{ color: "#E2E8F8" }}
+                style={{ color: "var(--c-text-primary)" }}
               >
                 {b.title}
               </button>
             </span>
           ))}
-          <div className="ml-auto flex gap-1" style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6, padding: 2 }}>
+          <div className="ml-auto flex gap-1" style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6, padding: 2 }}>
             <button
               onClick={() => { setViewMode("list"); setSelectedDoc(null); }}
               title="Vista lista"
               style={{
                 padding: "4px 7px", borderRadius: 4, border: "none", cursor: "pointer",
-                background: viewMode === "list" ? "#1E2540" : "transparent",
-                color: viewMode === "list" ? "#E2E8F8" : "#7A8BAD",
+                background: viewMode === "list" ? "var(--c-border)" : "transparent",
+                color: viewMode === "list" ? "var(--c-text-primary)" : "var(--c-text-muted)",
               }}
             >
               <List className="h-3.5 w-3.5" />
@@ -531,8 +531,8 @@ export default function DocsPage() {
               title="Vista tarjetas"
               style={{
                 padding: "4px 7px", borderRadius: 4, border: "none", cursor: "pointer",
-                background: viewMode === "grid" ? "#1E2540" : "transparent",
-                color: viewMode === "grid" ? "#E2E8F8" : "#7A8BAD",
+                background: viewMode === "grid" ? "var(--c-border)" : "transparent",
+                color: viewMode === "grid" ? "var(--c-text-primary)" : "var(--c-text-muted)",
               }}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
@@ -544,11 +544,11 @@ export default function DocsPage() {
         {dragOver && (
           <div
             className="absolute inset-0 z-50 flex items-center justify-center"
-            style={{ background: "rgba(61,126,255,0.1)", border: "2px dashed #3D7EFF" }}
+            style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.1)", border: "2px dashed var(--c-accent-blue)" }}
           >
             <div className="text-center">
-              <Upload className="mx-auto mb-2 h-8 w-8" style={{ color: "#3D7EFF" }} />
-              <p className="text-sm font-medium" style={{ color: "#3D7EFF" }}>Soltá para subir</p>
+              <Upload className="mx-auto mb-2 h-8 w-8" style={{ color: "var(--c-accent-blue)" }} />
+              <p className="text-sm font-medium" style={{ color: "var(--c-accent-blue)" }}>Soltá para subir</p>
             </div>
           </div>
         )}
@@ -558,14 +558,14 @@ export default function DocsPage() {
           <div className="flex-1 overflow-y-auto p-6">
             {loading ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#3D7EFF" }} />
+                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
               </div>
             ) : folders.length === 0 && files.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-16 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <div className="flex flex-col items-center gap-3 rounded-xl p-10" style={{ border: "2px dashed #1E2540" }}>
-                  <Upload className="h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
-                  <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>Arrastrá archivos o hacé click para subir</p>
-                  <p className="text-xs" style={{ color: "#7A8BAD" }}>Word, Excel, PDF, imágenes · Máximo 5 MB</p>
+                <div className="flex flex-col items-center gap-3 rounded-xl p-10" style={{ border: "2px dashed var(--c-border)" }}>
+                  <Upload className="h-10 w-10" style={{ color: "var(--c-border)" }} strokeWidth={1} />
+                  <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>Arrastrá archivos o hacé click para subir</p>
+                  <p className="text-xs" style={{ color: "var(--c-text-muted)" }}>Word, Excel, PDF, imágenes · Máximo 5 MB</p>
                 </div>
               </div>
             ) : (
@@ -577,20 +577,20 @@ export default function DocsPage() {
                     className="group relative"
                     onDoubleClick={() => { setCurrentFolder(f.id); setSelectedDoc(null); setSearch(""); }}
                     style={{
-                      background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10,
+                      background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10,
                       padding: 14, cursor: "pointer", transition: "border-color 0.15s",
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = "#F59E0B55")}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = "#1E2540")}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = "rgb(var(--c-accent-amber-rgb) / 0.33)")}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--c-border)")}
                   >
-                    <FolderOpen className="mb-3 h-9 w-9" style={{ color: "#F59E0B" }} strokeWidth={1.5} />
-                    <p className="truncate text-xs font-medium" style={{ color: "#E2E8F8" }}>{f.title}</p>
+                    <FolderOpen className="mb-3 h-9 w-9" style={{ color: "var(--c-accent-amber)" }} strokeWidth={1.5} />
+                    <p className="truncate text-xs font-medium" style={{ color: "var(--c-text-primary)" }}>{f.title}</p>
                     {isAdmin && (
                       <button
                         onClick={e => { e.stopPropagation(); deleteDoc(f); }}
                         title={`Eliminar "${f.title}"`}
                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1"
-                        style={{ background: "rgba(244,63,94,0.1)", color: "#F43F5E" }}
+                        style={{ background: "rgb(var(--c-accent-red-rgb) / 0.1)", color: "var(--c-accent-red)" }}
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -608,11 +608,11 @@ export default function DocsPage() {
                       className="group relative"
                       onClick={() => setSelectedDoc(f)}
                       style={{
-                        background: "#0E1220", border: "1px solid #1E2540",
+                        background: "var(--c-bg-surface)", border: "1px solid var(--c-border)",
                         borderRadius: 10, padding: 14, cursor: "pointer", transition: "border-color 0.15s",
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.borderColor = "#3D7EFF44")}
-                      onMouseLeave={e => (e.currentTarget.style.borderColor = "#1E2540")}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = "rgb(var(--c-accent-blue-rgb) / 0.27)")}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--c-border)")}
                     >
                       {isImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -622,20 +622,20 @@ export default function DocsPage() {
                           style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6, marginBottom: 10 }}
                         />
                       ) : (
-                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: "#141928" }}>
+                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: "var(--c-bg-elevated)" }}>
                           {fileIcon(fc.fileType)}
                         </div>
                       )}
-                      <p className="truncate text-xs font-medium" style={{ color: "#E2E8F8" }}>{f.title}</p>
-                      <p className="mt-0.5 text-[10px]" style={{ color: "#7A8BAD" }}>{formatSize(fc.fileSize)}</p>
+                      <p className="truncate text-xs font-medium" style={{ color: "var(--c-text-primary)" }}>{f.title}</p>
+                      <p className="mt-0.5 text-[10px]" style={{ color: "var(--c-text-muted)" }}>{formatSize(fc.fileSize)}</p>
                       {fc.visibility === "admin_only" && (
-                        <EyeOff className="absolute top-2 left-2 h-3 w-3" style={{ color: "#F59E0B" }} />
+                        <EyeOff className="absolute top-2 left-2 h-3 w-3" style={{ color: "var(--c-accent-amber)" }} />
                       )}
                       {isAdmin && (
                         <button
                           onClick={e => { e.stopPropagation(); deleteDoc(f); }}
                           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1"
-                          style={{ background: "rgba(244,63,94,0.1)", color: "#F43F5E" }}
+                          style={{ background: "rgb(var(--c-accent-red-rgb) / 0.1)", color: "var(--c-accent-red)" }}
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -651,13 +651,13 @@ export default function DocsPage() {
           <div className="flex flex-1 flex-col overflow-hidden">
             <div
               className="flex items-center justify-between px-6 py-3"
-              style={{ borderBottom: "1px solid #1E2540" }}
+              style={{ borderBottom: "1px solid var(--c-border)" }}
             >
               <div className="flex items-center gap-3">
                 {selectedDoc.content.type === "file" && fileIcon((selectedDoc.content as FileContent).fileType)}
-                <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>{selectedDoc.title}</p>
+                <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>{selectedDoc.title}</p>
                 {selectedDoc.content.type === "file" && (
-                  <span className="font-mono text-[10px]" style={{ color: "#7A8BAD" }}>
+                  <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                     {formatSize((selectedDoc.content as FileContent).fileSize)}
                   </span>
                 )}
@@ -666,8 +666,8 @@ export default function DocsPage() {
                 {isAdmin && selectedDoc.content.type === "file" && (
                   <button
                     onClick={() => setSharingDoc(selectedDoc)}
-                    className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors hover:bg-[#141928]"
-                    style={{ border: "1px solid #1E2540", color: "#7A8BAD" }}
+                    className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors hover:bg-[var(--c-bg-elevated)]"
+                    style={{ border: "1px solid var(--c-border)", color: "var(--c-text-muted)" }}
                   >
                     <Share2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                     Compartir
@@ -676,10 +676,10 @@ export default function DocsPage() {
                 {isAdmin && selectedDoc.content.type === "file" && (
                   <button
                     onClick={() => toggleVisibility(selectedDoc)}
-                    className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors hover:bg-[#141928]"
+                    className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors hover:bg-[var(--c-bg-elevated)]"
                     style={{
-                      border: "1px solid #1E2540",
-                      color: (selectedDoc.content as FileContent).visibility === "admin_only" ? "#F59E0B" : "#7A8BAD",
+                      border: "1px solid var(--c-border)",
+                      color: (selectedDoc.content as FileContent).visibility === "admin_only" ? "var(--c-accent-amber)" : "var(--c-text-muted)",
                     }}
                   >
                     {(selectedDoc.content as FileContent).visibility === "admin_only"
@@ -692,7 +692,7 @@ export default function DocsPage() {
                   <button
                     onClick={() => downloadDoc(selectedDoc)}
                     className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition-colors"
-                    style={{ background: "#3D7EFF", color: "#fff" }}
+                    style={{ background: "var(--c-accent-blue)", color: "#fff" }}
                   >
                     <Download className="h-3.5 w-3.5" strokeWidth={2} />
                     Descargar
@@ -700,8 +700,8 @@ export default function DocsPage() {
                 )}
                 <button
                   onClick={() => setSelectedDoc(null)}
-                  className="rounded p-1.5 transition-colors hover:bg-[#141928]"
-                  style={{ color: "#7A8BAD" }}
+                  className="rounded p-1.5 transition-colors hover:bg-[var(--c-bg-elevated)]"
+                  style={{ color: "var(--c-text-muted)" }}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -716,7 +716,7 @@ export default function DocsPage() {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#3D7EFF" }} />
+                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
               </div>
             ) : folders.length === 0 && files.length === 0 ? (
               /* Empty: dropzone clickable */
@@ -726,13 +726,13 @@ export default function DocsPage() {
               >
                 <div
                   className="flex flex-col items-center gap-3 rounded-xl p-10"
-                  style={{ border: "2px dashed #1E2540" }}
+                  style={{ border: "2px dashed var(--c-border)" }}
                 >
-                  <Upload className="h-10 w-10" style={{ color: "#1E2540" }} strokeWidth={1} />
-                  <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>
+                  <Upload className="h-10 w-10" style={{ color: "var(--c-border)" }} strokeWidth={1} />
+                  <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>
                     Arrastrá archivos o hacé click para subir
                   </p>
-                  <p className="text-xs" style={{ color: "#7A8BAD" }}>
+                  <p className="text-xs" style={{ color: "var(--c-text-muted)" }}>
                     Word, Excel, PDF, imágenes, PSD y más · Máximo 5 MB por archivo
                   </p>
                 </div>
@@ -744,8 +744,8 @@ export default function DocsPage() {
                   className="grid items-center px-6 py-2 text-[10px] font-mono uppercase tracking-widest"
                   style={{
                     gridTemplateColumns: "1fr 110px 110px 40px",
-                    color: "#7A8BAD",
-                    borderBottom: "1px solid #1E2540",
+                    color: "var(--c-text-muted)",
+                    borderBottom: "1px solid var(--c-border)",
                   }}
                 >
                   <span>Nombre</span>
@@ -758,28 +758,28 @@ export default function DocsPage() {
                 {folders.map((f) => (
                   <div
                     key={f.id}
-                    className="group grid items-center px-6 py-2.5 text-xs transition-colors hover:bg-[#141928] cursor-pointer"
+                    className="group grid items-center px-6 py-2.5 text-xs transition-colors hover:bg-[var(--c-bg-elevated)] cursor-pointer"
                     style={{
                       gridTemplateColumns: "1fr 110px 110px 40px",
-                      borderBottom: "1px solid #1E254040",
+                      borderBottom: "1px solid rgb(var(--c-border-rgb) / 0.25)",
                     }}
                     onClick={() => { setCurrentFolder(f.id); setSelectedDoc(null); setSearch(""); }}
                     onDoubleClick={() => isAdmin && startRename(f)}
                     title={isAdmin ? "Click: abrir · Doble-click: renombrar" : "Click: abrir"}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <FolderOpen className="h-4 w-4 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
-                      <span className="truncate" style={{ color: "#E2E8F8" }}>{f.title}</span>
+                      <FolderOpen className="h-4 w-4 shrink-0" style={{ color: "var(--c-accent-amber)" }} strokeWidth={1.75} />
+                      <span className="truncate" style={{ color: "var(--c-text-primary)" }}>{f.title}</span>
                     </div>
-                    <span className="text-right" style={{ color: "#7A8BAD" }}>—</span>
-                    <span className="text-right" style={{ color: "#7A8BAD" }}>—</span>
+                    <span className="text-right" style={{ color: "var(--c-text-muted)" }}>—</span>
+                    <span className="text-right" style={{ color: "var(--c-text-muted)" }}>—</span>
                     <div className="flex justify-end">
                       {isAdmin && (
                         <button
                           onClick={(e) => { e.stopPropagation(); deleteDoc(f); }}
                           title={`Eliminar carpeta "${f.title}"`}
-                          className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-[#1E2540]"
-                          style={{ color: "#F43F5E" }}
+                          className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-[var(--c-border)]"
+                          style={{ color: "var(--c-accent-red)" }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -795,10 +795,10 @@ export default function DocsPage() {
                   return (
                     <div
                       key={f.id}
-                      className="group grid items-center px-6 py-2.5 text-xs transition-colors hover:bg-[#141928] cursor-pointer"
+                      className="group grid items-center px-6 py-2.5 text-xs transition-colors hover:bg-[var(--c-bg-elevated)] cursor-pointer"
                       style={{
                         gridTemplateColumns: "1fr 110px 110px 40px",
-                        borderBottom: "1px solid #1E254040",
+                        borderBottom: "1px solid rgb(var(--c-border-rgb) / 0.25)",
                       }}
                       onClick={() => setSelectedDoc(f)}
                       onDoubleClick={() => isAdmin && startRename(f)}
@@ -806,16 +806,16 @@ export default function DocsPage() {
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         {fileIcon(fc.fileType)}
-                        <span className="truncate" style={{ color: "#E2E8F8" }}>{f.title}</span>
+                        <span className="truncate" style={{ color: "var(--c-text-primary)" }}>{f.title}</span>
                       </div>
-                      <span className="text-right font-mono" style={{ color: "#7A8BAD" }}>
+                      <span className="text-right font-mono" style={{ color: "var(--c-text-muted)" }}>
                         {formatSize(fc.fileSize)}
                       </span>
-                      <div className="flex justify-end items-center gap-1.5" style={{ color: "#7A8BAD" }}>
+                      <div className="flex justify-end items-center gap-1.5" style={{ color: "var(--c-text-muted)" }}>
                         {fc.visibility === "admin_only" ? (
                           <>
-                            <EyeOff className="h-3 w-3" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
-                            <span style={{ color: "#F59E0B", fontSize: 10 }}>Admins</span>
+                            <EyeOff className="h-3 w-3" style={{ color: "var(--c-accent-amber)" }} strokeWidth={1.75} />
+                            <span style={{ color: "var(--c-accent-amber)", fontSize: 10 }}>Admins</span>
                           </>
                         ) : (
                           <>
@@ -829,8 +829,8 @@ export default function DocsPage() {
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteDoc(f); }}
                             title={`Eliminar "${f.title}"`}
-                            className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-[#1E2540]"
-                            style={{ color: "#F43F5E" }}
+                            className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-[var(--c-border)]"
+                            style={{ color: "var(--c-accent-red)" }}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -842,12 +842,12 @@ export default function DocsPage() {
 
                 {/* Drop zone más abajo, sutil */}
                 <div
-                  className="m-6 flex flex-col items-center justify-center gap-2 rounded-xl p-6 cursor-pointer transition-colors hover:bg-[#0E1220]"
-                  style={{ border: "1px dashed #1E2540" }}
+                  className="m-6 flex flex-col items-center justify-center gap-2 rounded-xl p-6 cursor-pointer transition-colors hover:bg-[var(--c-bg-surface)]"
+                  style={{ border: "1px dashed var(--c-border)" }}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload className="h-5 w-5" style={{ color: "#1E2540" }} strokeWidth={1.5} />
-                  <p className="text-xs" style={{ color: "#7A8BAD" }}>
+                  <Upload className="h-5 w-5" style={{ color: "var(--c-border)" }} strokeWidth={1.5} />
+                  <p className="text-xs" style={{ color: "var(--c-text-muted)" }}>
                     Arrastrá o hacé click para subir más archivos · Máximo 5 MB
                   </p>
                 </div>
@@ -933,8 +933,8 @@ function TreeNode(props: TreeNodeProps) {
         {isFolder ? (
           <button
             onClick={() => toggleFolder(doc.id)}
-            className="flex h-5 w-4 shrink-0 items-center justify-center rounded hover:bg-[#1E2540]"
-            style={{ color: "#7A8BAD" }}
+            className="flex h-5 w-4 shrink-0 items-center justify-center rounded hover:bg-[var(--c-border)]"
+            style={{ color: "var(--c-text-muted)" }}
             aria-label={isExpanded ? "Colapsar carpeta" : "Expandir carpeta"}
           >
             {isExpanded
@@ -949,7 +949,7 @@ function TreeNode(props: TreeNodeProps) {
         {renamingId === doc.id ? (
           <div className="flex flex-1 items-center gap-2 rounded px-1 py-1.5">
             {isFolder
-              ? <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+              ? <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-amber)" }} strokeWidth={1.75} />
               : fileIcon(fc!.fileType)}
             <input
               autoFocus
@@ -961,7 +961,7 @@ function TreeNode(props: TreeNodeProps) {
               }}
               onBlur={() => commitRename(doc)}
               className="flex-1 bg-transparent text-xs outline-none"
-              style={{ color: "#E2E8F8", borderBottom: "1px solid #3D7EFF" }}
+              style={{ color: "var(--c-text-primary)", borderBottom: "1px solid var(--c-accent-blue)" }}
             />
           </div>
         ) : (
@@ -972,21 +972,21 @@ function TreeNode(props: TreeNodeProps) {
             }}
             onDoubleClick={() => isAdmin && startRename(doc)}
             title={isAdmin ? "Doble-click para renombrar" : undefined}
-            className="flex flex-1 items-center gap-2 rounded px-1.5 py-1.5 text-xs transition-colors hover:bg-[#141928]"
+            className="flex flex-1 items-center gap-2 rounded px-1.5 py-1.5 text-xs transition-colors hover:bg-[var(--c-bg-elevated)]"
             style={
               isSelected
-                ? { background: "rgba(61,126,255,0.12)", borderLeft: "2px solid #3D7EFF", color: "#E2E8F8", paddingLeft: "4px" }
-                : { color: isFolder ? "#C4CFEA" : "#7A8BAD" }
+                ? { background: "rgb(var(--c-accent-blue-rgb) / 0.12)", borderLeft: "2px solid var(--c-accent-blue)", color: "var(--c-text-primary)", paddingLeft: "4px" }
+                : { color: isFolder ? "var(--c-text-secondary)" : "var(--c-text-muted)" }
             }
           >
             {isFolder
               ? (isExpanded
-                  ? <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
-                  : <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />)
+                  ? <FolderOpen className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-amber)" }} strokeWidth={1.75} />
+                  : <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-amber)" }} strokeWidth={1.75} />)
               : fileIcon(fc!.fileType)}
             <span className="flex-1 truncate">{doc.title}</span>
             {!isFolder && fc?.visibility === "admin_only" && (
-              <EyeOff className="h-3 w-3 shrink-0" style={{ color: "#F59E0B" }} strokeWidth={1.75} />
+              <EyeOff className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-amber)" }} strokeWidth={1.75} />
             )}
           </button>
         )}
@@ -996,8 +996,8 @@ function TreeNode(props: TreeNodeProps) {
           <button
             onClick={() => deleteDoc(doc)}
             title={`Eliminar ${isFolder ? "carpeta" : "archivo"} "${doc.title}"`}
-            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#1E2540]"
-            style={{ color: "#7A8BAD" }}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--c-border)]"
+            style={{ color: "var(--c-text-muted)" }}
           >
             <Trash2 className="h-3 w-3" />
           </button>
@@ -1015,7 +1015,7 @@ function TreeNode(props: TreeNodeProps) {
       {isFolder && isExpanded && !hideChildrenInSearch && sortedChildren.length === 0 && (
         <p
           className="text-[10px] italic"
-          style={{ color: "#3A4560", paddingLeft: indent + 24, paddingTop: 2, paddingBottom: 2 }}
+          style={{ color: "var(--c-text-placeholder)", paddingLeft: indent + 24, paddingTop: 2, paddingBottom: 2 }}
         >
           (vacía)
         </p>

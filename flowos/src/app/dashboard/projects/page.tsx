@@ -24,10 +24,10 @@ const STATUS_LABELS: Record<Status, string> = {
   todo: "Por hacer", in_progress: "En progreso", in_review: "En revisión", done: "Completado",
 };
 const STATUS_COLORS: Record<Status, string> = {
-  todo: "#7A8BAD", in_progress: "#3D7EFF", in_review: "#F59E0B", done: "#10D9A0",
+  todo: "var(--c-text-muted)", in_progress: "var(--c-accent-blue)", in_review: "var(--c-accent-amber)", done: "var(--c-accent-emerald)",
 };
 const PRIORITY_COLORS: Record<Priority, string> = {
-  low: "#7A8BAD", medium: "#3D7EFF", high: "#F59E0B", urgent: "#F43F5E",
+  low: "var(--c-text-muted)", medium: "var(--c-accent-blue)", high: "var(--c-accent-amber)", urgent: "var(--c-accent-red)",
 };
 const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Baja", medium: "Media", high: "Alta", urgent: "Urgente",
@@ -89,7 +89,7 @@ function EmployeeAvatar({ name, employeeId, employees, size = 22 }: {
   const emp = employeeId ? employees.find(e => e.id === employeeId) : (name ? employees.find(e => e.fullName === name) : null);
   const displayName = emp?.fullName ?? name ?? "";
   if (!displayName) return null;
-  const color = emp?.color ?? "#7A8BAD";
+  const color = emp?.color ?? "var(--c-text-muted)";
   const initials = displayName.split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
   return (
     <div title={emp ? `${displayName}${emp.jobTitle ? " — " + emp.jobTitle : ""}` : displayName}
@@ -121,8 +121,8 @@ function EmployeePicker({ value, employees, onChange, onClose, onPick }: {
     <Popover onClose={onClose}>
       <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar empleado..."
         style={{
-          background: "#141928", border: "none", borderBottom: "1px solid #1E2540",
-          padding: "8px 12px", fontSize: 12, color: "#E2E8F8", outline: "none",
+          background: "var(--c-bg-elevated)", border: "none", borderBottom: "1px solid var(--c-border)",
+          padding: "8px 12px", fontSize: 12, color: "var(--c-text-primary)", outline: "none",
         }}
       />
       <div style={{ overflowY: "auto", flex: 1 }}>
@@ -131,14 +131,14 @@ function EmployeePicker({ value, employees, onChange, onClose, onPick }: {
             style={{
               display: "flex", alignItems: "center", gap: 8, width: "100%",
               padding: "7px 12px", background: "transparent", border: "none",
-              color: "#F43F5E", fontSize: 12, cursor: "pointer", textAlign: "left",
+              color: "var(--c-accent-red)", fontSize: 12, cursor: "pointer", textAlign: "left",
             }}
           >
             <X style={{ width: 12, height: 12 }} /> Quitar asignación
           </button>
         )}
         {filtered.length === 0 ? (
-          <p style={{ padding: 14, color: "#7A8BAD", fontSize: 12, textAlign: "center", margin: 0 }}>
+          <p style={{ padding: 14, color: "var(--c-text-muted)", fontSize: 12, textAlign: "center", margin: 0 }}>
             Sin resultados
           </p>
         ) : filtered.map(emp => {
@@ -150,8 +150,8 @@ function EmployeePicker({ value, employees, onChange, onClose, onPick }: {
             >
               <EmployeeAvatar name={emp.fullName} employees={employees} size={20} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 12, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.fullName}</p>
-                {emp.jobTitle && <p style={{ margin: 0, fontSize: 10, color: "#7A8BAD", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.jobTitle}</p>}
+                <p style={{ margin: 0, fontSize: 12, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.fullName}</p>
+                {emp.jobTitle && <p style={{ margin: 0, fontSize: 10, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.jobTitle}</p>}
               </div>
             </button>
           );
@@ -173,14 +173,14 @@ function MilestonePicker({ value, milestones, onChange, onClose }: {
       <button onClick={() => { onChange(null); onClose(); }}
         style={{
           display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
-          background: "transparent", border: "none", borderBottom: "1px solid #1E2540",
-          color: value === null || value === undefined ? "#3D7EFF" : "#7A8BAD",
+          background: "transparent", border: "none", borderBottom: "1px solid var(--c-border)",
+          color: value === null || value === undefined ? "var(--c-accent-blue)" : "var(--c-text-muted)",
           fontSize: 12, cursor: "pointer", textAlign: "left",
         }}>
         <X style={{ width: 11, height: 11 }} /> Sin hito (backlog)
       </button>
       {milestones.length === 0 ? (
-        <p style={{ padding: 14, color: "#7A8BAD", fontSize: 12, textAlign: "center", margin: 0 }}>
+        <p style={{ padding: 14, color: "var(--c-text-muted)", fontSize: 12, textAlign: "center", margin: 0 }}>
           No hay hitos. Creá uno en la vista <strong>Hitos</strong>.
         </p>
       ) : (
@@ -195,7 +195,7 @@ function MilestonePicker({ value, milestones, onChange, onClose }: {
               >
                 <Flag style={{ width: 11, height: 11, color: MILESTONE_STATUS_COLORS[m.status], flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 12, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title}</p>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title}</p>
                   {due && <p style={{ margin: 0, fontSize: 10, color: due.color, fontFamily: "monospace" }}>{due.label}</p>}
                 </div>
               </button>
@@ -208,7 +208,7 @@ function MilestonePicker({ value, milestones, onChange, onClose }: {
 }
 
 const MILESTONE_STATUS_COLORS: Record<Milestone["status"], string> = {
-  pending: "#7A8BAD", in_progress: "#3D7EFF", done: "#10D9A0",
+  pending: "var(--c-text-muted)", in_progress: "var(--c-accent-blue)", done: "var(--c-accent-emerald)",
 };
 const MILESTONE_STATUS_LABELS: Record<Milestone["status"], string> = {
   pending: "Pendiente", in_progress: "En progreso", done: "Completo",
@@ -252,9 +252,9 @@ function FilterBar({ filterStatus, setFilterStatus, filterPriority, setFilterPri
   };
   const hasFilters = filterStatus.size > 0 || filterPriority.size > 0 || filterAssignee;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 20px", borderBottom: "1px solid #1E2540", background: "#0A0E1A", flexWrap: "wrap" }}>
-      <Filter size={12} style={{ color: "#7A8BAD" }} />
-      <span style={{ fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase" }}>Filtros</span>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 20px", borderBottom: "1px solid var(--c-border)", background: "var(--c-bg-darkest)", flexWrap: "wrap" }}>
+      <Filter size={12} style={{ color: "var(--c-text-muted)" }} />
+      <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase" }}>Filtros</span>
 
       {/* Status filter */}
       <div style={{ display: "flex", gap: 4 }}>
@@ -263,8 +263,8 @@ function FilterBar({ filterStatus, setFilterStatus, filterPriority, setFilterPri
             style={{
               fontSize: 10, padding: "3px 8px", borderRadius: 4,
               background: filterStatus.has(s) ? `${STATUS_COLORS[s]}22` : "transparent",
-              border: `1px solid ${filterStatus.has(s) ? STATUS_COLORS[s] + "66" : "#1E2540"}`,
-              color: filterStatus.has(s) ? STATUS_COLORS[s] : "#7A8BAD",
+              border: `1px solid ${filterStatus.has(s) ? STATUS_COLORS[s] + "66" : "var(--c-border)"}`,
+              color: filterStatus.has(s) ? STATUS_COLORS[s] : "var(--c-text-muted)",
               cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase",
             }}>
             {STATUS_LABELS[s]}
@@ -272,7 +272,7 @@ function FilterBar({ filterStatus, setFilterStatus, filterPriority, setFilterPri
         ))}
       </div>
 
-      <div style={{ width: 1, height: 16, background: "#1E2540" }} />
+      <div style={{ width: 1, height: 16, background: "var(--c-border)" }} />
 
       {/* Priority filter */}
       <div style={{ display: "flex", gap: 4 }}>
@@ -281,8 +281,8 @@ function FilterBar({ filterStatus, setFilterStatus, filterPriority, setFilterPri
             style={{
               fontSize: 10, padding: "3px 8px", borderRadius: 4,
               background: filterPriority.has(p) ? `${PRIORITY_COLORS[p]}22` : "transparent",
-              border: `1px solid ${filterPriority.has(p) ? PRIORITY_COLORS[p] + "66" : "#1E2540"}`,
-              color: filterPriority.has(p) ? PRIORITY_COLORS[p] : "#7A8BAD",
+              border: `1px solid ${filterPriority.has(p) ? PRIORITY_COLORS[p] + "66" : "var(--c-border)"}`,
+              color: filterPriority.has(p) ? PRIORITY_COLORS[p] : "var(--c-text-muted)",
               cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase",
             }}>
             {PRIORITY_LABELS[p]}
@@ -290,7 +290,7 @@ function FilterBar({ filterStatus, setFilterStatus, filterPriority, setFilterPri
         ))}
       </div>
 
-      <div style={{ width: 1, height: 16, background: "#1E2540" }} />
+      <div style={{ width: 1, height: 16, background: "var(--c-border)" }} />
 
       {/* Assignee filter */}
       <div style={{ position: "relative" }}>
@@ -298,9 +298,9 @@ function FilterBar({ filterStatus, setFilterStatus, filterPriority, setFilterPri
           style={{
             display: "flex", alignItems: "center", gap: 5,
             fontSize: 10, padding: "3px 8px", borderRadius: 4,
-            background: filterAssignee ? "rgba(61,126,255,0.15)" : "transparent",
-            border: `1px solid ${filterAssignee ? "#3D7EFF66" : "#1E2540"}`,
-            color: filterAssignee ? "#3D7EFF" : "#7A8BAD",
+            background: filterAssignee ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "transparent",
+            border: `1px solid ${filterAssignee ? "rgb(var(--c-accent-blue-rgb) / 0.4)" : "var(--c-border)"}`,
+            color: filterAssignee ? "var(--c-accent-blue)" : "var(--c-text-muted)",
             cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase",
           }}>
           <User size={10} />
@@ -316,14 +316,14 @@ function FilterBar({ filterStatus, setFilterStatus, filterPriority, setFilterPri
         <button onClick={() => { setFilterStatus(new Set()); setFilterPriority(new Set()); setFilterAssignee(null); }}
           style={{
             fontSize: 10, padding: "3px 8px", borderRadius: 4,
-            background: "transparent", border: "1px solid #F43F5E55", color: "#F43F5E",
+            background: "transparent", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.33)", color: "var(--c-accent-red)",
             cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase",
           }}>
           Limpiar
         </button>
       )}
 
-      <span style={{ marginLeft: "auto", fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+      <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
         {hasFilters ? `${filteredCount}/${totalTasks} tareas` : `${totalTasks} tarea${totalTasks !== 1 ? "s" : ""}`}
       </span>
     </div>
@@ -335,7 +335,7 @@ function formatDueDate(dateStr: string | undefined): { label: string; color: str
   const due = new Date(dateStr); const now = new Date(); now.setHours(0,0,0,0); due.setHours(0,0,0,0);
   const diffDays = (due.getTime() - now.getTime()) / 86400000;
   const label = `${String(due.getDate()).padStart(2,"0")}/${String(due.getMonth()+1).padStart(2,"0")}`;
-  return { label, color: diffDays < 0 ? "#F43F5E" : diffDays <= 3 ? "#F59E0B" : "#7A8BAD" };
+  return { label, color: diffDays < 0 ? "var(--c-accent-red)" : diffDays <= 3 ? "var(--c-accent-amber)" : "var(--c-text-muted)" };
 }
 
 // ─── Project Detail Modal ──────────────────────────────────────────────────────
@@ -420,17 +420,17 @@ function ProjectDetailModal({ project, onClose, onUpdated }: {
   };
 
   const msIcon = (status: string) => {
-    if (status === "done") return <CheckCircle2 className="h-4 w-4" style={{ color: "#10D9A0" }} />;
-    if (status === "in_progress") return <Clock className="h-4 w-4" style={{ color: "#3D7EFF" }} />;
-    return <Circle className="h-4 w-4" style={{ color: "#7A8BAD" }} />;
+    if (status === "done") return <CheckCircle2 className="h-4 w-4" style={{ color: "var(--c-accent-emerald)" }} />;
+    if (status === "in_progress") return <Clock className="h-4 w-4" style={{ color: "var(--c-accent-blue)" }} />;
+    return <Circle className="h-4 w-4" style={{ color: "var(--c-text-muted)" }} />;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.65)" }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "var(--c-shadow-strong)" }}
       onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="flex flex-col rounded-xl w-full" style={{ maxWidth: 600, maxHeight: "88vh", background: "#0E1220", border: "1px solid #1E2540" }}>
+      <div className="flex flex-col rounded-xl w-full" style={{ maxWidth: 600, maxHeight: "88vh", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#1E2540" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--c-border)" }}>
           <div className="flex items-center gap-2 flex-1 min-w-0 mr-3">
             <input
               value={editingName}
@@ -438,21 +438,21 @@ function ProjectDetailModal({ project, onClose, onUpdated }: {
               onBlur={saveName}
               onKeyDown={e => e.key === "Enter" && saveName()}
               className="text-base font-semibold bg-transparent border-none outline-none flex-1 min-w-0"
-              style={{ color: "#E2E8F8" }}
+              style={{ color: "var(--c-text-primary)" }}
             />
-            {savingName && <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" style={{ color: "#3D7EFF" }} />}
+            {savingName && <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" style={{ color: "var(--c-accent-blue)" }} />}
           </div>
-          <button onClick={onClose} title="Cerrar proyecto (Esc)" aria-label="Cerrar" className="rounded p-1.5 hover:bg-[#1E2540] shrink-0" style={{ color: "#7A8BAD" }}>
+          <button onClick={onClose} title="Cerrar proyecto (Esc)" aria-label="Cerrar" className="rounded p-1.5 hover:bg-[var(--c-border)] shrink-0" style={{ color: "var(--c-text-muted)" }}>
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b px-6" style={{ borderColor: "#1E2540" }}>
+        <div className="flex border-b px-6" style={{ borderColor: "var(--c-border)" }}>
           {(["milestones", "members"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className="py-3 px-4 text-sm font-medium capitalize"
-              style={{ borderBottom: tab === t ? "2px solid #3D7EFF" : "2px solid transparent", color: tab === t ? "#3D7EFF" : "#7A8BAD" }}>
+              style={{ borderBottom: tab === t ? "2px solid var(--c-accent-blue)" : "2px solid transparent", color: tab === t ? "var(--c-accent-blue)" : "var(--c-text-muted)" }}>
               {t === "milestones" ? "Hitos" : "Miembros"}
             </button>
           ))}
@@ -462,29 +462,29 @@ function ProjectDetailModal({ project, onClose, onUpdated }: {
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#3D7EFF" }} />
+              <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
             </div>
           ) : tab === "milestones" ? (
             <div className="flex flex-col gap-2">
               {milestones.map(m => (
                 <div key={m.id} className="flex items-center gap-3 rounded-lg px-3 py-2.5"
-                  style={{ background: "#141928", border: "1px solid #1E2540" }}>
+                  style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
                   <button onClick={() => cycleMilestone(m)} className="shrink-0">{msIcon(m.status)}</button>
-                  <span className="flex-1 text-sm" style={{ color: m.status === "done" ? "#7A8BAD" : "#E2E8F8", textDecoration: m.status === "done" ? "line-through" : "none" }}>
+                  <span className="flex-1 text-sm" style={{ color: m.status === "done" ? "var(--c-text-muted)" : "var(--c-text-primary)", textDecoration: m.status === "done" ? "line-through" : "none" }}>
                     {m.title}
                   </span>
                   {m.dueDate && (
-                    <span className="text-xs font-mono shrink-0" style={{ color: "#7A8BAD" }}>
+                    <span className="text-xs font-mono shrink-0" style={{ color: "var(--c-text-muted)" }}>
                       {new Date(m.dueDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                     </span>
                   )}
-                  <button onClick={() => deleteMilestone(m.id)} className="shrink-0 rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+                  <button onClick={() => deleteMilestone(m.id)} className="shrink-0 rounded p-1 hover:bg-[var(--c-border)]" style={{ color: "var(--c-text-muted)" }}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
               {milestones.length === 0 && (
-                <div className="py-8 text-center text-sm rounded-lg" style={{ color: "#7A8BAD", border: "1px dashed #1E2540" }}>
+                <div className="py-8 text-center text-sm rounded-lg" style={{ color: "var(--c-text-muted)", border: "1px dashed var(--c-border)" }}>
                   Sin hitos todavía
                 </div>
               )}
@@ -493,10 +493,10 @@ function ProjectDetailModal({ project, onClose, onUpdated }: {
                   onKeyDown={e => e.key === "Enter" && addMilestone()}
                   placeholder="Nuevo hito…"
                   className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
-                  style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }} />
+                  style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
                 <button onClick={addMilestone}
                   className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium"
-                  style={{ background: "#3D7EFF", color: "#fff" }}>
+                  style={{ background: "var(--c-accent-blue)", color: "#fff" }}>
                   <Plus className="h-4 w-4" strokeWidth={2.5} />
                 </button>
               </div>
@@ -505,29 +505,29 @@ function ProjectDetailModal({ project, onClose, onUpdated }: {
             <div className="flex flex-col gap-2">
               {members.map(m => {
                 const name = m.employee?.fullName ?? m.userId?.slice(0, 10) ?? "Usuario";
-                const color = m.employee?.color ?? "#3D7EFF";
+                const color = m.employee?.color ?? "var(--c-accent-blue)";
                 const initials = name.split(" ").slice(0, 2).map((w: string) => w[0]).join("").toUpperCase();
                 return (
                   <div key={m.id} className="flex items-center gap-3 rounded-lg px-3 py-2.5"
-                    style={{ background: "#141928", border: "1px solid #1E2540" }}>
+                    style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
                     <div className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold shrink-0"
                       style={{ background: color + "33", border: `2px solid ${color}`, color }}>
                       {initials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate" style={{ color: "#E2E8F8" }}>{name}</p>
-                      {m.employee?.jobTitle && <p className="text-xs truncate" style={{ color: "#7A8BAD" }}>{m.employee.jobTitle}</p>}
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--c-text-primary)" }}>{name}</p>
+                      {m.employee?.jobTitle && <p className="text-xs truncate" style={{ color: "var(--c-text-muted)" }}>{m.employee.jobTitle}</p>}
                     </div>
                     <span className="font-mono text-[10px] px-2 py-0.5 rounded shrink-0"
-                      style={{ background: "rgba(61,126,255,0.12)", color: "#3D7EFF" }}>{m.role}</span>
-                    <button onClick={() => removeMember(m.id)} className="rounded p-1 hover:bg-[#1E2540] shrink-0" style={{ color: "#7A8BAD" }}>
+                      style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.12)", color: "var(--c-accent-blue)" }}>{m.role}</span>
+                    <button onClick={() => removeMember(m.id)} className="rounded p-1 hover:bg-[var(--c-border)] shrink-0" style={{ color: "var(--c-text-muted)" }}>
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 );
               })}
               {members.length === 0 && (
-                <div className="py-8 text-center text-sm rounded-lg" style={{ color: "#7A8BAD", border: "1px dashed #1E2540" }}>
+                <div className="py-8 text-center text-sm rounded-lg" style={{ color: "var(--c-text-muted)", border: "1px dashed var(--c-border)" }}>
                   Sin miembros asignados
                 </div>
               )}
@@ -535,24 +535,24 @@ function ProjectDetailModal({ project, onClose, onUpdated }: {
                 <div className="flex gap-2 mt-2">
                   <select value={selectedEmpId} onChange={e => setSelectedEmpId(e.target.value)}
                     className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
-                    style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }}>
+                    style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}>
                     <option value="">— Seleccionar empleado —</option>
                     {employees.filter(e => !members.some(m => m.employeeId === e.id)).map(e => (
                       <option key={e.id} value={e.id}>{e.fullName}{e.jobTitle ? ` · ${e.jobTitle}` : ""}</option>
                     ))}
                   </select>
-                  <button onClick={addMember} className="rounded-lg px-3 py-2 text-sm font-medium" style={{ background: "#3D7EFF", color: "#fff" }}>
+                  <button onClick={addMember} className="rounded-lg px-3 py-2 text-sm font-medium" style={{ background: "var(--c-accent-blue)", color: "#fff" }}>
                     Agregar
                   </button>
                   <button onClick={() => { setAddingMember(false); setSelectedEmpId(""); }}
-                    className="rounded-lg p-2 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+                    className="rounded-lg p-2 hover:bg-[var(--c-border)]" style={{ color: "var(--c-text-muted)" }}>
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               ) : (
                 <button onClick={() => setAddingMember(true)}
                   className="flex items-center gap-1.5 mt-2 rounded-lg px-3 py-2 text-sm"
-                  style={{ background: "transparent", border: "1px dashed #1E2540", color: "#7A8BAD" }}>
+                  style={{ background: "transparent", border: "1px dashed var(--c-border)", color: "var(--c-text-muted)" }}>
                   <Plus className="h-4 w-4" strokeWidth={2} />
                   Agregar miembro
                 </button>
@@ -805,8 +805,8 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", background: "#080B12" }}>
-        <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#3D7EFF" }} />
+      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", background: "var(--c-bg-base)" }}>
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
       </div>
     );
   }
@@ -967,24 +967,24 @@ function ProjectsHub({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#080B12", overflow: "auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--c-bg-base)", overflow: "auto" }}>
       {/* Header */}
-      <div style={{ padding: "28px 32px 20px", borderBottom: "1px solid #1E2540" }}>
+      <div style={{ padding: "28px 32px 20px", borderBottom: "1px solid var(--c-border)" }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 18, gap: 16 }}>
           <div>
-            <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 4px", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 4px", fontFamily: "monospace" }}>
               Workspace
             </p>
-            <h1 style={{ color: "#E2E8F8", fontSize: 22, fontWeight: 700, margin: 0 }}>Proyectos</h1>
-            <p style={{ color: "#7A8BAD", fontSize: 13, margin: "4px 0 0" }}>
+            <h1 style={{ color: "var(--c-text-primary)", fontSize: 22, fontWeight: 700, margin: 0 }}>Proyectos</h1>
+            <p style={{ color: "var(--c-text-muted)", fontSize: 13, margin: "4px 0 0" }}>
               {projects.length} proyecto{projects.length !== 1 ? "s" : ""} en tu organización
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setShowTemplates(true)} style={{
               display: "flex", alignItems: "center", gap: 6,
-              background: "rgba(168,85,247,0.12)", color: "#A855F7",
-              border: "1px solid rgba(168,85,247,0.3)",
+              background: "rgb(var(--c-accent-violet-rgb) / 0.12)", color: "var(--c-accent-violet)",
+              border: "1px solid rgb(var(--c-accent-violet-rgb) / 0.3)",
               borderRadius: 6, padding: "9px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}>
               <Folder style={{ width: 14, height: 14 }} strokeWidth={2} />
@@ -992,9 +992,9 @@ function ProjectsHub({
             </button>
             <button onClick={() => setAddingProject(true)} style={{
               display: "flex", alignItems: "center", gap: 6,
-              background: "#3D7EFF", color: "#fff", border: "none",
+              background: "var(--c-accent-blue)", color: "#fff", border: "none",
               borderRadius: 6, padding: "9px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer",
-              boxShadow: "0 0 16px rgba(61,126,255,0.35)",
+              boxShadow: "0 0 16px rgb(var(--c-accent-blue-rgb) / 0.35)",
             }}>
               <Plus style={{ width: 14, height: 14 }} strokeWidth={2.5} />
               Nuevo proyecto
@@ -1004,18 +1004,18 @@ function ProjectsHub({
         {/* Search + filter chips */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ position: "relative", maxWidth: 420, flex: "1 1 240px" }}>
-            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#7A8BAD" }} />
+            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--c-text-muted)" }} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar proyecto..."
               style={{
-                width: "100%", background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6,
-                padding: "8px 12px 8px 36px", fontSize: 13, color: "#E2E8F8", outline: "none",
+                width: "100%", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6,
+                padding: "8px 12px 8px 36px", fontSize: 13, color: "var(--c-text-primary)", outline: "none",
               }}
             />
           </div>
-          <div style={{ display: "flex", background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6, overflow: "hidden" }}>
+          <div style={{ display: "flex", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6, overflow: "hidden" }}>
             {([
               { v: "active" as const, label: "Activos" },
               { v: "archived" as const, label: "Archivados" },
@@ -1023,8 +1023,8 @@ function ProjectsHub({
             ]).map(({ v, label }) => (
               <button key={v} onClick={() => setStatusFilter(v)} style={{
                 padding: "6px 12px", fontSize: 11, border: "none", cursor: "pointer",
-                background: statusFilter === v ? "#1E2540" : "transparent",
-                color: statusFilter === v ? "#E2E8F8" : "#7A8BAD",
+                background: statusFilter === v ? "var(--c-border)" : "transparent",
+                color: statusFilter === v ? "var(--c-text-primary)" : "var(--c-text-muted)",
                 fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.04em",
                 display: "flex", alignItems: "center", gap: 6,
               }}>
@@ -1038,7 +1038,7 @@ function ProjectsHub({
 
       {/* New project inline form */}
       {addingProject && (
-        <div style={{ padding: "16px 32px", borderBottom: "1px solid #1E2540", background: "rgba(61,126,255,0.04)" }}>
+        <div style={{ padding: "16px 32px", borderBottom: "1px solid var(--c-border)", background: "rgb(var(--c-accent-blue-rgb) / 0.04)" }}>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               autoFocus
@@ -1047,18 +1047,18 @@ function ProjectsHub({
               onKeyDown={e => { if (e.key === "Enter") createProject(); if (e.key === "Escape") { setAddingProject(false); setNewProjectName(""); } }}
               placeholder="Nombre del proyecto..."
               style={{
-                flex: 1, background: "#141928", border: "1px solid #3D7EFF", borderRadius: 6,
-                padding: "8px 12px", fontSize: 13, color: "#E2E8F8", outline: "none",
+                flex: 1, background: "var(--c-bg-elevated)", border: "1px solid var(--c-accent-blue)", borderRadius: 6,
+                padding: "8px 12px", fontSize: 13, color: "var(--c-text-primary)", outline: "none",
               }}
             />
             <button onClick={createProject} style={{
-              background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6,
+              background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6,
               padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}>
               Crear
             </button>
             <button onClick={() => { setAddingProject(false); setNewProjectName(""); }} style={{
-              background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540",
+              background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)",
               borderRadius: 6, padding: "8px 14px", fontSize: 13, cursor: "pointer",
             }}>
               Cancelar
@@ -1072,13 +1072,13 @@ function ProjectsHub({
         {filtered.length === 0 ? (
           <div style={{
             padding: "60px 24px", textAlign: "center",
-            border: "1px dashed #1E2540", borderRadius: 12, background: "#0E1220",
+            border: "1px dashed var(--c-border)", borderRadius: 12, background: "var(--c-bg-surface)",
           }}>
-            <Folder style={{ width: 36, height: 36, margin: "0 auto 10px", color: "#1E2540" }} strokeWidth={1.5} />
-            <p style={{ color: "#E2E8F8", fontSize: 14, fontWeight: 600, margin: 0 }}>
+            <Folder style={{ width: 36, height: 36, margin: "0 auto 10px", color: "var(--c-border)" }} strokeWidth={1.5} />
+            <p style={{ color: "var(--c-text-primary)", fontSize: 14, fontWeight: 600, margin: 0 }}>
               {search ? "Sin resultados" : "Todavía no hay proyectos"}
             </p>
-            <p style={{ color: "#7A8BAD", fontSize: 12, margin: "6px 0 0" }}>
+            <p style={{ color: "var(--c-text-muted)", fontSize: 12, margin: "6px 0 0" }}>
               {search ? "Probá con otro término de búsqueda" : "Creá el primero para empezar a organizar tu trabajo"}
             </p>
           </div>
@@ -1097,17 +1097,17 @@ function ProjectsHub({
                   onClick={() => onSelect(p.id)}
                   style={{
                     display: "flex", flexDirection: "column", gap: 14,
-                    padding: 18, background: "#0E1220", border: "1px solid #1E2540",
+                    padding: 18, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)",
                     borderRadius: 10, cursor: "pointer", textAlign: "left",
                     transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, box-shadow 180ms ease",
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = "rgba(61,126,255,0.55)";
+                    e.currentTarget.style.borderColor = "rgb(var(--c-accent-blue-rgb) / 0.55)";
                     e.currentTarget.style.transform = "translateY(-3px)";
-                    e.currentTarget.style.boxShadow = "0 12px 32px rgba(61,126,255,0.22), 0 0 0 1px rgba(61,126,255,0.08) inset";
+                    e.currentTarget.style.boxShadow = "0 12px 32px rgb(var(--c-accent-blue-rgb) / 0.22), 0 0 0 1px rgb(var(--c-accent-blue-rgb) / 0.08) inset";
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = "#1E2540";
+                    e.currentTarget.style.borderColor = "var(--c-border)";
                     e.currentTarget.style.transform = "translateY(0)";
                     e.currentTarget.style.boxShadow = "none";
                   }}
@@ -1115,13 +1115,13 @@ function ProjectsHub({
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: 8,
-                      background: "rgba(61,126,255,0.12)",
+                      background: "rgb(var(--c-accent-blue-rgb) / 0.12)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                      <Folder style={{ width: 18, height: 18, color: "#3D7EFF" }} strokeWidth={1.75} />
+                      <Folder style={{ width: 18, height: 18, color: "var(--c-accent-blue)" }} strokeWidth={1.75} />
                     </div>
                     <p style={{
-                      flex: 1, fontSize: 14, fontWeight: 600, color: "#E2E8F8", margin: 0,
+                      flex: 1, fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)", margin: 0,
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
                       {p.name}
@@ -1130,21 +1130,21 @@ function ProjectsHub({
 
                   {/* Progress bar */}
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#7A8BAD", marginBottom: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--c-text-muted)", marginBottom: 6 }}>
                       <span style={{ fontFamily: "monospace" }}>{s.done}/{s.tasks} tareas</span>
-                      <span style={{ fontFamily: "monospace", color: pct === 100 ? "#10D9A0" : "#3D7EFF" }}>{pct}%</span>
+                      <span style={{ fontFamily: "monospace", color: pct === 100 ? "var(--c-accent-emerald)" : "var(--c-accent-blue)" }}>{pct}%</span>
                     </div>
-                    <div style={{ height: 4, background: "#1E2540", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: 4, background: "var(--c-border)", borderRadius: 4, overflow: "hidden" }}>
                       <div style={{
                         height: "100%", width: `${pct}%`,
-                        background: pct === 100 ? "#10D9A0" : "#3D7EFF",
+                        background: pct === 100 ? "var(--c-accent-emerald)" : "var(--c-accent-blue)",
                         borderRadius: 4, transition: "width 0.3s",
                       }} />
                     </div>
                   </div>
 
                   {/* Stats */}
-                  <div style={{ display: "flex", gap: 14, fontSize: 11, color: "#7A8BAD" }}>
+                  <div style={{ display: "flex", gap: 14, fontSize: 11, color: "var(--c-text-muted)" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <UsersIcon style={{ width: 12, height: 12 }} />
                       {s.members} miembro{s.members !== 1 ? "s" : ""}
@@ -1216,26 +1216,26 @@ function TemplatesModal({ onClose, onInstantiated }: {
 
   return (
     <div onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(8px, 3vw, 24px)" }}>
+      style={{ position: "fixed", inset: 0, zIndex: 90, background: "var(--c-shadow-heavy)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(8px, 3vw, 24px)" }}>
       <div style={{
         width: "min(720px, 100%)", maxHeight: "90vh",
-        background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
+        background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12,
         display: "flex", flexDirection: "column", overflow: "hidden",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+        boxShadow: "0 24px 80px var(--c-shadow-strong)",
       }}>
-        <div style={{ padding: "16px 22px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#A855F7", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-accent-violet)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Templates
             </p>
-            <p style={{ margin: "2px 0 0", fontSize: 16, fontWeight: 700, color: "#E2E8F8" }}>
+            <p style={{ margin: "2px 0 0", fontSize: 16, fontWeight: 700, color: "var(--c-text-primary)" }}>
               Crear proyecto desde un template
             </p>
-            <p style={{ margin: "4px 0 0", fontSize: 11, color: "#7A8BAD" }}>
+            <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--c-text-muted)" }}>
               Cloná estructuras reutilizables — VFP, hitos y tareas ya armados.
             </p>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 4 }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer", padding: 4 }}>
             <X style={{ width: 18, height: 18 }} />
           </button>
         </div>
@@ -1243,13 +1243,13 @@ function TemplatesModal({ onClose, onInstantiated }: {
         <div style={{ flex: 1, overflowY: "auto", padding: 18 }}>
           {loading ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-              <Loader2 className="animate-spin" style={{ color: "#A855F7", width: 22, height: 22 }} />
+              <Loader2 className="animate-spin" style={{ color: "var(--c-accent-violet)", width: 22, height: 22 }} />
             </div>
           ) : templates.length === 0 ? (
-            <div style={{ padding: "40px 24px", textAlign: "center", border: "1px dashed #1E2540", borderRadius: 10, background: "#0A0E1A" }}>
-              <Folder style={{ width: 36, height: 36, margin: "0 auto 10px", color: "#1E2540" }} strokeWidth={1.5} />
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#E2E8F8" }}>Sin templates todavía</p>
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "#7A8BAD" }}>
+            <div style={{ padding: "40px 24px", textAlign: "center", border: "1px dashed var(--c-border)", borderRadius: 10, background: "var(--c-bg-darkest)" }}>
+              <Folder style={{ width: 36, height: 36, margin: "0 auto 10px", color: "var(--c-border)" }} strokeWidth={1.5} />
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)" }}>Sin templates todavía</p>
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--c-text-muted)" }}>
                 Creá uno desde el menú de un proyecto existente: <strong>&quot;Guardar como template&quot;</strong>.
               </p>
             </div>
@@ -1261,37 +1261,37 @@ function TemplatesModal({ onClose, onInstantiated }: {
                                 + (t.structure.standaloneTasks?.length ?? 0);
                 return (
                   <div key={t.id} style={{
-                    padding: "12px 14px", background: "#141928", border: "1px solid #1E2540", borderRadius: 8,
+                    padding: "12px 14px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 8,
                     display: "flex", alignItems: "center", gap: 12,
                   }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: 8,
-                      background: "rgba(168,85,247,0.12)",
+                      background: "rgb(var(--c-accent-violet-rgb) / 0.12)",
                       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>
-                      <Folder style={{ width: 18, height: 18, color: "#A855F7" }} strokeWidth={1.75} />
+                      <Folder style={{ width: 18, height: 18, color: "var(--c-accent-violet)" }} strokeWidth={1.75} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {t.name}
                       </p>
                       {t.description && (
-                        <p style={{ margin: "2px 0 0", fontSize: 11, color: "#7A8BAD", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.description}</p>
+                        <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.description}</p>
                       )}
-                      <div style={{ marginTop: 4, display: "flex", gap: 10, fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+                      <div style={{ marginTop: 4, display: "flex", gap: 10, fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
                         <span><Flag style={{ width: 9, height: 9, display: "inline", marginRight: 2 }} /> {milestoneCount} hitos</span>
                         <span><CheckCircle2 style={{ width: 9, height: 9, display: "inline", marginRight: 2 }} /> {taskCount} tareas</span>
-                        {t.structure.vfp && Object.keys(t.structure.vfp).length > 0 && <span style={{ color: "#3D7EFF" }}>★ VFP</span>}
+                        {t.structure.vfp && Object.keys(t.structure.vfp).length > 0 && <span style={{ color: "var(--c-accent-blue)" }}>★ VFP</span>}
                       </div>
                     </div>
                     {confirmDelete === t.id ? (
                       <div style={{ display: "flex", gap: 5 }}>
                         <button onClick={() => deleteTemplate(t.id)} style={{
-                          background: "#F43F5E", color: "#fff", border: "none", borderRadius: 5,
+                          background: "var(--c-accent-red)", color: "#fff", border: "none", borderRadius: 5,
                           padding: "5px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer",
                         }}>Confirmar</button>
                         <button onClick={() => setConfirmDelete(null)} style={{
-                          background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 5,
+                          background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 5,
                           padding: "5px 10px", fontSize: 11, cursor: "pointer",
                         }}>Cancelar</button>
                       </div>
@@ -1299,7 +1299,7 @@ function TemplatesModal({ onClose, onInstantiated }: {
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => instantiate(t.id)} disabled={!!instantiating}
                           style={{
-                            background: "#A855F7", color: "#fff", border: "none", borderRadius: 5,
+                            background: "var(--c-accent-violet)", color: "#fff", border: "none", borderRadius: 5,
                             padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
                             display: "flex", alignItems: "center", gap: 5,
                             opacity: instantiating === t.id ? 0.6 : 1,
@@ -1310,7 +1310,7 @@ function TemplatesModal({ onClose, onInstantiated }: {
                           Usar
                         </button>
                         <button onClick={() => setConfirmDelete(t.id)} title="Eliminar template"
-                          style={{ background: "transparent", color: "#F43F5E", border: "1px solid #F43F5E33", borderRadius: 5, padding: "5px 8px", cursor: "pointer" }}>
+                          style={{ background: "transparent", color: "var(--c-accent-red)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.2)", borderRadius: 5, padding: "5px 8px", cursor: "pointer" }}>
                           <Trash2 style={{ width: 11, height: 11 }} />
                         </button>
                       </div>
@@ -1336,36 +1336,36 @@ function BulkActionBar({ count, employees, onStatusChange, onPriorityChange, onA
   const [showPriority, setShowPriority] = useState(false);
   const [showAssignee, setShowAssignee] = useState(false);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 20px", background: "rgba(61,126,255,0.08)", borderBottom: "1px solid rgba(61,126,255,0.3)" }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: "#3D7EFF" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 20px", background: "rgb(var(--c-accent-blue-rgb) / 0.08)", borderBottom: "1px solid rgb(var(--c-accent-blue-rgb) / 0.3)" }}>
+      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--c-accent-blue)" }}>
         {count} tarea{count !== 1 ? "s" : ""} seleccionada{count !== 1 ? "s" : ""}
       </span>
       <div style={{ position: "relative" }}>
-        <button onClick={() => setShowStatus(p => !p)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "#141928", border: "1px solid #1E2540", color: "#C4CFEA", cursor: "pointer" }}>
+        <button onClick={() => setShowStatus(p => !p)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)", cursor: "pointer" }}>
           Cambiar estado
         </button>
         {showStatus && <InlineEnumPicker value={"todo" as Status} options={STATUSES} labels={STATUS_LABELS} colors={STATUS_COLORS}
           onChange={s => onStatusChange(s)} onClose={() => setShowStatus(false)} />}
       </div>
       <div style={{ position: "relative" }}>
-        <button onClick={() => setShowPriority(p => !p)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "#141928", border: "1px solid #1E2540", color: "#C4CFEA", cursor: "pointer" }}>
+        <button onClick={() => setShowPriority(p => !p)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)", cursor: "pointer" }}>
           Cambiar prioridad
         </button>
         {showPriority && <InlineEnumPicker value={"medium" as Priority} options={["low","medium","high","urgent"] as const} labels={PRIORITY_LABELS} colors={PRIORITY_COLORS}
           onChange={p => onPriorityChange(p)} onClose={() => setShowPriority(false)} />}
       </div>
       <div style={{ position: "relative" }}>
-        <button onClick={() => setShowAssignee(p => !p)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "#141928", border: "1px solid #1E2540", color: "#C4CFEA", cursor: "pointer" }}>
+        <button onClick={() => setShowAssignee(p => !p)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)", cursor: "pointer" }}>
           Asignar
         </button>
         {showAssignee && <EmployeePicker value={undefined} employees={employees}
           onChange={(n, id) => onAssigneeChange(n, id)} onClose={() => setShowAssignee(false)} />}
       </div>
-      <button onClick={onDelete} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "transparent", border: "1px solid #F43F5E55", color: "#F43F5E", cursor: "pointer" }}>
+      <button onClick={onDelete} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "transparent", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.33)", color: "var(--c-accent-red)", cursor: "pointer" }}>
         <Trash2 style={{ width: 11, height: 11, display: "inline", marginRight: 4 }} />
         Eliminar
       </button>
-      <button onClick={onClear} style={{ marginLeft: "auto", fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+      <button onClick={onClear} style={{ marginLeft: "auto", fontSize: 11, padding: "4px 10px", borderRadius: 4, background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
         Cancelar
       </button>
     </div>
@@ -1391,7 +1391,7 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
   const overdue = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "done").length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const health = overdue > 0 ? "atrasado" : pct === 100 ? "completo" : pct >= 50 ? "bien" : total === 0 ? "vacio" : "iniciando";
-  const healthColor = { atrasado: "#F43F5E", completo: "#10D9A0", bien: "#10D9A0", iniciando: "#3D7EFF", vacio: "#7A8BAD" }[health];
+  const healthColor = { atrasado: "var(--c-accent-red)", completo: "var(--c-accent-emerald)", bien: "var(--c-accent-emerald)", iniciando: "var(--c-accent-blue)", vacio: "var(--c-text-muted)" }[health];
   const healthLabel = { atrasado: "Atrasado", completo: "Completo", bien: "En buen ritmo", iniciando: "Iniciando", vacio: "Sin trabajo" }[health];
 
   // Próximas tareas (no completadas, ordenadas por fecha)
@@ -1414,14 +1414,14 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
         style={{
           position: "relative",
           background: vfpComplete
-            ? "radial-gradient(ellipse 600px 200px at 0% 0%, rgba(61,126,255,0.16), transparent 60%), radial-gradient(ellipse 400px 200px at 100% 100%, rgba(168,85,247,0.14), transparent 60%), linear-gradient(135deg, rgba(20,25,40,0.6), rgba(14,18,32,0.95))"
-            : "radial-gradient(ellipse 500px 200px at 50% 0%, rgba(245,158,11,0.14), transparent 60%), linear-gradient(180deg, rgba(245,158,11,0.04), rgba(14,18,32,0.95))",
-          border: `1px solid ${vfpComplete ? "rgba(61,126,255,0.35)" : "rgba(245,158,11,0.45)"}`,
+            ? "radial-gradient(ellipse 600px 200px at 0% 0%, rgb(var(--c-accent-blue-rgb) / 0.16), transparent 60%), radial-gradient(ellipse 400px 200px at 100% 100%, rgb(var(--c-accent-violet-rgb) / 0.14), transparent 60%), linear-gradient(135deg, rgba(20,25,40,0.6), rgba(14,18,32,0.95))"
+            : "radial-gradient(ellipse 500px 200px at 50% 0%, rgb(var(--c-accent-amber-rgb) / 0.14), transparent 60%), linear-gradient(180deg, rgb(var(--c-accent-amber-rgb) / 0.04), rgba(14,18,32,0.95))",
+          border: `1px solid ${vfpComplete ? "rgb(var(--c-accent-blue-rgb) / 0.35)" : "rgb(var(--c-accent-amber-rgb) / 0.45)"}`,
           borderRadius: 14,
           padding: 24,
           boxShadow: vfpComplete
-            ? "0 10px 40px rgba(61,126,255,0.12), 0 0 0 1px rgba(168,85,247,0.06) inset, 0 1px 0 rgba(255,255,255,0.04) inset"
-            : "0 10px 40px rgba(245,158,11,0.1), 0 1px 0 rgba(255,255,255,0.03) inset",
+            ? "0 10px 40px rgb(var(--c-accent-blue-rgb) / 0.12), 0 0 0 1px rgb(var(--c-accent-violet-rgb) / 0.06) inset, 0 1px 0 rgba(255,255,255,0.04) inset"
+            : "0 10px 40px rgb(var(--c-accent-amber-rgb) / 0.1), 0 1px 0 rgba(255,255,255,0.03) inset",
           overflow: "hidden",
         }}
       >
@@ -1435,8 +1435,8 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
             right: -1,
             height: 1,
             background: vfpComplete
-              ? "linear-gradient(90deg, transparent, rgba(61,126,255,0.5), rgba(168,85,247,0.4), transparent)"
-              : "linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)",
+              ? "linear-gradient(90deg, transparent, rgb(var(--c-accent-blue-rgb) / 0.5), rgb(var(--c-accent-violet-rgb) / 0.4), transparent)"
+              : "linear-gradient(90deg, transparent, rgb(var(--c-accent-amber-rgb) / 0.5), transparent)",
             pointerEvents: "none",
           }}
         />
@@ -1449,18 +1449,18 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
                 height: 38,
                 borderRadius: 10,
                 background: vfpComplete
-                  ? "linear-gradient(135deg, rgba(61,126,255,0.25), rgba(168,85,247,0.2))"
-                  : "rgba(245,158,11,0.18)",
-                border: `1px solid ${vfpComplete ? "rgba(61,126,255,0.3)" : "rgba(245,158,11,0.3)"}`,
+                  ? "linear-gradient(135deg, rgb(var(--c-accent-blue-rgb) / 0.25), rgb(var(--c-accent-violet-rgb) / 0.2))"
+                  : "rgb(var(--c-accent-amber-rgb) / 0.18)",
+                border: `1px solid ${vfpComplete ? "rgb(var(--c-accent-blue-rgb) / 0.3)" : "rgb(var(--c-accent-amber-rgb) / 0.3)"}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 boxShadow: vfpComplete
-                  ? "0 4px 14px rgba(61,126,255,0.25)"
-                  : "0 4px 14px rgba(245,158,11,0.2)",
+                  ? "0 4px 14px rgb(var(--c-accent-blue-rgb) / 0.25)"
+                  : "0 4px 14px rgb(var(--c-accent-amber-rgb) / 0.2)",
               }}
             >
-              <Flag style={{ width: 17, height: 17, color: vfpComplete ? "#5A93FF" : "#F59E0B" }} strokeWidth={2.25} />
+              <Flag style={{ width: 17, height: 17, color: vfpComplete ? "#5A93FF" : "var(--c-accent-amber)" }} strokeWidth={2.25} />
             </div>
             <div>
               <p
@@ -1476,7 +1476,7 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
               >
                 Valuable Final Product
               </p>
-              <p style={{ margin: "3px 0 0", fontSize: 16, fontWeight: 700, color: "#E2E8F8", letterSpacing: "-0.01em" }}>
+              <p style={{ margin: "3px 0 0", fontSize: 16, fontWeight: 700, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
                 {vfpComplete ? "Estamos construyendo esto" : "Sin VFP definido"}
               </p>
             </div>
@@ -1489,34 +1489,34 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
               gap: 5,
               padding: "7px 14px",
               background: vfpComplete
-                ? "rgba(61,126,255,0.14)"
-                : "#F59E0B",
+                ? "rgb(var(--c-accent-blue-rgb) / 0.14)"
+                : "var(--c-accent-amber)",
               color: vfpComplete ? "#7AABFF" : "#fff",
-              border: vfpComplete ? "1px solid rgba(61,126,255,0.45)" : "none",
+              border: vfpComplete ? "1px solid rgb(var(--c-accent-blue-rgb) / 0.45)" : "none",
               borderRadius: 7,
               fontSize: 12,
               fontWeight: 600,
               cursor: "pointer",
               boxShadow: vfpComplete
-                ? "0 2px 8px rgba(61,126,255,0.18)"
-                : "0 4px 14px rgba(245,158,11,0.35), 0 1px 0 rgba(255,255,255,0.1) inset",
+                ? "0 2px 8px rgb(var(--c-accent-blue-rgb) / 0.18)"
+                : "0 4px 14px rgb(var(--c-accent-amber-rgb) / 0.35), 0 1px 0 rgba(255,255,255,0.1) inset",
               transition: "transform 150ms ease, box-shadow 150ms ease, filter 150ms ease",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-1px)";
               e.currentTarget.style.filter = "brightness(1.08)";
               if (vfpComplete) {
-                e.currentTarget.style.boxShadow = "0 6px 16px rgba(61,126,255,0.3)";
+                e.currentTarget.style.boxShadow = "0 6px 16px rgb(var(--c-accent-blue-rgb) / 0.3)";
               } else {
-                e.currentTarget.style.boxShadow = "0 8px 22px rgba(245,158,11,0.5), 0 1px 0 rgba(255,255,255,0.14) inset";
+                e.currentTarget.style.boxShadow = "0 8px 22px rgb(var(--c-accent-amber-rgb) / 0.5), 0 1px 0 rgba(255,255,255,0.14) inset";
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.filter = "brightness(1)";
               e.currentTarget.style.boxShadow = vfpComplete
-                ? "0 2px 8px rgba(61,126,255,0.18)"
-                : "0 4px 14px rgba(245,158,11,0.35), 0 1px 0 rgba(255,255,255,0.1) inset";
+                ? "0 2px 8px rgb(var(--c-accent-blue-rgb) / 0.18)"
+                : "0 4px 14px rgb(var(--c-accent-amber-rgb) / 0.35), 0 1px 0 rgba(255,255,255,0.1) inset";
             }}
           >
             {vfpComplete ? "Editar VFP" : "Definir VFP"}
@@ -1533,11 +1533,11 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
             }}
           >
             {[
-              { k: "producto", label: "Producto", v: vfp!.producto, accent: "#3D7EFF" },
-              { k: "para", label: "Para", v: vfp!.para, accent: "#3D7EFF" },
-              { k: "quien", label: "Quién", v: vfp!.quien, accent: "#A855F7" },
-              { k: "aDiferenciaDe", label: "A diferencia de", v: vfp!.aDiferenciaDe, accent: "#A855F7" },
-              { k: "terminadoCuando", label: "Terminado cuando", v: vfp!.terminadoCuando, accent: "#10D9A0" },
+              { k: "producto", label: "Producto", v: vfp!.producto, accent: "var(--c-accent-blue)" },
+              { k: "para", label: "Para", v: vfp!.para, accent: "var(--c-accent-blue)" },
+              { k: "quien", label: "Quién", v: vfp!.quien, accent: "var(--c-accent-violet)" },
+              { k: "aDiferenciaDe", label: "A diferencia de", v: vfp!.aDiferenciaDe, accent: "var(--c-accent-violet)" },
+              { k: "terminadoCuando", label: "Terminado cuando", v: vfp!.terminadoCuando, accent: "var(--c-accent-emerald)" },
             ]
               .filter((f) => f.v)
               .map((f) => (
@@ -1565,13 +1565,13 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
                   >
                     {f.label}
                   </p>
-                  <p style={{ margin: "5px 0 0", fontSize: 13, color: "#E2E8F8", lineHeight: 1.55 }}>{f.v}</p>
+                  <p style={{ margin: "5px 0 0", fontSize: 13, color: "var(--c-text-primary)", lineHeight: 1.55 }}>{f.v}</p>
                 </div>
               ))}
           </div>
         ) : (
-          <p style={{ margin: 0, fontSize: 13.5, color: "#C4CFEA", lineHeight: 1.65, position: "relative" }}>
-            Antes de crear tareas, definí <strong style={{ color: "#F59E0B" }}>qué es estar terminado</strong>. Sin VFP, este proyecto es
+          <p style={{ margin: 0, fontSize: 13.5, color: "var(--c-text-secondary)", lineHeight: 1.65, position: "relative" }}>
+            Antes de crear tareas, definí <strong style={{ color: "var(--c-accent-amber)" }}>qué es estar terminado</strong>. Sin VFP, este proyecto es
             backlog basura. Forzar claridad al inicio es el único modo de evitar que se vuelva una lista infinita.
           </p>
         )}
@@ -1580,27 +1580,27 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
       {/* Owner + Health + Stats grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {/* Owner */}
-        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 16 }}>
-          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 16 }}>
+          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
             Owner del proyecto
           </p>
-          <p style={{ margin: "2px 0 12px", fontSize: 10, color: "#7A8BAD" }}>Posición del orgchart</p>
+          <p style={{ margin: "2px 0 12px", fontSize: 10, color: "var(--c-text-muted)" }}>Posición del orgchart</p>
           <div style={{ position: "relative" }}>
             <button onClick={() => setShowOwnerPicker(p => !p)} style={{
               display: "flex", alignItems: "center", gap: 10, width: "100%",
-              padding: "8px 10px", background: "#141928", border: "1px solid #1E2540",
+              padding: "8px 10px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
               borderRadius: 6, cursor: "pointer", textAlign: "left",
             }}>
               {owner ? (
                 <>
                   <EmployeeAvatar name={owner.fullName} employees={employees} size={28} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 13, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.fullName}</p>
-                    {owner.jobTitle && <p style={{ margin: 0, fontSize: 11, color: "#7A8BAD", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.jobTitle}</p>}
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.fullName}</p>
+                    {owner.jobTitle && <p style={{ margin: 0, fontSize: 11, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.jobTitle}</p>}
                   </div>
                 </>
               ) : (
-                <span style={{ fontSize: 12, color: "#7A8BAD" }}>+ Asignar owner</span>
+                <span style={{ fontSize: 12, color: "var(--c-text-muted)" }}>+ Asignar owner</span>
               )}
             </button>
             {showOwnerPicker && (
@@ -1612,32 +1612,32 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
         </div>
 
         {/* Health */}
-        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 16 }}>
-          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 16 }}>
+          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
             Salud del proyecto
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
             <div style={{ width: 12, height: 12, borderRadius: "50%", background: healthColor, boxShadow: `0 0 8px ${healthColor}` }} />
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: healthColor }}>{healthLabel}</p>
           </div>
-          <div style={{ marginTop: 12, height: 6, background: "#1E2540", borderRadius: 4, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "#10D9A0" : "#3D7EFF", transition: "width 0.4s" }} />
+          <div style={{ marginTop: 12, height: 6, background: "var(--c-border)", borderRadius: 4, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "var(--c-accent-emerald)" : "var(--c-accent-blue)", transition: "width 0.4s" }} />
           </div>
-          <p style={{ margin: "8px 0 0", fontSize: 11, color: "#7A8BAD", fontFamily: "monospace" }}>
+          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
             {done}/{total} tareas · {pct}%{overdue > 0 ? ` · ${overdue} atrasada${overdue !== 1 ? "s" : ""}` : ""}
           </p>
         </div>
 
         {/* Quick stats */}
-        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
             Acciones
           </p>
           <button onClick={onJumpToWork} style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6,
+            background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6,
             padding: "10px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer",
-            boxShadow: "0 0 12px rgba(61,126,255,0.3)",
+            boxShadow: "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.3)",
           }}>
             Ver trabajo →
           </button>
@@ -1645,12 +1645,12 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
       </div>
 
       {/* Próximas tareas */}
-      <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 18 }}>
-        <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 18 }}>
+        <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
           Próximas tareas
         </p>
         {upcoming.length === 0 ? (
-          <p style={{ margin: "12px 0 0", fontSize: 12, color: "#7A8BAD" }}>
+          <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--c-text-muted)" }}>
             Sin tareas pendientes. Pasá a la vista <strong>Lista</strong> para empezar a planear.
           </p>
         ) : (
@@ -1660,10 +1660,10 @@ function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork 
               return (
                 <div key={t.id} style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "8px 12px", background: "#141928", border: "1px solid #1E2540", borderRadius: 6,
+                  padding: "8px 12px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6,
                 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLORS[t.status], flexShrink: 0 }} />
-                  <p style={{ margin: 0, flex: 1, fontSize: 13, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ margin: 0, flex: 1, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {t.title}
                   </p>
                   {t.priority && (
@@ -1708,42 +1708,42 @@ function VFPEditor({ initialVFP, onSave, onClose }: {
   const valid = fields.filter(f => f.required).every(f => (vfp[f.key] ?? "").trim().length > 0);
   return (
     <div onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, width: 560, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "16px 22px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--c-shadow-heavy)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, width: 560, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#E2E8F8" }}>Valuable Final Product</p>
-            <p style={{ margin: "2px 0 0", fontSize: 11, color: "#7A8BAD" }}>Definí qué es estar terminado antes de empezar a crear tareas.</p>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--c-text-primary)" }}>Valuable Final Product</p>
+            <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--c-text-muted)" }}>Definí qué es estar terminado antes de empezar a crear tareas.</p>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
             <X style={{ width: 16, height: 16 }} />
           </button>
         </div>
         <div style={{ overflowY: "auto", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           {fields.map(f => (
             <div key={f.key}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
-                {f.label}{f.required && <span style={{ color: "#F43F5E", marginLeft: 4 }}>*</span>}
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                {f.label}{f.required && <span style={{ color: "var(--c-accent-red)", marginLeft: 4 }}>*</span>}
               </label>
               <textarea value={vfp[f.key] ?? ""} onChange={e => setVfp(prev => ({ ...prev, [f.key]: e.target.value }))}
                 placeholder={f.placeholder} rows={2}
                 style={{
-                  width: "100%", background: "#141928", border: "1px solid #1E2540", borderRadius: 6,
-                  padding: "8px 12px", fontSize: 13, color: "#E2E8F8", outline: "none", resize: "vertical",
+                  width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6,
+                  padding: "8px 12px", fontSize: 13, color: "var(--c-text-primary)", outline: "none", resize: "vertical",
                   fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
                 }}
               />
             </div>
           ))}
         </div>
-        <div style={{ padding: "14px 22px", borderTop: "1px solid #1E2540", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "8px 16px", fontSize: 13, cursor: "pointer" }}>
+        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--c-border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "8px 16px", fontSize: 13, cursor: "pointer" }}>
             Cancelar
           </button>
           <button onClick={() => onSave(vfp)} disabled={!valid} style={{
-            background: valid ? "#3D7EFF" : "#1E2540", color: "#fff", border: "none", borderRadius: 6,
+            background: valid ? "var(--c-accent-blue)" : "var(--c-border)", color: "#fff", border: "none", borderRadius: 6,
             padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: valid ? "pointer" : "not-allowed",
-            opacity: valid ? 1 : 0.5, boxShadow: valid ? "0 0 12px rgba(61,126,255,0.3)" : "none",
+            opacity: valid ? 1 : 0.5, boxShadow: valid ? "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.3)" : "none",
           }}>
             Guardar VFP
           </button>
@@ -1821,19 +1821,19 @@ function MilestonesView({ projectId, milestones, tasks, employees, onMilestonesC
       {!embedded && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Entregables
             </p>
-            <h2 style={{ margin: "4px 0 0", fontSize: 18, fontWeight: 700, color: "#E2E8F8" }}>Hitos del proyecto</h2>
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: "#7A8BAD" }}>
+            <h2 style={{ margin: "4px 0 0", fontSize: 18, fontWeight: 700, color: "var(--c-text-primary)" }}>Hitos del proyecto</h2>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--c-text-muted)" }}>
               Cada hito necesita criterios de aceptación claros — sin eso, "completo" es subjetivo.
             </p>
           </div>
           {!adding && (
             <button onClick={() => setAdding(true)} style={{
-              display: "flex", alignItems: "center", gap: 6, background: "#3D7EFF", color: "#fff",
+              display: "flex", alignItems: "center", gap: 6, background: "var(--c-accent-blue)", color: "#fff",
               border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer",
-              boxShadow: "0 0 12px rgba(61,126,255,0.3)",
+              boxShadow: "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.3)",
             }}>
               <Plus style={{ width: 14, height: 14 }} strokeWidth={2.5} />
               Nuevo hito
@@ -1846,7 +1846,7 @@ function MilestonesView({ projectId, milestones, tasks, employees, onMilestonesC
       {embedded && !adding && (
         <button onClick={() => setAdding(true)} style={{
           alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 5,
-          background: "rgba(61,126,255,0.1)", color: "#3D7EFF", border: "1px solid rgba(61,126,255,0.3)",
+          background: "rgb(var(--c-accent-blue-rgb) / 0.1)", color: "var(--c-accent-blue)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.3)",
           borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer",
         }}>
           <Plus style={{ width: 12, height: 12 }} strokeWidth={2.5} />
@@ -1856,25 +1856,25 @@ function MilestonesView({ projectId, milestones, tasks, employees, onMilestonesC
 
       {/* Add inline */}
       {adding && (
-        <div style={{ background: "rgba(61,126,255,0.06)", border: "1px solid rgba(61,126,255,0.3)", borderRadius: 8, padding: 14, display: "flex", gap: 8 }}>
+        <div style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.06)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.3)", borderRadius: 8, padding: 14, display: "flex", gap: 8 }}>
           <input autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") create(); if (e.key === "Escape") { setAdding(false); setNewTitle(""); } }}
             placeholder='Título del hito — ej: "Beta lanzada con primeros 10 usuarios"'
-            style={{ flex: 1, background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "#E2E8F8", outline: "none" }} />
-          <button onClick={create} style={{ background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Crear</button>
-          <button onClick={() => { setAdding(false); setNewTitle(""); }} style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "8px 12px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
+            style={{ flex: 1, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "8px 12px", fontSize: 13, color: "var(--c-text-primary)", outline: "none" }} />
+          <button onClick={create} style={{ background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Crear</button>
+          <button onClick={() => { setAdding(false); setNewTitle(""); }} style={{ background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "8px 12px", fontSize: 13, cursor: "pointer" }}>Cancelar</button>
         </div>
       )}
 
       {/* Timeline horizontal — solo si hay hitos con fecha */}
       {timeline && datedMilestones.length > 1 && (
-        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: "18px 22px" }}>
-          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "18px 22px" }}>
+          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
             Timeline
           </p>
           <div style={{ position: "relative", height: 60, marginTop: 16 }}>
             {/* Línea base */}
-            <div style={{ position: "absolute", top: 30, left: 0, right: 0, height: 2, background: "#1E2540", borderRadius: 1 }} />
+            <div style={{ position: "absolute", top: 30, left: 0, right: 0, height: 2, background: "var(--c-border)", borderRadius: 1 }} />
             {/* Líneas de dependencia (arcos curvos sobre la base) */}
             {dependencies.length > 0 && (() => {
               const positions = new Map(datedMilestones.map(m => [
@@ -1894,7 +1894,7 @@ function MilestonesView({ projectId, milestones, tasks, employees, onMilestonesC
                       <path key={i}
                         d={`M ${fromPct}% 31 Q ${midPct}% ${31 + arcHeight} ${toPct}% 31`}
                         fill="none"
-                        stroke="rgba(245,158,11,0.5)"
+                        stroke="rgb(var(--c-accent-amber-rgb) / 0.5)"
                         strokeWidth={1.2}
                         strokeDasharray="3,3"
                         markerEnd="url(#arrowhead)"
@@ -1903,7 +1903,7 @@ function MilestonesView({ projectId, milestones, tasks, employees, onMilestonesC
                   })}
                   <defs>
                     <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                      <polygon points="0 0, 6 3, 0 6" fill="rgba(245,158,11,0.7)" />
+                      <polygon points="0 0, 6 3, 0 6" fill="rgb(var(--c-accent-amber-rgb) / 0.7)" />
                     </marker>
                   </defs>
                 </svg>
@@ -1932,16 +1932,16 @@ function MilestonesView({ projectId, milestones, tasks, employees, onMilestonesC
                     width: 14, height: 14, borderRadius: "50%",
                     background: MILESTONE_STATUS_COLORS[m.status],
                     boxShadow: `0 0 8px ${MILESTONE_STATUS_COLORS[m.status]}`,
-                    border: `2px solid ${blocked ? "#F43F5E" : "#0E1220"}`,
+                    border: `2px solid ${blocked ? "var(--c-accent-red)" : "var(--c-bg-surface)"}`,
                   }} />
-                  <p style={{ margin: "6px 0 0", fontSize: 9, color: blocked ? "#F43F5E" : "#C4CFEA", maxWidth: 80, textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ margin: "6px 0 0", fontSize: 9, color: blocked ? "var(--c-accent-red)" : "var(--c-text-secondary)", maxWidth: 80, textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {m.title}
                   </p>
                 </div>
               );
             })}
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
             <span>{new Date(timeline.minT).toLocaleDateString("es-AR")}</span>
             <span>{new Date(timeline.maxT).toLocaleDateString("es-AR")}</span>
           </div>
@@ -1950,10 +1950,10 @@ function MilestonesView({ projectId, milestones, tasks, employees, onMilestonesC
 
       {/* Milestones list */}
       {milestones.length === 0 ? (
-        <div style={{ padding: "40px 24px", textAlign: "center", border: "1px dashed #1E2540", borderRadius: 10, background: "#0E1220" }}>
-          <Flag style={{ width: 32, height: 32, margin: "0 auto 8px", color: "#1E2540" }} strokeWidth={1.5} />
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#E2E8F8" }}>Sin hitos todavía</p>
-          <p style={{ margin: "4px 0 0", fontSize: 12, color: "#7A8BAD" }}>
+        <div style={{ padding: "40px 24px", textAlign: "center", border: "1px dashed var(--c-border)", borderRadius: 10, background: "var(--c-bg-surface)" }}>
+          <Flag style={{ width: 32, height: 32, margin: "0 auto 8px", color: "var(--c-border)" }} strokeWidth={1.5} />
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)" }}>Sin hitos todavía</p>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--c-text-muted)" }}>
             Definí los entregables clave antes de empezar a crear tareas sueltas.
           </p>
         </div>
@@ -2032,12 +2032,12 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
     const canManageTasks = !!(updateTask && createTaskInMilestone);
     return (
       <div style={{
-        background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10,
+        background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10,
         overflow: "hidden",
         transition: "border-color 120ms",
       }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = "#3D7EFF66"; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = "#1E2540"; }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "rgb(var(--c-accent-blue-rgb) / 0.4)"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--c-border)"; }}
       >
         {/* Header — clickeable para editar */}
         <div style={{ padding: 18, cursor: "pointer" }} onClick={onStartEdit}>
@@ -2045,7 +2045,7 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
             <Flag style={{ width: 18, height: 18, color: MILESTONE_STATUS_COLORS[milestone.status], flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#E2E8F8" }}>{milestone.title}</p>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--c-text-primary)" }}>{milestone.title}</p>
                 <span style={{
                   fontSize: 10, padding: "2px 8px", borderRadius: 4,
                   background: `${MILESTONE_STATUS_COLORS[milestone.status]}1F`,
@@ -2058,14 +2058,14 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
                 {due && <span style={{ fontSize: 11, color: due.color, fontFamily: "monospace" }}>{due.label}</span>}
               </div>
               {milestone.description && (
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#7A8BAD", lineHeight: 1.5 }}>{milestone.description}</p>
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--c-text-muted)", lineHeight: 1.5 }}>{milestone.description}</p>
               )}
               {milestone.acceptanceCriteria && (
-                <div style={{ marginTop: 10, padding: "8px 10px", background: "rgba(16,217,160,0.06)", border: "1px solid rgba(16,217,160,0.2)", borderRadius: 6 }}>
-                  <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#10D9A0", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div style={{ marginTop: 10, padding: "8px 10px", background: "rgb(var(--c-accent-emerald-rgb) / 0.06)", border: "1px solid rgb(var(--c-accent-emerald-rgb) / 0.2)", borderRadius: 6 }}>
+                  <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "var(--c-accent-emerald)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     Terminado cuando
                   </p>
-                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "#C4CFEA", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                     {milestone.acceptanceCriteria}
                   </p>
                 </div>
@@ -2074,14 +2074,14 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
                 {owner && (
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <EmployeeAvatar employeeId={owner.id} employees={employees} size={20} />
-                    <span style={{ fontSize: 11, color: "#7A8BAD" }}>{owner.fullName}</span>
+                    <span style={{ fontSize: 11, color: "var(--c-text-muted)" }}>{owner.fullName}</span>
                   </div>
                 )}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 60, height: 4, background: "#1E2540", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "#10D9A0" : "#3D7EFF" }} />
+                  <div style={{ width: 60, height: 4, background: "var(--c-border)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "var(--c-accent-emerald)" : "var(--c-accent-blue)" }} />
                   </div>
-                  <span style={{ fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+                  <span style={{ fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
                     {doneTasks}/{milestoneTasks.length} tareas
                   </span>
                 </div>
@@ -2098,9 +2098,9 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
                       style={{
                         display: "flex", alignItems: "center", gap: 4,
                         fontSize: 10, padding: "2px 8px", borderRadius: 4,
-                        background: blocked ? "rgba(244,63,94,0.12)" : "rgba(245,158,11,0.08)",
-                        color: blocked ? "#F43F5E" : "#F59E0B",
-                        border: `1px solid ${blocked ? "rgba(244,63,94,0.3)" : "rgba(245,158,11,0.3)"}`,
+                        background: blocked ? "rgb(var(--c-accent-red-rgb) / 0.12)" : "rgb(var(--c-accent-amber-rgb) / 0.08)",
+                        color: blocked ? "var(--c-accent-red)" : "var(--c-accent-amber)",
+                        border: `1px solid ${blocked ? "rgb(var(--c-accent-red-rgb) / 0.3)" : "rgb(var(--c-accent-amber-rgb) / 0.3)"}`,
                         fontFamily: "monospace", textTransform: "uppercase",
                       }}>
                       ⇆ {myDeps.length} dep{myDeps.length > 1 ? "s" : ""}{blocked && " · BLOQUEADO"}
@@ -2117,9 +2117,9 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
                       style={{
                         display: "flex", alignItems: "center", gap: 4,
                         fontSize: 10, padding: "2px 8px", borderRadius: 4,
-                        background: isCurrent ? "rgba(168,85,247,0.18)" : "rgba(168,85,247,0.08)",
-                        color: "#A855F7",
-                        border: `1px solid ${isCurrent ? "#A855F7" : "rgba(168,85,247,0.3)"}`,
+                        background: isCurrent ? "rgb(var(--c-accent-violet-rgb) / 0.18)" : "rgb(var(--c-accent-violet-rgb) / 0.08)",
+                        color: "var(--c-accent-violet)",
+                        border: `1px solid ${isCurrent ? "var(--c-accent-violet)" : "rgb(var(--c-accent-violet-rgb) / 0.3)"}`,
                         fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.04em",
                       }}>
                       ⚐ BPM: {node.label.slice(0, 18)}
@@ -2134,24 +2134,24 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
 
         {/* Tareas del hito — collapsible. onClick stopPropagation para no disparar onStartEdit. */}
         {canManageTasks && (
-          <div onClick={e => e.stopPropagation()} style={{ borderTop: "1px solid #1E2540", background: "#0A0E1A" }}>
+          <div onClick={e => e.stopPropagation()} style={{ borderTop: "1px solid var(--c-border)", background: "var(--c-bg-darkest)" }}>
             <button onClick={() => setTasksOpen(p => !p)} style={{
               display: "flex", alignItems: "center", gap: 8, width: "100%",
               padding: "8px 18px", background: "transparent", border: "none", cursor: "pointer",
-              color: "#7A8BAD", fontSize: 11, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.08em",
+              color: "var(--c-text-muted)", fontSize: 11, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.08em",
             }}>
               {tasksOpen ? <ChevronDown style={{ width: 12, height: 12 }} /> : <ChevronRight style={{ width: 12, height: 12 }} />}
               <span style={{ flex: 1, textAlign: "left" }}>
                 Tareas del hito ({milestoneTasks.length})
               </span>
               {milestoneTasks.length > 0 && (
-                <span style={{ color: "#10D9A0", fontFamily: "monospace" }}>{pct}%</span>
+                <span style={{ color: "var(--c-accent-emerald)", fontFamily: "monospace" }}>{pct}%</span>
               )}
             </button>
             {tasksOpen && (
               <div style={{ padding: "0 14px 12px 18px", display: "flex", flexDirection: "column", gap: 4 }}>
                 {milestoneTasks.length === 0 && (
-                  <p style={{ margin: "4px 0 8px", fontSize: 11, color: "#3A4560", fontStyle: "italic" }}>
+                  <p style={{ margin: "4px 0 8px", fontSize: 11, color: "var(--c-text-placeholder)", fontStyle: "italic" }}>
                     Sin tareas todavía. Agregá las acciones concretas que cierran este hito.
                   </p>
                 )}
@@ -2177,12 +2177,12 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
                         onBlur={() => { if (!newTaskTitle.trim()) setAdding(false); }}
                         placeholder="Nueva tarea para este hito…"
                         style={{
-                          flex: 1, background: "#141928", border: "1px solid #3D7EFF66",
-                          borderRadius: 5, color: "#E2E8F8", fontSize: 12,
+                          flex: 1, background: "var(--c-bg-elevated)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.4)",
+                          borderRadius: 5, color: "var(--c-text-primary)", fontSize: 12,
                           padding: "5px 10px", outline: "none",
                         }} />
                       <button type="submit" disabled={!newTaskTitle.trim()}
-                        style={{ width: 26, height: 26, borderRadius: 5, background: "#3D7EFF", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: newTaskTitle.trim() ? 1 : 0.5 }}>
+                        style={{ width: 26, height: 26, borderRadius: 5, background: "var(--c-accent-blue)", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: newTaskTitle.trim() ? 1 : 0.5 }}>
                         <Plus style={{ width: 12, height: 12 }} strokeWidth={2.5} />
                       </button>
                     </form>
@@ -2190,11 +2190,11 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
                     <button onClick={() => setAdding(true)} style={{
                       width: "100%", display: "flex", alignItems: "center", gap: 6,
                       padding: "5px 10px", background: "transparent",
-                      border: "1px dashed #1E2540", borderRadius: 5,
-                      color: "#7A8BAD", fontSize: 11, cursor: "pointer", textAlign: "left",
+                      border: "1px dashed var(--c-border)", borderRadius: 5,
+                      color: "var(--c-text-muted)", fontSize: 11, cursor: "pointer", textAlign: "left",
                     }}
-                      onMouseEnter={e => { e.currentTarget.style.color = "#3D7EFF"; e.currentTarget.style.borderColor = "#3D7EFF66"; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = "#7A8BAD"; e.currentTarget.style.borderColor = "#1E2540"; }}>
+                      onMouseEnter={e => { e.currentTarget.style.color = "var(--c-accent-blue)"; e.currentTarget.style.borderColor = "rgb(var(--c-accent-blue-rgb) / 0.4)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "var(--c-text-muted)"; e.currentTarget.style.borderColor = "var(--c-border)"; }}>
                       <Plus style={{ width: 11, height: 11 }} strokeWidth={2.5} />
                       Agregar tarea a este hito
                     </button>
@@ -2210,44 +2210,44 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
 
   // Editing mode
   return (
-    <div style={{ background: "#0E1220", border: "1px solid #3D7EFF", borderRadius: 10, padding: 18 }}>
+    <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-accent-blue)", borderRadius: 10, padding: 18 }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <input value={draft.title ?? ""} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="Título"
-          style={{ background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "8px 12px", fontSize: 14, color: "#E2E8F8", outline: "none", fontWeight: 600 }} />
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "8px 12px", fontSize: 14, color: "var(--c-text-primary)", outline: "none", fontWeight: 600 }} />
         <textarea value={draft.description ?? ""} onChange={e => setDraft({ ...draft, description: e.target.value })} rows={2}
           placeholder="Descripción breve del hito"
-          style={{ background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#E2E8F8", outline: "none", resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }} />
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "var(--c-text-primary)", outline: "none", resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }} />
         <div>
-          <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "#10D9A0", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
+          <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "var(--c-accent-emerald)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
             Terminado cuando (criterios de aceptación)
           </label>
           <textarea value={draft.acceptanceCriteria ?? ""} onChange={e => setDraft({ ...draft, acceptanceCriteria: e.target.value })} rows={3}
             placeholder="Lista los criterios concretos. Ej:&#10;- 5 usuarios completaron el flow sin asistencia&#10;- Tiempo medio < 90s&#10;- Cero errores 500 en último deploy"
-            style={{ width: "100%", background: "#141928", border: "1px solid rgba(16,217,160,0.3)", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#E2E8F8", outline: "none", resize: "vertical", fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box" }} />
+            style={{ width: "100%", background: "var(--c-bg-elevated)", border: "1px solid rgb(var(--c-accent-emerald-rgb) / 0.3)", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "var(--c-text-primary)", outline: "none", resize: "vertical", fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box" }} />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
           <div>
-            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", marginBottom: 4 }}>Estado</label>
+            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", marginBottom: 4 }}>Estado</label>
             <select value={draft.status ?? "pending"} onChange={e => setDraft({ ...draft, status: e.target.value as Milestone["status"] })}
-              style={{ width: "100%", background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 10px", fontSize: 12, color: "#E2E8F8", outline: "none" }}>
+              style={{ width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 10px", fontSize: 12, color: "var(--c-text-primary)", outline: "none" }}>
               <option value="pending">Pendiente</option>
               <option value="in_progress">En progreso</option>
               <option value="done">Completo</option>
             </select>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", marginBottom: 4 }}>Vencimiento</label>
+            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", marginBottom: 4 }}>Vencimiento</label>
             <input type="date" value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""} onChange={e => setDraft({ ...draft, dueDate: e.target.value || undefined })}
-              style={{ width: "100%", background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 10px", fontSize: 12, color: "#E2E8F8", outline: "none", colorScheme: "dark" }} />
+              style={{ width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 10px", fontSize: 12, color: "var(--c-text-primary)", outline: "none", colorScheme: "dark" }} />
           </div>
           <div style={{ position: "relative" }}>
-            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", marginBottom: 4 }}>Owner</label>
+            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", marginBottom: 4 }}>Owner</label>
             <button onClick={() => setShowOwner(p => !p)} style={{
               width: "100%", display: "flex", alignItems: "center", gap: 6,
-              background: "#141928", border: "1px solid #1E2540", borderRadius: 6,
-              padding: "5px 10px", fontSize: 12, color: "#E2E8F8", cursor: "pointer", textAlign: "left",
+              background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6,
+              padding: "5px 10px", fontSize: 12, color: "var(--c-text-primary)", cursor: "pointer", textAlign: "left",
             }}>
-              {owner ? <><EmployeeAvatar employeeId={owner.id} employees={employees} size={18} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.fullName}</span></> : <span style={{ color: "#7A8BAD" }}>+ Asignar</span>}
+              {owner ? <><EmployeeAvatar employeeId={owner.id} employees={employees} size={18} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.fullName}</span></> : <span style={{ color: "var(--c-text-muted)" }}>+ Asignar</span>}
             </button>
             {showOwner && (
               <EmployeePicker value={owner?.fullName} employees={employees}
@@ -2260,10 +2260,10 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
         {/* Dependencias entre hitos — DAG */}
         {allMilestones && allMilestones.length > 1 && (
           <div>
-            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "#F59E0B", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
+            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "var(--c-accent-amber)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
               ⇆ Depende de
             </label>
-            <p style={{ margin: "0 0 6px", fontSize: 10, color: "#7A8BAD" }}>
+            <p style={{ margin: "0 0 6px", fontSize: 10, color: "var(--c-text-muted)" }}>
               Hitos que deben completarse antes de empezar éste.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -2273,16 +2273,16 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
                 return (
                   <div key={d.dependsOnId} style={{
                     display: "flex", alignItems: "center", gap: 6,
-                    padding: "5px 10px", background: "#141928",
-                    border: "1px solid rgba(245,158,11,0.3)", borderRadius: 5,
+                    padding: "5px 10px", background: "var(--c-bg-elevated)",
+                    border: "1px solid rgb(var(--c-accent-amber-rgb) / 0.3)", borderRadius: 5,
                   }}>
                     <Flag style={{ width: 11, height: 11, color: MILESTONE_STATUS_COLORS[dep.status], flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 12, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dep.title}</span>
+                    <span style={{ flex: 1, fontSize: 12, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dep.title}</span>
                     <button onClick={async () => {
                       await fetch(`/api/milestones/${milestone.id}/dependencies/${d.dependsOnId}`, { method: "DELETE" });
                       onDependenciesChange?.();
                     }} title="Quitar dependencia"
-                      style={{ background: "transparent", border: "none", color: "#F43F5E", cursor: "pointer", padding: 2, opacity: 0.6 }}>
+                      style={{ background: "transparent", border: "none", color: "var(--c-accent-red)", cursor: "pointer", padding: 2, opacity: 0.6 }}>
                       <X style={{ width: 11, height: 11 }} />
                     </button>
                   </div>
@@ -2303,7 +2303,7 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
                     toast.error("No se pudo agregar", err.error ?? "Verificá que no genere un ciclo.");
                   }
                 }}
-                style={{ background: "#141928", border: "1px dashed rgba(245,158,11,0.3)", borderRadius: 5, padding: "6px 10px", fontSize: 12, color: "#7A8BAD", outline: "none", cursor: "pointer" }}>
+                style={{ background: "var(--c-bg-elevated)", border: "1px dashed rgb(var(--c-accent-amber-rgb) / 0.3)", borderRadius: 5, padding: "6px 10px", fontSize: 12, color: "var(--c-text-muted)", outline: "none", cursor: "pointer" }}>
                 <option value="">+ Agregar dependencia…</option>
                 {allMilestones.filter(m => m.id !== milestone.id && !(dependencies ?? []).some(d => d.milestoneId === milestone.id && d.dependsOnId === m.id))
                   .map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
@@ -2315,15 +2315,15 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
         {/* BPM node link — solo si el proyecto vino de un proceso */}
         {bpmContext?.hasProcess && bpmContext.nodes.length > 0 && (
           <div>
-            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "#A855F7", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
+            <label style={{ display: "block", fontSize: 10, fontFamily: "monospace", color: "var(--c-accent-violet)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
               ⚐ Vincular a nodo del proceso BPM
             </label>
-            <p style={{ margin: "0 0 6px", fontSize: 10, color: "#7A8BAD" }}>
+            <p style={{ margin: "0 0 6px", fontSize: 10, color: "var(--c-text-muted)" }}>
               Al completar este hito se avanza automáticamente el nodo seleccionado en <strong>{bpmContext.processName}</strong>.
             </p>
             <select value={draft.bpmNodeId ?? ""}
               onChange={e => setDraft({ ...draft, bpmNodeId: e.target.value || null })}
-              style={{ width: "100%", background: "#141928", border: "1px solid rgba(168,85,247,0.3)", borderRadius: 6, padding: "7px 10px", fontSize: 12, color: "#E2E8F8", outline: "none", cursor: "pointer" }}>
+              style={{ width: "100%", background: "var(--c-bg-elevated)", border: "1px solid rgb(var(--c-accent-violet-rgb) / 0.3)", borderRadius: 6, padding: "7px 10px", fontSize: 12, color: "var(--c-text-primary)", outline: "none", cursor: "pointer" }}>
               <option value="">Sin vínculo BPM</option>
               {bpmContext.nodes.map(n => (
                 <option key={n.id} value={n.id}>
@@ -2338,17 +2338,17 @@ function MilestoneCard({ milestone, tasks, employees, isEditing, onStartEdit, on
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
           <button onClick={() => { if (!confirmDelete) { setConfirmDelete(true); return; } onDelete(); }}
             style={{
-              background: confirmDelete ? "#F43F5E" : "transparent", color: confirmDelete ? "#fff" : "#F43F5E",
-              border: "1px solid #F43F5E55", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer",
+              background: confirmDelete ? "var(--c-accent-red)" : "transparent", color: confirmDelete ? "#fff" : "var(--c-accent-red)",
+              border: "1px solid rgb(var(--c-accent-red-rgb) / 0.33)", borderRadius: 6, padding: "7px 12px", fontSize: 12, cursor: "pointer",
               marginRight: "auto", display: "flex", alignItems: "center", gap: 5,
             }}>
             <Trash2 style={{ width: 12, height: 12 }} />
             {confirmDelete ? "Confirmar" : "Eliminar"}
           </button>
-          <button onClick={onStopEdit} style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 14px", fontSize: 12, cursor: "pointer" }}>
+          <button onClick={onStopEdit} style={{ background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 14px", fontSize: 12, cursor: "pointer" }}>
             Cancelar
           </button>
-          <button onClick={save} style={{ background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={save} style={{ background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
             Guardar
           </button>
         </div>
@@ -2415,7 +2415,7 @@ function ProjectModal(props: {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const health: "atrasado" | "completo" | "bien" | "iniciando" | "vacio" =
     overdue > 0 ? "atrasado" : pct === 100 ? "completo" : pct >= 50 ? "bien" : total === 0 ? "vacio" : "iniciando";
-  const healthColor = { atrasado: "#F43F5E", completo: "#10D9A0", bien: "#10D9A0", iniciando: "#3D7EFF", vacio: "#7A8BAD" }[health];
+  const healthColor = { atrasado: "var(--c-accent-red)", completo: "var(--c-accent-emerald)", bien: "var(--c-accent-emerald)", iniciando: "var(--c-accent-blue)", vacio: "var(--c-text-muted)" }[health];
   const healthLabel = { atrasado: "Atrasado", completo: "Completo", bien: "En buen ritmo", iniciando: "Iniciando", vacio: "Sin trabajo" }[health];
 
   // ESC cierra
@@ -2439,31 +2439,31 @@ function ProjectModal(props: {
     >
       <div style={{
         width: "min(1200px, 100%)", maxHeight: "100%",
-        background: "#080B12", border: "1px solid #1E2540",
+        background: "var(--c-bg-base)", border: "1px solid var(--c-border)",
         // En mobile sin borde redondeado para look full-screen
         borderRadius: "clamp(0px, 2vw, 14px)",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+        boxShadow: "0 24px 80px var(--c-shadow-strong)",
         display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         {/* Sticky header */}
         <div style={{
           display: "flex", alignItems: "center", gap: 14,
-          padding: "14px 22px", borderBottom: "1px solid #1E2540",
+          padding: "14px 22px", borderBottom: "1px solid var(--c-border)",
           background: "rgba(14,18,32,0.98)",
         }}>
           <button onClick={onClose} style={{
             display: "flex", alignItems: "center", gap: 6, padding: "6px 12px",
-            background: "transparent", border: "1px solid #1E2540", borderRadius: 6,
-            color: "#7A8BAD", fontSize: 12, cursor: "pointer",
+            background: "transparent", border: "1px solid var(--c-border)", borderRadius: 6,
+            color: "var(--c-text-muted)", fontSize: 12, cursor: "pointer",
           }}>
             <ArrowLeft style={{ width: 13, height: 13 }} />
             Volver
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Proyecto
             </p>
-            <p style={{ margin: "2px 0 0", fontSize: 17, fontWeight: 700, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <p style={{ margin: "2px 0 0", fontSize: 17, fontWeight: 700, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {project.name}
             </p>
           </div>
@@ -2480,7 +2480,7 @@ function ProjectModal(props: {
             title="Estado del proyecto"
             style={{
               fontSize: 11, padding: "4px 8px", borderRadius: 4,
-              background: "#141928", color: "#C4CFEA", border: "1px solid #1E2540",
+              background: "var(--c-bg-elevated)", color: "var(--c-text-secondary)", border: "1px solid var(--c-border)",
               cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase",
             }}>
             <option value="planning">Planning</option>
@@ -2502,13 +2502,13 @@ function ProjectModal(props: {
             title="Guardar este proyecto como template"
             style={{
               fontSize: 11, padding: "4px 10px", borderRadius: 4,
-              background: "rgba(168,85,247,0.1)", color: "#A855F7", border: "1px solid rgba(168,85,247,0.3)",
+              background: "rgb(var(--c-accent-violet-rgb) / 0.1)", color: "var(--c-accent-violet)", border: "1px solid rgb(var(--c-accent-violet-rgb) / 0.3)",
               cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
             }}>
             <Folder style={{ width: 11, height: 11 }} />
             Como template
           </button>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 4 }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer", padding: 4 }}>
             <X style={{ width: 18, height: 18 }} />
           </button>
         </div>
@@ -2518,33 +2518,33 @@ function ProjectModal(props: {
           {/* ── SECCIÓN VFP ─────────────────────────────────────────── */}
           <section style={{ padding: "22px 24px 0" }}>
             <div style={{
-              background: vfpComplete ? "linear-gradient(135deg, rgba(61,126,255,0.08), rgba(168,85,247,0.06))" : "rgba(245,158,11,0.06)",
-              border: `1px solid ${vfpComplete ? "rgba(61,126,255,0.3)" : "rgba(245,158,11,0.4)"}`,
+              background: vfpComplete ? "linear-gradient(135deg, rgb(var(--c-accent-blue-rgb) / 0.08), rgb(var(--c-accent-violet-rgb) / 0.06))" : "rgb(var(--c-accent-amber-rgb) / 0.06)",
+              border: `1px solid ${vfpComplete ? "rgb(var(--c-accent-blue-rgb) / 0.3)" : "rgb(var(--c-accent-amber-rgb) / 0.4)"}`,
               borderRadius: 12, padding: 20,
             }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{
                     width: 30, height: 30, borderRadius: 7,
-                    background: vfpComplete ? "rgba(61,126,255,0.15)" : "rgba(245,158,11,0.15)",
+                    background: vfpComplete ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "rgb(var(--c-accent-amber-rgb) / 0.15)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <Flag style={{ width: 15, height: 15, color: vfpComplete ? "#3D7EFF" : "#F59E0B" }} strokeWidth={2} />
+                    <Flag style={{ width: 15, height: 15, color: vfpComplete ? "var(--c-accent-blue)" : "var(--c-accent-amber)" }} strokeWidth={2} />
                   </div>
                   <div>
-                    <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                    <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                       Valuable Final Product
                     </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 14, fontWeight: 700, color: "#E2E8F8" }}>
+                    <p style={{ margin: "2px 0 0", fontSize: 14, fontWeight: 700, color: "var(--c-text-primary)" }}>
                       {vfpComplete ? "Estamos construyendo esto" : "Sin VFP definido"}
                     </p>
                   </div>
                 </div>
                 <button onClick={() => setEditingVFP(true)} style={{
                   display: "flex", alignItems: "center", gap: 5, padding: "6px 12px",
-                  background: vfpComplete ? "rgba(61,126,255,0.12)" : "#F59E0B",
-                  color: vfpComplete ? "#3D7EFF" : "#fff",
-                  border: vfpComplete ? "1px solid rgba(61,126,255,0.4)" : "none",
+                  background: vfpComplete ? "rgb(var(--c-accent-blue-rgb) / 0.12)" : "var(--c-accent-amber)",
+                  color: vfpComplete ? "var(--c-accent-blue)" : "#fff",
+                  border: vfpComplete ? "1px solid rgb(var(--c-accent-blue-rgb) / 0.4)" : "none",
                   borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
                 }}>
                   {vfpComplete ? "Editar VFP" : "Definir VFP"}
@@ -2560,13 +2560,13 @@ function ProjectModal(props: {
                     { k: "terminadoCuando", label: "Terminado cuando", v: vfp!.terminadoCuando },
                   ].filter(f => f.v).map(f => (
                     <div key={f.k}>
-                      <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>{f.label}</p>
-                      <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "#E2E8F8", lineHeight: 1.5 }}>{f.v}</p>
+                      <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{f.label}</p>
+                      <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--c-text-primary)", lineHeight: 1.5 }}>{f.v}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={{ margin: 0, fontSize: 12.5, color: "#C4CFEA", lineHeight: 1.6 }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: "var(--c-text-secondary)", lineHeight: 1.6 }}>
                   Antes de crear tareas, definí <strong>qué es estar terminado</strong>. Sin VFP, este proyecto es backlog basura.
                 </p>
               )}
@@ -2577,26 +2577,26 @@ function ProjectModal(props: {
           <section style={{ padding: "16px 24px 0" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
               {/* Owner */}
-              <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 14 }}>
-                <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 14 }}>
+                <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                   Owner (posición orgchart)
                 </p>
                 <div style={{ position: "relative", marginTop: 10 }}>
                   <button onClick={() => setShowOwnerPicker(p => !p)} style={{
                     display: "flex", alignItems: "center", gap: 10, width: "100%",
-                    padding: "7px 10px", background: "#141928", border: "1px solid #1E2540",
+                    padding: "7px 10px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
                     borderRadius: 6, cursor: "pointer", textAlign: "left",
                   }}>
                     {owner ? (
                       <>
                         <EmployeeAvatar employeeId={owner.id} employees={employees} size={26} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 12.5, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.fullName}</p>
-                          {owner.jobTitle && <p style={{ margin: 0, fontSize: 10, color: "#7A8BAD", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.jobTitle}</p>}
+                          <p style={{ margin: 0, fontSize: 12.5, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.fullName}</p>
+                          {owner.jobTitle && <p style={{ margin: 0, fontSize: 10, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.jobTitle}</p>}
                         </div>
                       </>
                     ) : (
-                      <span style={{ fontSize: 12, color: "#7A8BAD" }}>+ Asignar owner</span>
+                      <span style={{ fontSize: 12, color: "var(--c-text-muted)" }}>+ Asignar owner</span>
                     )}
                   </button>
                   {showOwnerPicker && (
@@ -2608,30 +2608,30 @@ function ProjectModal(props: {
               </div>
 
               {/* Health */}
-              <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 14 }}>
-                <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 14 }}>
+                <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                   Salud del proyecto
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: healthColor, boxShadow: `0 0 6px ${healthColor}` }} />
                   <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: healthColor }}>{healthLabel}</p>
                 </div>
-                <div style={{ marginTop: 10, height: 5, background: "#1E2540", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "#10D9A0" : "#3D7EFF", transition: "width 0.4s" }} />
+                <div style={{ marginTop: 10, height: 5, background: "var(--c-border)", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "var(--c-accent-emerald)" : "var(--c-accent-blue)", transition: "width 0.4s" }} />
                 </div>
-                <p style={{ margin: "6px 0 0", fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+                <p style={{ margin: "6px 0 0", fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
                   {done}/{total} · {pct}%{overdue > 0 ? ` · ${overdue} atrasada${overdue !== 1 ? "s" : ""}` : ""}
                 </p>
               </div>
 
               {/* Stats counts */}
-              <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <p style={{ margin: 0, fontSize: 9, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                   Resumen
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginTop: 8 }}>
                   <Stat label="Tareas" value={total} />
-                  <Stat label="Hitos" value={milestones.length} color="#A855F7" />
+                  <Stat label="Hitos" value={milestones.length} color="var(--c-accent-violet)" />
                 </div>
               </div>
             </div>
@@ -2649,7 +2649,7 @@ function ProjectModal(props: {
 
           {/* ── SECCIÓN HITOS ──────────────────────────────────────── */}
           <section style={{ padding: "20px 24px 0" }}>
-            <h3 style={{ margin: "0 0 12px", fontSize: 11, fontFamily: "monospace", color: "#A855F7", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+            <h3 style={{ margin: "0 0 12px", fontSize: 11, fontFamily: "monospace", color: "var(--c-accent-violet)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
               ▸ Hitos / Entregables
             </h3>
             <MilestonesView
@@ -2670,34 +2670,34 @@ function ProjectModal(props: {
           {/* ── SECCIÓN TAREAS ─────────────────────────────────────── */}
           <section style={{ padding: "8px 24px 24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
-              <h3 style={{ margin: 0, fontSize: 11, fontFamily: "monospace", color: "#3D7EFF", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+              <h3 style={{ margin: 0, fontSize: 11, fontFamily: "monospace", color: "var(--c-accent-blue)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
                 ▸ Tareas
               </h3>
               {/* Search input — busca por título / descripción dentro del proyecto */}
               <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 360, marginLeft: "auto" }}>
-                <Search size={12} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#7A8BAD", pointerEvents: "none" }} />
+                <Search size={12} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "var(--c-text-muted)", pointerEvents: "none" }} />
                 <input
                   value={props.taskSearch}
                   onChange={e => props.setTaskSearch(e.target.value)}
                   placeholder="Buscar tareas…"
                   style={{
-                    width: "100%", background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6,
-                    padding: "6px 28px 6px 28px", fontSize: 12, color: "#E2E8F8", outline: "none",
+                    width: "100%", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6,
+                    padding: "6px 28px 6px 28px", fontSize: 12, color: "var(--c-text-primary)", outline: "none",
                   }}
                 />
                 {props.taskSearch && (
                   <button onClick={() => props.setTaskSearch("")}
-                    style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 2 }}>
+                    style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer", padding: 2 }}>
                     <X style={{ width: 11, height: 11 }} />
                   </button>
                 )}
               </div>
-              <div style={{ display: "flex", background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6, overflow: "hidden" }}>
+              <div style={{ display: "flex", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6, overflow: "hidden" }}>
                 {(["list", "board"] as const).map(v => (
                   <button key={v} onClick={() => setTasksView(v)} style={{
                     display: "flex", alignItems: "center", gap: 5, padding: "5px 11px", fontSize: 12, border: "none", cursor: "pointer",
-                    background: tasksView === v ? "#1E2540" : "transparent",
-                    color: tasksView === v ? "#E2E8F8" : "#7A8BAD",
+                    background: tasksView === v ? "var(--c-border)" : "transparent",
+                    color: tasksView === v ? "var(--c-text-primary)" : "var(--c-text-muted)",
                   }}>
                     {v === "list" ? <List style={{ width: 12, height: 12 }} /> : <LayoutGrid style={{ width: 12, height: 12 }} />}
                     {v === "list" ? "Lista" : "Tablero"}
@@ -2725,7 +2725,7 @@ function ProjectModal(props: {
               />
             )}
 
-            <div style={{ minHeight: 360, display: "flex", flexDirection: "column", border: "1px solid #1E2540", borderRadius: 8, overflow: "hidden", background: "#080B12" }}>
+            <div style={{ minHeight: 360, display: "flex", flexDirection: "column", border: "1px solid var(--c-border)", borderRadius: 8, overflow: "hidden", background: "var(--c-bg-base)" }}>
               {tasksView === "list" ? (
                 <ListView
                   sections={props.allSections}
@@ -2787,10 +2787,10 @@ function ProjectModal(props: {
   );
 }
 
-function Stat({ label, value, color = "#3D7EFF" }: { label: string; value: number; color?: string }) {
+function Stat({ label, value, color = "var(--c-accent-blue)" }: { label: string; value: number; color?: string }) {
   return (
     <div>
-      <p style={{ margin: 0, fontSize: 9, color: "#7A8BAD", fontFamily: "monospace", textTransform: "uppercase" }}>{label}</p>
+      <p style={{ margin: 0, fontSize: 9, color: "var(--c-text-muted)", fontFamily: "monospace", textTransform: "uppercase" }}>{label}</p>
       <p style={{ margin: "2px 0 0", fontSize: 20, fontWeight: 700, color }}>{value}</p>
     </div>
   );
@@ -2851,12 +2851,12 @@ function TeamSection({ projectId, employees }: { projectId: string; employees: E
 
   return (
     <div>
-      <h3 style={{ margin: "0 0 12px", fontSize: 11, fontFamily: "monospace", color: "#10D9A0", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+      <h3 style={{ margin: "0 0 12px", fontSize: 11, fontFamily: "monospace", color: "var(--c-accent-emerald)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
         ▸ Equipo del proyecto
       </h3>
-      <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: 14 }}>
+      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 14 }}>
         {members.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 12, color: "#7A8BAD", fontStyle: "italic" }}>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--c-text-muted)", fontStyle: "italic" }}>
             Sin miembros asignados. Agregá a las personas que trabajan en este proyecto.
           </p>
         ) : (
@@ -2864,30 +2864,30 @@ function TeamSection({ projectId, employees }: { projectId: string; employees: E
             {members.map(m => (
               <div key={m.id} style={{
                 display: "flex", alignItems: "center", gap: 10,
-                padding: "6px 10px", background: "#141928",
-                border: "1px solid #1E2540", borderRadius: 6,
+                padding: "6px 10px", background: "var(--c-bg-elevated)",
+                border: "1px solid var(--c-border)", borderRadius: 6,
               }}>
                 {m.employeeId && (
                   <EmployeeAvatar employeeId={m.employeeId} employees={employees} size={26} />
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 13, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {m.fullName ?? "Sin nombre"}
                   </p>
                   {m.jobTitle && (
-                    <p style={{ margin: 0, fontSize: 10, color: "#7A8BAD" }}>{m.jobTitle}</p>
+                    <p style={{ margin: 0, fontSize: 10, color: "var(--c-text-muted)" }}>{m.jobTitle}</p>
                   )}
                 </div>
                 <select value={m.role} onChange={e => updateRole(m.id, e.target.value)}
                   style={{
                     fontSize: 11, padding: "3px 7px", borderRadius: 4,
-                    background: "#0E1220", border: "1px solid #1E2540", color: "#C4CFEA",
+                    background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)",
                     cursor: "pointer",
                   }}>
                   {MEMBER_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
                 <button onClick={() => removeMember(m.id)} title="Quitar del equipo"
-                  style={{ background: "transparent", border: "none", color: "#F43F5E", cursor: "pointer", padding: 2, opacity: 0.6 }}
+                  style={{ background: "transparent", border: "none", color: "var(--c-accent-red)", cursor: "pointer", padding: 2, opacity: 0.6 }}
                   onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
                   onMouseLeave={e => { e.currentTarget.style.opacity = "0.6"; }}>
                   <X style={{ width: 12, height: 12 }} />
@@ -2905,8 +2905,8 @@ function TeamSection({ projectId, employees }: { projectId: string; employees: E
           ) : (
             <button onClick={() => setShowPicker(true)} style={{
               display: "flex", alignItems: "center", gap: 6,
-              background: "rgba(16,217,160,0.1)", color: "#10D9A0",
-              border: "1px solid rgba(16,217,160,0.3)", borderRadius: 6,
+              background: "rgb(var(--c-accent-emerald-rgb) / 0.1)", color: "var(--c-accent-emerald)",
+              border: "1px solid rgb(var(--c-accent-emerald-rgb) / 0.3)", borderRadius: 6,
               padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
             }}>
               <Plus style={{ width: 12, height: 12 }} strokeWidth={2.5} />
@@ -2928,16 +2928,16 @@ interface ActivityEvent {
 }
 
 const ACTIVITY_META: Record<string, { icon: string; verb: string; color: string }> = {
-  task_created: { icon: "+", verb: "creó la tarea", color: "#3D7EFF" },
-  task_completed: { icon: "✓", verb: "completó la tarea", color: "#10D9A0" },
-  task_assigned: { icon: "→", verb: "reasignó la tarea", color: "#A855F7" },
-  task_deleted: { icon: "×", verb: "eliminó la tarea", color: "#F43F5E" },
-  milestone_created: { icon: "⚐", verb: "creó el hito", color: "#A855F7" },
-  milestone_completed: { icon: "✓", verb: "completó el hito", color: "#10D9A0" },
-  milestone_deleted: { icon: "×", verb: "eliminó el hito", color: "#F43F5E" },
-  vfp_updated: { icon: "★", verb: "actualizó el VFP", color: "#F59E0B" },
-  owner_changed: { icon: "👤", verb: "cambió el owner", color: "#A855F7" },
-  comment_added: { icon: "💬", verb: "comentó", color: "#3D7EFF" },
+  task_created: { icon: "+", verb: "creó la tarea", color: "var(--c-accent-blue)" },
+  task_completed: { icon: "✓", verb: "completó la tarea", color: "var(--c-accent-emerald)" },
+  task_assigned: { icon: "→", verb: "reasignó la tarea", color: "var(--c-accent-violet)" },
+  task_deleted: { icon: "×", verb: "eliminó la tarea", color: "var(--c-accent-red)" },
+  milestone_created: { icon: "⚐", verb: "creó el hito", color: "var(--c-accent-violet)" },
+  milestone_completed: { icon: "✓", verb: "completó el hito", color: "var(--c-accent-emerald)" },
+  milestone_deleted: { icon: "×", verb: "eliminó el hito", color: "var(--c-accent-red)" },
+  vfp_updated: { icon: "★", verb: "actualizó el VFP", color: "var(--c-accent-amber)" },
+  owner_changed: { icon: "👤", verb: "cambió el owner", color: "var(--c-accent-violet)" },
+  comment_added: { icon: "💬", verb: "comentó", color: "var(--c-accent-blue)" },
 };
 
 function ActivityFeed({ projectId }: { projectId: string }) {
@@ -2967,18 +2967,18 @@ function ActivityFeed({ projectId }: { projectId: string }) {
 
   return (
     <div>
-      <h3 style={{ margin: "0 0 12px", fontSize: 11, fontFamily: "monospace", color: "#F59E0B", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+      <h3 style={{ margin: "0 0 12px", fontSize: 11, fontFamily: "monospace", color: "var(--c-accent-amber)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
         ▸ Actividad reciente
       </h3>
       {events.length === 0 ? (
-        <div style={{ padding: "14px 18px", background: "#0E1220", border: "1px dashed #1E2540", borderRadius: 8, fontSize: 12, color: "#7A8BAD" }}>
+        <div style={{ padding: "14px 18px", background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)", borderRadius: 8, fontSize: 12, color: "var(--c-text-muted)" }}>
           Aún no hay actividad registrada en este proyecto.
         </div>
       ) : (
-        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: "10px 14px" }}>
+        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "10px 14px" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {visible.map(e => {
-              const meta = ACTIVITY_META[e.type] ?? { icon: "•", verb: e.type, color: "#7A8BAD" };
+              const meta = ACTIVITY_META[e.type] ?? { icon: "•", verb: e.type, color: "var(--c-text-muted)" };
               const actorName = e.actorFullName ?? e.actorEmail ?? "Alguien";
               const payload = e.payload as { title?: string; preview?: string };
               return (
@@ -2990,18 +2990,18 @@ function ActivityFeed({ projectId }: { projectId: string }) {
                     fontSize: 11, fontWeight: 700,
                   }}>{meta.icon}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 12, color: "#C4CFEA", lineHeight: 1.4 }}>
-                      <strong style={{ color: "#E2E8F8" }}>{actorName}</strong>
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.4 }}>
+                      <strong style={{ color: "var(--c-text-primary)" }}>{actorName}</strong>
                       {" "}{meta.verb}
-                      {payload.title && <span style={{ color: "#7A8BAD" }}> &quot;{String(payload.title).slice(0, 50)}{String(payload.title).length > 50 ? "…" : ""}&quot;</span>}
+                      {payload.title && <span style={{ color: "var(--c-text-muted)" }}> &quot;{String(payload.title).slice(0, 50)}{String(payload.title).length > 50 ? "…" : ""}&quot;</span>}
                     </p>
                     {payload.preview && (
-                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#7A8BAD", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--c-text-muted)", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         &quot;{String(payload.preview)}&quot;
                       </p>
                     )}
                   </div>
-                  <span style={{ flexShrink: 0, fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+                  <span style={{ flexShrink: 0, fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
                     {timeAgo(e.createdAt)}
                   </span>
                 </div>
@@ -3011,7 +3011,7 @@ function ActivityFeed({ projectId }: { projectId: string }) {
           {events.length > 5 && (
             <button onClick={() => setExpanded(p => !p)} style={{
               marginTop: 10, fontSize: 11, padding: "5px 10px", borderRadius: 4,
-              background: "transparent", border: "1px solid #1E2540", color: "#7A8BAD",
+              background: "transparent", border: "1px solid var(--c-border)", color: "var(--c-text-muted)",
               cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase",
               width: "100%",
             }}>
@@ -3037,7 +3037,7 @@ function MilestoneTaskRow({ task, employees, onCycleStatus, onOpenDetail, onDele
       style={{
         display: "flex", alignItems: "center", gap: 8,
         padding: "5px 8px", borderRadius: 5,
-        background: hovered ? "#141928" : "transparent",
+        background: hovered ? "var(--c-bg-elevated)" : "transparent",
         transition: "background 80ms",
       }}>
       {/* Status dot — click cycle */}
@@ -3050,12 +3050,12 @@ function MilestoneTaskRow({ task, employees, onCycleStatus, onOpenDetail, onDele
           cursor: "pointer", padding: 0, flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-        {isDone && <span style={{ color: "#080B12", fontSize: 7, fontWeight: 900 }}>✓</span>}
+        {isDone && <span style={{ color: "var(--c-bg-base)", fontSize: 7, fontWeight: 900 }}>✓</span>}
       </button>
       {/* Title */}
       <span onClick={onOpenDetail}
         style={{
-          flex: 1, fontSize: 12, color: isDone ? "#7A8BAD" : "#E2E8F8",
+          flex: 1, fontSize: 12, color: isDone ? "var(--c-text-muted)" : "var(--c-text-primary)",
           textDecoration: isDone ? "line-through" : "none",
           cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
@@ -3076,7 +3076,7 @@ function MilestoneTaskRow({ task, employees, onCycleStatus, onOpenDetail, onDele
       <button onClick={onDelete}
         style={{
           background: "transparent", border: "none", cursor: "pointer", padding: 2,
-          color: "#F43F5E", opacity: hovered ? 0.7 : 0, transition: "opacity 100ms",
+          color: "var(--c-accent-red)", opacity: hovered ? 0.7 : 0, transition: "opacity 100ms",
         }}
         onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
         onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; }}>
@@ -3094,25 +3094,25 @@ function BoardCard({ task, employees, onOpenDetail, onDelete, isDragging }: {
   return (
     <div style={{
       borderRadius: 6, padding: "10px 12px",
-      background: "#141928", border: `1px solid ${isDragging ? "#3D7EFF" : "#1E2540"}`,
-      boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.5)" : "none",
+      background: "var(--c-bg-elevated)", border: `1px solid ${isDragging ? "var(--c-accent-blue)" : "var(--c-border)"}`,
+      boxShadow: isDragging ? "0 8px 24px var(--c-shadow-strong)" : "none",
       cursor: "grab", opacity: isDragging ? 0.6 : 1,
       transition: "border-color 120ms",
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
         <p onClick={e => { e.stopPropagation(); onOpenDetail(); }}
-          style={{ flex: 1, fontSize: 13, lineHeight: 1.35, color: "#E2E8F8", margin: 0, cursor: "pointer" }}>
+          style={{ flex: 1, fontSize: 13, lineHeight: 1.35, color: "var(--c-text-primary)", margin: 0, cursor: "pointer" }}>
           {task.title}
         </p>
         <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onDelete(); }}
-          style={{ color: "#7A8BAD", background: "none", border: "none", cursor: "pointer", padding: 2, flexShrink: 0, opacity: 0.4 }}
+          style={{ color: "var(--c-text-muted)", background: "none", border: "none", cursor: "pointer", padding: 2, flexShrink: 0, opacity: 0.4 }}
           onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = "0.4"; }}>
           <Trash2 style={{ width: 11, height: 11 }} strokeWidth={1.75} />
         </button>
       </div>
       {task.description && (
-        <p style={{ marginTop: 4, fontSize: 11, color: "#7A8BAD", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+        <p style={{ marginTop: 4, fontSize: 11, color: "var(--c-text-muted)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
           {task.description}
         </p>
       )}
@@ -3161,8 +3161,8 @@ function DroppableColumn({ status, section, children }: { status: Status; sectio
   return (
     <div ref={setNodeRef} style={{
       flex: 1, minHeight: 80, display: "flex", flexDirection: "column", gap: 8, padding: 8,
-      background: isOver ? "rgba(61,126,255,0.08)" : "transparent",
-      border: isOver ? "1px dashed #3D7EFF66" : "1px dashed transparent",
+      background: isOver ? "rgb(var(--c-accent-blue-rgb) / 0.08)" : "transparent",
+      border: isOver ? "1px dashed rgb(var(--c-accent-blue-rgb) / 0.4)" : "1px dashed transparent",
       borderRadius: 6, transition: "background 100ms, border-color 100ms",
     }}>
       {children}
@@ -3188,9 +3188,9 @@ function timelineCategorize(t: Task, now: Date, weekFromNow: Date): TimelineBuck
 }
 
 const TIMELINE_BUCKETS: Array<{ id: TimelineBucket; label: string; icon: string; accent: string; subtitle: string }> = [
-  { id: "today", label: "Hoy / Atrasadas", icon: "🔥", accent: "#F43F5E", subtitle: "Vence hoy o ya pasó" },
-  { id: "week", label: "Esta semana", icon: "📅", accent: "#F59E0B", subtitle: "Próximos 7 días" },
-  { id: "later", label: "Por venir / Sin fecha", icon: "📦", accent: "#7A8BAD", subtitle: "Resto del backlog" },
+  { id: "today", label: "Hoy / Atrasadas", icon: "🔥", accent: "var(--c-accent-red)", subtitle: "Vence hoy o ya pasó" },
+  { id: "week", label: "Esta semana", icon: "📅", accent: "var(--c-accent-amber)", subtitle: "Próximos 7 días" },
+  { id: "later", label: "Por venir / Sin fecha", icon: "📦", accent: "var(--c-text-muted)", subtitle: "Resto del backlog" },
 ];
 
 const NEXT_STATUS: Record<Status, Status> = {
@@ -3207,24 +3207,24 @@ function TimelineCard({ task, employees, milestones, onOpenDetail, onDelete, onC
   return (
     <div style={{
       borderRadius: 7, padding: "10px 12px",
-      background: "#141928", border: `1px solid ${isDragging ? "#3D7EFF" : "#1E2540"}`,
-      boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.5)" : "none",
+      background: "var(--c-bg-elevated)", border: `1px solid ${isDragging ? "var(--c-accent-blue)" : "var(--c-border)"}`,
+      boxShadow: isDragging ? "0 8px 24px var(--c-shadow-strong)" : "none",
       cursor: "grab", opacity: isDragging ? 0.6 : (isDone ? 0.7 : 1),
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
         <p onClick={e => { e.stopPropagation(); onOpenDetail(); }}
-          style={{ flex: 1, fontSize: 13, lineHeight: 1.35, color: "#E2E8F8", margin: 0, cursor: "pointer", textDecoration: isDone ? "line-through" : "none" }}>
+          style={{ flex: 1, fontSize: 13, lineHeight: 1.35, color: "var(--c-text-primary)", margin: 0, cursor: "pointer", textDecoration: isDone ? "line-through" : "none" }}>
           {task.title}
         </p>
         <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onDelete(); }}
-          style={{ color: "#7A8BAD", background: "none", border: "none", cursor: "pointer", padding: 2, flexShrink: 0, opacity: 0.4 }}
+          style={{ color: "var(--c-text-muted)", background: "none", border: "none", cursor: "pointer", padding: 2, flexShrink: 0, opacity: 0.4 }}
           onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = "0.4"; }}>
           <Trash2 style={{ width: 11, height: 11 }} strokeWidth={1.75} />
         </button>
       </div>
       {task.description && (
-        <p style={{ marginTop: 4, fontSize: 11, color: "#7A8BAD", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+        <p style={{ marginTop: 4, fontSize: 11, color: "var(--c-text-muted)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
           {task.description}
         </p>
       )}
@@ -3295,8 +3295,8 @@ function TimelineBucketColumn({ bucket, children }: { bucket: TimelineBucket; ch
   return (
     <div ref={setNodeRef} style={{
       flex: 1, minHeight: 200, display: "flex", flexDirection: "column", gap: 8, padding: 8,
-      background: isOver ? "rgba(61,126,255,0.05)" : "transparent",
-      border: isOver ? "1px dashed #3D7EFF66" : "1px dashed transparent",
+      background: isOver ? "rgb(var(--c-accent-blue-rgb) / 0.05)" : "transparent",
+      border: isOver ? "1px dashed rgb(var(--c-accent-blue-rgb) / 0.4)" : "1px dashed transparent",
       borderRadius: 6, transition: "background 100ms, border-color 100ms",
     }}>
       {children}
@@ -3392,12 +3392,12 @@ function TimelineBoardView({
       <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Quick filters */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase" }}>Quick:</span>
-          <QuickChip label="Atrasadas" active={onlyOverdue} color="#F43F5E" onClick={() => setOnlyOverdue(v => !v)} />
-          <QuickChip label="Asignadas a mí" active={onlyMine} color="#3D7EFF"
+          <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase" }}>Quick:</span>
+          <QuickChip label="Atrasadas" active={onlyOverdue} color="var(--c-accent-red)" onClick={() => setOnlyOverdue(v => !v)} />
+          <QuickChip label="Asignadas a mí" active={onlyMine} color="var(--c-accent-blue)"
             onClick={() => setOnlyMine(v => !v)} disabled={!myEmployeeId} />
-          <QuickChip label="Agrupar por hito" active={groupByMilestone} color="#A855F7" onClick={() => setGroupByMilestone(v => !v)} />
-          <span style={{ marginLeft: "auto", fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+          <QuickChip label="Agrupar por hito" active={groupByMilestone} color="var(--c-accent-violet)" onClick={() => setGroupByMilestone(v => !v)} />
+          <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
             {filtered.length} tarea{filtered.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -3409,20 +3409,20 @@ function TimelineBoardView({
             const isAdding = quickAdd === b.id;
             return (
               <div key={b.id} style={{
-                background: "#0E1220",
+                background: "var(--c-bg-surface)",
                 border: `1px solid ${b.accent}33`,
                 borderTop: `3px solid ${b.accent}`,
                 borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden",
               }}>
-                <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E2540" }}>
+                <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--c-border)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: 14 }}>{b.icon}</span>
-                    <h3 style={{ margin: 0, flex: 1, fontSize: 12, fontWeight: 700, color: "#E2E8F8" }}>{b.label}</h3>
+                    <h3 style={{ margin: 0, flex: 1, fontSize: 12, fontWeight: 700, color: "var(--c-text-primary)" }}>{b.label}</h3>
                     <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 3, background: `${b.accent}1F`, color: b.accent, fontFamily: "monospace" }}>
                       {tasks.length}
                     </span>
                   </div>
-                  <p style={{ margin: "2px 0 0 22px", fontSize: 10, color: "#7A8BAD" }}>{b.subtitle}</p>
+                  <p style={{ margin: "2px 0 0 22px", fontSize: 10, color: "var(--c-text-muted)" }}>{b.subtitle}</p>
                 </div>
                 <TimelineBucketColumn bucket={b.id}>
                   {groupByMilestone ? (
@@ -3439,7 +3439,7 @@ function TimelineBoardView({
                         const m = mid === "none" ? null : milestones.find(x => x.id === mid);
                         return (
                           <div key={mid as string} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            <p style={{ margin: "4px 4px 0", fontSize: 9, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                            <p style={{ margin: "4px 4px 0", fontSize: 9, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                               {m ? `▸ ${m.title}` : "▸ Sin hito"}
                             </p>
                             {mtasks.map(t => (
@@ -3459,13 +3459,13 @@ function TimelineBoardView({
                     ))
                   )}
                   {tasks.length === 0 && !isAdding && (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 8px", fontSize: 11, color: "#3A4560" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 8px", fontSize: 11, color: "var(--c-text-placeholder)" }}>
                       {b.id === "today" ? "Nada urgente 🎉" : b.id === "week" ? "Despejado" : "Sin pendientes"}
                     </div>
                   )}
                 </TimelineBucketColumn>
                 {/* Quick add */}
-                <div style={{ padding: 8, borderTop: "1px solid #1E2540" }}>
+                <div style={{ padding: 8, borderTop: "1px solid var(--c-border)" }}>
                   {isAdding ? (
                     <form onSubmit={e => { e.preventDefault(); submitQuickAdd(b.id); }} style={{ display: "flex", gap: 5 }}>
                       <input autoFocus value={quickAddTitle}
@@ -3473,7 +3473,7 @@ function TimelineBoardView({
                         onBlur={() => { if (!quickAddTitle.trim()) setQuickAdd(null); }}
                         onKeyDown={e => { if (e.key === "Escape") setQuickAdd(null); }}
                         placeholder="Título…"
-                        style={{ flex: 1, fontSize: 12, padding: "5px 9px", borderRadius: 4, background: "#141928", border: `1px solid ${b.accent}66`, color: "#E2E8F8", outline: "none" }} />
+                        style={{ flex: 1, fontSize: 12, padding: "5px 9px", borderRadius: 4, background: "var(--c-bg-elevated)", border: `1px solid ${b.accent}66`, color: "var(--c-text-primary)", outline: "none" }} />
                       <button type="submit" disabled={!quickAddTitle.trim()}
                         style={{ width: 24, height: 24, borderRadius: 4, background: b.accent, color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: quickAddTitle.trim() ? 1 : 0.5 }}>
                         <Plus style={{ width: 12, height: 12 }} strokeWidth={2.5} />
@@ -3482,11 +3482,11 @@ function TimelineBoardView({
                   ) : (
                     <button onClick={() => setQuickAdd(b.id)} style={{
                       width: "100%", padding: "5px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                      background: "transparent", border: "1px dashed #1E2540", borderRadius: 4,
-                      color: "#7A8BAD", fontSize: 11, cursor: "pointer",
+                      background: "transparent", border: "1px dashed var(--c-border)", borderRadius: 4,
+                      color: "var(--c-text-muted)", fontSize: 11, cursor: "pointer",
                     }}
                       onMouseEnter={e => { e.currentTarget.style.color = b.accent; e.currentTarget.style.borderColor = `${b.accent}66`; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = "#7A8BAD"; e.currentTarget.style.borderColor = "#1E2540"; }}>
+                      onMouseLeave={e => { e.currentTarget.style.color = "var(--c-text-muted)"; e.currentTarget.style.borderColor = "var(--c-border)"; }}>
                       <Plus style={{ width: 10, height: 10 }} /> Nueva tarea
                     </button>
                   )}
@@ -3511,8 +3511,8 @@ function QuickChip({ label, active, color, onClick, disabled }: {
     <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{
       fontSize: 11, padding: "4px 10px", borderRadius: 4,
       background: active ? `${color}22` : "transparent",
-      border: `1px solid ${active ? color + "66" : "#1E2540"}`,
-      color: active ? color : "#7A8BAD",
+      border: `1px solid ${active ? color + "66" : "var(--c-border)"}`,
+      color: active ? color : "var(--c-text-muted)",
       cursor: disabled ? "not-allowed" : "pointer",
       opacity: disabled ? 0.4 : 1,
       fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.04em",
@@ -3569,17 +3569,17 @@ function BoardView({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
         {/* Header: status columns */}
-        <div style={{ display: "grid", gridTemplateColumns: `180px repeat(${STATUSES.length}, 1fr)`, gap: 10, minWidth: 1000, position: "sticky", top: 0, zIndex: 5, background: "#080B12", paddingBottom: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: `180px repeat(${STATUSES.length}, 1fr)`, gap: 10, minWidth: 1000, position: "sticky", top: 0, zIndex: 5, background: "var(--c-bg-base)", paddingBottom: 8 }}>
           <div />
           {STATUSES.map(status => (
             <div key={status} style={{
               display: "flex", alignItems: "center", gap: 7,
-              padding: "9px 12px", background: "#0E1220",
-              border: "1px solid #1E2540", borderRadius: 6,
+              padding: "9px 12px", background: "var(--c-bg-surface)",
+              border: "1px solid var(--c-border)", borderRadius: 6,
             }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLORS[status] }} />
-              <h3 style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F8", margin: 0, flex: 1 }}>{STATUS_LABELS[status]}</h3>
-              <span style={{ borderRadius: 4, padding: "1px 6px", fontFamily: "monospace", fontSize: 10, background: "#141928", color: "#7A8BAD" }}>
+              <h3 style={{ fontSize: 12, fontWeight: 600, color: "var(--c-text-primary)", margin: 0, flex: 1 }}>{STATUS_LABELS[status]}</h3>
+              <span style={{ borderRadius: 4, padding: "1px 6px", fontFamily: "monospace", fontSize: 10, background: "var(--c-bg-elevated)", color: "var(--c-text-muted)" }}>
                 {getTasksByStatus(status).length}
               </span>
             </div>
@@ -3591,14 +3591,14 @@ function BoardView({
           <div key={section} style={{ display: "grid", gridTemplateColumns: `180px repeat(${STATUSES.length}, 1fr)`, gap: 10, minWidth: 1000, marginTop: 10, alignItems: "stretch" }}>
             {/* Section header (left) */}
             <div style={{
-              padding: "10px 12px", background: "#0E1220",
-              border: "1px solid #1E2540", borderRadius: 6,
+              padding: "10px 12px", background: "var(--c-bg-surface)",
+              border: "1px solid var(--c-border)", borderRadius: 6,
               display: "flex", flexDirection: "column", justifyContent: "center",
             }}>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {(section === "Sin sección" && sections.length === 1) ? "Todas las tareas" : section}
               </p>
-              <p style={{ margin: "2px 0 0", fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>
+              <p style={{ margin: "2px 0 0", fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
                 {sections.length > 1 ? visibleTasks.filter(t => (section === "Sin sección" ? (!t.sectionName || t.sectionName === "Sin sección") : t.sectionName === section)).length : visibleTasks.length} tareas
               </p>
             </div>
@@ -3607,20 +3607,20 @@ function BoardView({
               const cellTasks = tasksByCell(section, status);
               const isAddingHere = quickInput?.section === section && quickInput.status === status;
               return (
-                <div key={status} style={{ background: "#0A0E1A", border: "1px solid #1E2540", borderRadius: 6, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <div key={status} style={{ background: "var(--c-bg-darkest)", border: "1px solid var(--c-border)", borderRadius: 6, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                   <DroppableColumn status={status} section={section}>
                     {cellTasks.map(task => (
                       <DraggableBoardCard key={task.id} task={task} employees={employees}
                         onOpenDetail={() => openDetail(task)} onDelete={() => deleteTask(task.id)} />
                     ))}
                     {cellTasks.length === 0 && !isAddingHere && (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 8px", fontSize: 11, color: "#3A4560", border: "1px dashed #1E2540", borderRadius: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 8px", fontSize: 11, color: "var(--c-text-placeholder)", border: "1px dashed var(--c-border)", borderRadius: 4 }}>
                         Sin tareas
                       </div>
                     )}
                   </DroppableColumn>
                   {/* Quick add input */}
-                  <div style={{ padding: 6, borderTop: "1px solid #1E2540" }}>
+                  <div style={{ padding: 6, borderTop: "1px solid var(--c-border)" }}>
                     {isAddingHere ? (
                       <form onSubmit={e => {
                         e.preventDefault();
@@ -3634,9 +3634,9 @@ function BoardView({
                           onBlur={() => { if (!quickInput!.title.trim()) setQuickInput(null); }}
                           onKeyDown={e => { if (e.key === "Escape") setQuickInput(null); }}
                           placeholder="Título…"
-                          style={{ flex: 1, fontSize: 12, padding: "5px 8px", borderRadius: 4, background: "#141928", border: "1px solid #3D7EFF", color: "#E2E8F8", outline: "none" }} />
+                          style={{ flex: 1, fontSize: 12, padding: "5px 8px", borderRadius: 4, background: "var(--c-bg-elevated)", border: "1px solid var(--c-accent-blue)", color: "var(--c-text-primary)", outline: "none" }} />
                         <button type="submit" disabled={!quickInput!.title.trim()}
-                          style={{ width: 24, height: 24, borderRadius: 4, background: "#3D7EFF", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: quickInput!.title.trim() ? 1 : 0.5 }}>
+                          style={{ width: 24, height: 24, borderRadius: 4, background: "var(--c-accent-blue)", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: quickInput!.title.trim() ? 1 : 0.5 }}>
                           <Plus style={{ width: 12, height: 12 }} strokeWidth={2.5} />
                         </button>
                       </form>
@@ -3644,11 +3644,11 @@ function BoardView({
                       <button onClick={() => setQuickInput({ section, status, title: "" })}
                         style={{
                           width: "100%", padding: "4px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                          background: "transparent", border: "1px dashed #1E2540", borderRadius: 4,
-                          color: "#7A8BAD", fontSize: 11, cursor: "pointer",
+                          background: "transparent", border: "1px dashed var(--c-border)", borderRadius: 4,
+                          color: "var(--c-text-muted)", fontSize: 11, cursor: "pointer",
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.color = "#3D7EFF"; e.currentTarget.style.borderColor = "#3D7EFF66"; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = "#7A8BAD"; e.currentTarget.style.borderColor = "#1E2540"; }}>
+                        onMouseEnter={e => { e.currentTarget.style.color = "var(--c-accent-blue)"; e.currentTarget.style.borderColor = "rgb(var(--c-accent-blue-rgb) / 0.4)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = "var(--c-text-muted)"; e.currentTarget.style.borderColor = "var(--c-border)"; }}>
                         <Plus style={{ width: 10, height: 10 }} /> Nueva tarea
                       </button>
                     )}
@@ -3715,19 +3715,19 @@ function ListView({
     <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
       <div style={{ flex: 1, overflowY: "auto", overflowX: "auto" }}>
         {/* Header */}
-        <div style={{ display: "grid", gridTemplateColumns: grid, padding: "0 20px", borderBottom: "1px solid #1E2540", position: "sticky", top: 0, background: "#080B12", zIndex: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: grid, padding: "0 20px", borderBottom: "1px solid var(--c-border)", position: "sticky", top: 0, background: "var(--c-bg-base)", zIndex: 10 }}>
           <div style={{ padding: "9px 0 9px 4px", display: "flex", alignItems: "center" }}>
             <input type="checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = selectedIds.size > 0 && !allChecked; }}
               onChange={() => toggleSelectAllVisible(allVisibleTasks)}
               style={{
-                cursor: "pointer", accentColor: "#3D7EFF",
+                cursor: "pointer", accentColor: "var(--c-accent-blue)",
                 opacity: selectedIds.size > 0 ? 1 : 0.25,
                 transition: "opacity 120ms ease",
               }}
               title={selectedIds.size > 0 ? "Seleccionar/deseleccionar todo" : "Tip: pasá el mouse sobre una tarea para seleccionarla"} />
           </div>
           {["", "Tarea", "Hito", "Prioridad", "Responsable", "Vencimiento", "Estado"].map((col, i) => (
-            <div key={i} style={{ padding: "9px 8px", fontSize: 11, fontWeight: 600, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.05em" }}>{col}</div>
+            <div key={i} style={{ padding: "9px 8px", fontSize: 11, fontWeight: 600, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{col}</div>
           ))}
         </div>
 
@@ -3741,17 +3741,17 @@ function ListView({
             <div key={section}>
               <div onClick={() => toggleSection(section)} style={{
                 display: "flex", alignItems: "center", gap: 10, padding: "12px 20px",
-                background: "#0E1220",
-                borderBottom: "1px solid #1E2540",
-                borderTop: "1px solid #1E2540",
+                background: "var(--c-bg-surface)",
+                borderBottom: "1px solid var(--c-border)",
+                borderTop: "1px solid var(--c-border)",
                 cursor: "pointer", userSelect: "none",
                 marginTop: 8,
               }}>
                 {isCollapsed
-                  ? <ChevronRight style={{ width: 16, height: 16, color: "#7A8BAD" }} />
-                  : <ChevronDown style={{ width: 16, height: 16, color: "#7A8BAD" }} />}
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F8", letterSpacing: "0.01em" }}>{displayLabel}</span>
-                <span style={{ fontSize: 11, color: "#7A8BAD", background: "#141928", borderRadius: 4, padding: "2px 8px", fontFamily: "monospace" }}>
+                  ? <ChevronRight style={{ width: 16, height: 16, color: "var(--c-text-muted)" }} />
+                  : <ChevronDown style={{ width: 16, height: 16, color: "var(--c-text-muted)" }} />}
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text-primary)", letterSpacing: "0.01em" }}>{displayLabel}</span>
+                <span style={{ fontSize: 11, color: "var(--c-text-muted)", background: "var(--c-bg-elevated)", borderRadius: 4, padding: "2px 8px", fontFamily: "monospace" }}>
                   {sectionTasks.length} tarea{sectionTasks.length !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -3776,9 +3776,9 @@ function ListView({
                       style={{
                         display: "flex", alignItems: "center", gap: 8,
                         padding: "8px 20px 8px 60px",
-                        background: "rgba(61,126,255,0.06)",
-                        borderBottom: "1px solid #1E2540",
-                        borderLeft: "3px solid #3D7EFF",
+                        background: "rgb(var(--c-accent-blue-rgb) / 0.06)",
+                        borderBottom: "1px solid var(--c-border)",
+                        borderLeft: "3px solid var(--c-accent-blue)",
                       }}
                     >
                       <input ref={inlineInputRef} type="text" value={inlineTaskTitle}
@@ -3786,13 +3786,13 @@ function ListView({
                         onKeyDown={e => { if (e.key === "Escape") { setAddingTaskSection(null); setInlineTaskTitle(""); } }}
                         placeholder="Escribí el nombre de la tarea y presioná Enter…"
                         style={{
-                          flex: 1, background: "#141928", border: "1px solid #1E2540",
-                          borderRadius: 6, color: "#E2E8F8", fontSize: 13,
+                          flex: 1, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
+                          borderRadius: 6, color: "var(--c-text-primary)", fontSize: 13,
                           padding: "7px 12px", outline: "none",
                         }} />
                       <button type="submit" disabled={!inlineTaskTitle.trim()}
                         style={{
-                          background: "#3D7EFF", color: "#fff", border: "none",
+                          background: "var(--c-accent-blue)", color: "#fff", border: "none",
                           borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 600,
                           cursor: inlineTaskTitle.trim() ? "pointer" : "not-allowed",
                           opacity: inlineTaskTitle.trim() ? 1 : 0.5,
@@ -3803,7 +3803,7 @@ function ListView({
                       </button>
                       <button type="button"
                         onClick={() => { setAddingTaskSection(null); setInlineTaskTitle(""); }}
-                        style={{ background: "transparent", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 10px", fontSize: 12, cursor: "pointer" }}>
+                        style={{ background: "transparent", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 10px", fontSize: 12, cursor: "pointer" }}>
                         Cancelar
                       </button>
                     </form>
@@ -3811,12 +3811,12 @@ function ListView({
                     <button onClick={() => setAddingTaskSection(section)} style={{
                       display: "flex", alignItems: "center", gap: 8, width: "100%",
                       padding: "10px 20px 10px 60px",
-                      background: "transparent", border: "none", borderBottom: "1px solid #1E2540",
-                      color: "#7A8BAD", fontSize: 13, cursor: "pointer", textAlign: "left",
+                      background: "transparent", border: "none", borderBottom: "1px solid var(--c-border)",
+                      color: "var(--c-text-muted)", fontSize: 13, cursor: "pointer", textAlign: "left",
                       transition: "all 0.1s",
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(61,126,255,0.06)"; e.currentTarget.style.color = "#3D7EFF"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#7A8BAD"; }}>
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgb(var(--c-accent-blue-rgb) / 0.06)"; e.currentTarget.style.color = "var(--c-accent-blue)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--c-text-muted)"; }}>
                       <Plus style={{ width: 14, height: 14 }} strokeWidth={2.5} />
                       Agregar tarea {section === "Sin sección" && sections.length === 1 ? "" : `a "${displayLabel}"`}
                     </button>
@@ -3834,16 +3834,16 @@ function ListView({
                 onChange={e => setNewSectionName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") addSection(); if (e.key === "Escape") { setAddingSection(false); setNewSectionName(""); } }}
                 placeholder="Nombre de la sección…"
-                style={{ background: "#0E1220", border: "1px solid #3D7EFF", color: "#E2E8F8", borderRadius: 6, padding: "6px 12px", fontSize: 13, outline: "none" }} />
-              <button onClick={addSection} style={{ background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Agregar</button>
-              <button onClick={() => { setAddingSection(false); setNewSectionName(""); }} style={{ background: "transparent", color: "#7A8BAD", border: "none", cursor: "pointer" }}>
+                style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-accent-blue)", color: "var(--c-text-primary)", borderRadius: 6, padding: "6px 12px", fontSize: 13, outline: "none" }} />
+              <button onClick={addSection} style={{ background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Agregar</button>
+              <button onClick={() => { setAddingSection(false); setNewSectionName(""); }} style={{ background: "transparent", color: "var(--c-text-muted)", border: "none", cursor: "pointer" }}>
                 <X style={{ width: 14, height: 14 }} />
               </button>
             </div>
           ) : (
             <button onClick={() => setAddingSection(true)} style={{
               display: "flex", alignItems: "center", gap: 6, background: "transparent",
-              border: "1px dashed #1E2540", borderRadius: 6, color: "#7A8BAD", fontSize: 12, padding: "7px 14px", cursor: "pointer",
+              border: "1px dashed var(--c-border)", borderRadius: 6, color: "var(--c-text-muted)", fontSize: 12, padding: "7px 14px", cursor: "pointer",
             }}>
               <Plus style={{ width: 12, height: 12 }} strokeWidth={2} />
               Agregar sección
@@ -3882,15 +3882,15 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
     <>
       <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
         style={{
-          display: "grid", gridTemplateColumns: grid, padding: "0 20px", borderBottom: "1px solid #1E2540",
-          background: isSelected ? "rgba(61,126,255,0.08)" : (hovered ? "#0E1220" : "transparent"),
+          display: "grid", gridTemplateColumns: grid, padding: "0 20px", borderBottom: "1px solid var(--c-border)",
+          background: isSelected ? "rgb(var(--c-accent-blue-rgb) / 0.08)" : (hovered ? "var(--c-bg-surface)" : "transparent"),
           alignItems: "center", minHeight: 38,
         }}>
         {/* Checkbox — solo visible al hover o cuando hay selección activa (patrón Linear) */}
         <div style={{ padding: "8px 0 8px 4px", display: "flex", alignItems: "center" }}>
           <input type="checkbox" checked={isSelected} onChange={onToggleSelect}
             style={{
-              cursor: "pointer", accentColor: "#3D7EFF",
+              cursor: "pointer", accentColor: "var(--c-accent-blue)",
               opacity: hovered || isSelected ? 1 : 0,
               transition: "opacity 120ms ease",
             }} />
@@ -3899,17 +3899,17 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
         {/* Done circle */}
         <div style={{ padding: "8px 8px 8px 0", display: "flex", alignItems: "center" }}>
           <button onClick={() => onUpdate({ status: isDone ? "todo" : "done" })} style={{
-            width: 15, height: 15, borderRadius: "50%", border: `2px solid ${isDone ? "#10D9A0" : "#1E2540"}`,
-            background: isDone ? "#10D9A0" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+            width: 15, height: 15, borderRadius: "50%", border: `2px solid ${isDone ? "var(--c-accent-emerald)" : "var(--c-border)"}`,
+            background: isDone ? "var(--c-accent-emerald)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
           }}>
-            {isDone && <span style={{ color: "#080B12", fontSize: 8, fontWeight: 700 }}>✓</span>}
+            {isDone && <span style={{ color: "var(--c-bg-base)", fontSize: 8, fontWeight: 700 }}>✓</span>}
           </button>
         </div>
 
         {/* Title */}
         <div onClick={onOpenDetail} onDoubleClick={onToggleExpand}
           style={{ padding: "8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <span style={{ fontSize: 13, color: isDone ? "#7A8BAD" : "#E2E8F8", textDecoration: isDone ? "line-through" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <span style={{ fontSize: 13, color: isDone ? "var(--c-text-muted)" : "var(--c-text-primary)", textDecoration: isDone ? "line-through" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {task.title}
           </span>
         </div>
@@ -3922,16 +3922,16 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
               background: "transparent", border: "1px solid transparent", borderRadius: 4,
               padding: "3px 6px", cursor: "pointer", width: "100%", textAlign: "left",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#1E2540"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--c-border)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "transparent"; }}>
             {milestone ? (
               <>
                 <Flag style={{ width: 10, height: 10, color: MILESTONE_STATUS_COLORS[milestone.status], flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: "#C4CFEA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 11, color: "var(--c-text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {milestone.title}
                 </span>
               </>
-            ) : <span style={{ color: "#3A4560", fontSize: 11 }}>+ Hito</span>}
+            ) : <span style={{ color: "var(--c-text-placeholder)", fontSize: 11 }}>+ Hito</span>}
           </button>
           {openPicker === "milestone" && (
             <MilestonePicker value={task.milestoneId} milestones={milestones}
@@ -3947,14 +3947,14 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
               background: "transparent", border: "1px solid transparent", borderRadius: 4,
               padding: "3px 6px", cursor: "pointer", width: "100%",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#1E2540"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--c-border)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "transparent"; }}>
             {task.priority ? (
               <>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: PRIORITY_COLORS[task.priority] }} />
                 <span style={{ fontSize: 11, color: PRIORITY_COLORS[task.priority] }}>{PRIORITY_LABELS[task.priority]}</span>
               </>
-            ) : <span style={{ color: "#3A4560", fontSize: 11 }}>+ Prioridad</span>}
+            ) : <span style={{ color: "var(--c-text-placeholder)", fontSize: 11 }}>+ Prioridad</span>}
           </button>
           {openPicker === "priority" && (
             <InlineEnumPicker value={(task.priority ?? "medium") as Priority}
@@ -3972,7 +3972,7 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
               background: "transparent", border: "1px solid transparent", borderRadius: 4,
               padding: "3px 6px", cursor: "pointer", width: "100%", textAlign: "left",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#1E2540"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--c-border)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "transparent"; }}>
             {(() => {
               const emp = task.assigneeEmployeeId ? employees.find(e => e.id === task.assigneeEmployeeId) : null;
@@ -3980,11 +3980,11 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
               return display ? (
                 <>
                   <EmployeeAvatar employeeId={task.assigneeEmployeeId} name={task.assigneeName} employees={employees} size={18} />
-                  <span style={{ fontSize: 12, color: "#C4CFEA", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 12, color: "var(--c-text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {display}
                   </span>
                 </>
-              ) : <span style={{ color: "#3A4560", fontSize: 11 }}>+ Asignar</span>;
+              ) : <span style={{ color: "var(--c-text-placeholder)", fontSize: 11 }}>+ Asignar</span>;
             })()}
           </button>
           {openPicker === "assignee" && (
@@ -4000,16 +4000,16 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
             <input autoFocus type="date" defaultValue={task.dueDate ? task.dueDate.slice(0, 10) : ""}
               onChange={e => { onUpdate({ dueDate: e.target.value || undefined }); }}
               onBlur={() => setOpenPicker(null)}
-              style={{ background: "#141928", border: "1px solid #3D7EFF", borderRadius: 4, color: "#E2E8F8", fontSize: 11, padding: "3px 6px", outline: "none", colorScheme: "dark", width: "100%" }} />
+              style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-accent-blue)", borderRadius: 4, color: "var(--c-text-primary)", fontSize: 11, padding: "3px 6px", outline: "none", colorScheme: "dark", width: "100%" }} />
           ) : (
             <button onClick={() => setOpenPicker("due")}
               style={{
                 background: "transparent", border: "1px solid transparent", borderRadius: 4,
                 padding: "3px 6px", cursor: "pointer", width: "100%", textAlign: "left",
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#1E2540"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--c-border)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "transparent"; }}>
-              {dueDateInfo ? <span style={{ fontSize: 11, color: dueDateInfo.color }}>{dueDateInfo.label}</span> : <span style={{ color: "#3A4560", fontSize: 11 }}>+ Fecha</span>}
+              {dueDateInfo ? <span style={{ fontSize: 11, color: dueDateInfo.color }}>{dueDateInfo.label}</span> : <span style={{ color: "var(--c-text-placeholder)", fontSize: 11 }}>+ Fecha</span>}
             </button>
           )}
         </div>
@@ -4031,8 +4031,8 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
         </div>
       </div>
       {isExpanded && (
-        <div style={{ padding: "10px 20px 10px 60px", borderBottom: "1px solid #1E2540", background: "#0A0E1A" }}>
-          <p style={{ fontSize: 12, color: "#7A8BAD", lineHeight: 1.6, margin: 0 }}>
+        <div style={{ padding: "10px 20px 10px 60px", borderBottom: "1px solid var(--c-border)", background: "var(--c-bg-darkest)" }}>
+          <p style={{ fontSize: 12, color: "var(--c-text-muted)", lineHeight: 1.6, margin: 0 }}>
             {task.description || <em>Sin descripción</em>}
           </p>
         </div>
@@ -4061,8 +4061,8 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
   onSave: () => void; onClose: () => void; onDelete: () => void;
   milestones?: Milestone[]; employees?: Employee[];
 }) {
-  const inp: React.CSSProperties = { width: "100%", background: "#141928", border: "1px solid #1E2540", borderRadius: 6, padding: "7px 10px", fontSize: 13, color: "#E2E8F8", outline: "none", boxSizing: "border-box" };
-  const lbl: React.CSSProperties = { fontSize: 11, color: "#7A8BAD", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 };
+  const inp: React.CSSProperties = { width: "100%", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: "7px 10px", fontSize: 13, color: "var(--c-text-primary)", outline: "none", boxSizing: "border-box" };
+  const lbl: React.CSSProperties = { fontSize: 11, color: "var(--c-text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 };
   const [showMilestonePicker, setShowMilestonePicker] = useState(false);
   const [showAssigneePicker, setShowAssigneePicker] = useState(false);
   // Comentarios
@@ -4162,14 +4162,14 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
   const selectedAssignee = selectedAssigneeId && employees ? employees.find(e => e.id === selectedAssigneeId) : null;
 
   return (
-    <div style={{ width: 290, flexShrink: 0, borderLeft: "1px solid #1E2540", background: "#0E1220", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid #1E2540" }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8" }}>Detalle</span>
+    <div style={{ width: 290, flexShrink: 0, borderLeft: "1px solid var(--c-border)", background: "var(--c-bg-surface)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--c-border)" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>Detalle</span>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", color: "#F43F5E", opacity: 0.7 }}>
+          <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-accent-red)", opacity: 0.7 }}>
             <Trash2 style={{ width: 13, height: 13 }} />
           </button>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#7A8BAD" }}>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-text-muted)" }}>
             <X style={{ width: 15, height: 15 }} />
           </button>
         </div>
@@ -4196,7 +4196,7 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
         {/* Hito picker — solo si llegan milestones desde el padre */}
         {milestones !== undefined && (
           <div style={{ position: "relative" }}>
-            <label style={{ ...lbl, display: "flex", alignItems: "center", gap: 5 }}><Flag style={{ width: 10, height: 10, color: "#A855F7" }} />Hito</label>
+            <label style={{ ...lbl, display: "flex", alignItems: "center", gap: 5 }}><Flag style={{ width: 10, height: 10, color: "var(--c-accent-violet)" }} />Hito</label>
             <button onClick={() => setShowMilestonePicker(p => !p)}
               style={{ ...inp, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 6 }}>
               {selectedMilestone ? (
@@ -4204,7 +4204,7 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
                   <Flag style={{ width: 11, height: 11, color: MILESTONE_STATUS_COLORS[selectedMilestone.status] }} />
                   <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedMilestone.title}</span>
                 </>
-              ) : <span style={{ color: "#7A8BAD" }}>Sin hito (backlog)</span>}
+              ) : <span style={{ color: "var(--c-text-muted)" }}>Sin hito (backlog)</span>}
             </button>
             {showMilestonePicker && (
               <MilestonePicker value={selectedMilestoneId} milestones={milestones}
@@ -4230,7 +4230,7 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
                     <EmployeeAvatar name={selectedAssigneeName} employees={employees} size={18} />
                     <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedAssigneeName}</span>
                   </>
-                ) : <span style={{ color: "#7A8BAD" }}>Sin asignar</span>}
+                ) : <span style={{ color: "var(--c-text-muted)" }}>Sin asignar</span>}
               </button>
               {showAssigneePicker && (
                 <EmployeePicker value={selectedAssigneeName ?? undefined} employees={employees}
@@ -4248,10 +4248,10 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
         </div>
 
         {/* Attachments — archivos adjuntos */}
-        <div style={{ marginTop: 6, paddingTop: 14, borderTop: "1px solid #1E2540" }}>
+        <div style={{ marginTop: 6, paddingTop: 14, borderTop: "1px solid var(--c-border)" }}>
           <label style={{ ...lbl, display: "flex", alignItems: "center", gap: 5 }}>
             <Upload style={{ width: 10, height: 10 }} />
-            Archivos {attachments.length > 0 && <span style={{ color: "#3D7EFF", fontFamily: "monospace" }}>({attachments.length})</span>}
+            Archivos {attachments.length > 0 && <span style={{ color: "var(--c-accent-blue)", fontFamily: "monospace" }}>({attachments.length})</span>}
           </label>
           <input ref={fileInputRef} type="file" style={{ display: "none" }}
             onChange={e => { const f = e.target.files?.[0]; if (f) uploadAttachment(f); if (fileInputRef.current) fileInputRef.current.value = ""; }} />
@@ -4259,8 +4259,8 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
             <button onClick={() => fileInputRef.current?.click()} disabled={uploadingFile}
               style={{
                 width: "100%", padding: "10px 12px",
-                background: "rgba(61,126,255,0.05)", border: "1px dashed #1E2540", borderRadius: 6,
-                color: "#7A8BAD", fontSize: 12, cursor: "pointer",
+                background: "rgb(var(--c-accent-blue-rgb) / 0.05)", border: "1px dashed var(--c-border)", borderRadius: 6,
+                color: "var(--c-text-muted)", fontSize: 12, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 opacity: uploadingFile ? 0.5 : 1,
               }}>
@@ -4275,7 +4275,7 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
                   return (
                     <div key={a.id} style={{
                       display: "flex", alignItems: "center", gap: 8,
-                      padding: "5px 8px", background: "#141928", border: "1px solid #1E2540",
+                      padding: "5px 8px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
                       borderRadius: 5,
                     }}>
                       {isImage ? (
@@ -4283,21 +4283,21 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
                         <img src={a.fileUrl} alt={a.fileName}
                           style={{ width: 30, height: 30, borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
                       ) : (
-                        <div style={{ width: 30, height: 30, borderRadius: 4, background: "#1E2540", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <FileText style={{ width: 14, height: 14, color: "#7A8BAD" }} />
+                        <div style={{ width: 30, height: 30, borderRadius: 4, background: "var(--c-border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <FileText style={{ width: 14, height: 14, color: "var(--c-text-muted)" }} />
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <a href={a.fileUrl} target="_blank" rel="noopener noreferrer"
-                          style={{ fontSize: 12, color: "#3D7EFF", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                          style={{ fontSize: 12, color: "var(--c-accent-blue)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
                           {a.fileName}
                         </a>
-                        <span style={{ fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>{formatSize(a.fileSize)}</span>
+                        <span style={{ fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>{formatSize(a.fileSize)}</span>
                       </div>
                       <button onClick={() => deleteAttachment(a.id)}
-                        style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 2, opacity: 0.5 }}
-                        onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "#F43F5E"; }}
-                        onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.color = "#7A8BAD"; }}>
+                        style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer", padding: 2, opacity: 0.5 }}
+                        onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "var(--c-accent-red)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.color = "var(--c-text-muted)"; }}>
                         <Trash2 style={{ width: 11, height: 11 }} />
                       </button>
                     </div>
@@ -4307,8 +4307,8 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
               <button onClick={() => fileInputRef.current?.click()} disabled={uploadingFile}
                 style={{
                   marginTop: 6, width: "100%", padding: "5px 10px",
-                  background: "transparent", border: "1px dashed #1E2540", borderRadius: 5,
-                  color: "#7A8BAD", fontSize: 11, cursor: "pointer",
+                  background: "transparent", border: "1px dashed var(--c-border)", borderRadius: 5,
+                  color: "var(--c-text-muted)", fontSize: 11, cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
                   opacity: uploadingFile ? 0.5 : 1,
                 }}>
@@ -4320,10 +4320,10 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
         </div>
 
         {/* Comentarios — sección de colaboración */}
-        <div style={{ marginTop: 6, paddingTop: 14, borderTop: "1px solid #1E2540" }}>
+        <div style={{ marginTop: 6, paddingTop: 14, borderTop: "1px solid var(--c-border)" }}>
           <label style={{ ...lbl, display: "flex", alignItems: "center", gap: 5 }}>
             <AlignLeft style={{ width: 10, height: 10 }} />
-            Comentarios {comments.length > 0 && <span style={{ color: "#3D7EFF", fontFamily: "monospace" }}>({comments.length})</span>}
+            Comentarios {comments.length > 0 && <span style={{ color: "var(--c-accent-blue)", fontFamily: "monospace" }}>({comments.length})</span>}
           </label>
 
           {/* Input nuevo comentario */}
@@ -4336,7 +4336,7 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button onClick={submitComment} disabled={!commentDraft.trim() || posting}
                 style={{
-                  background: commentDraft.trim() ? "#3D7EFF" : "#1E2540", color: "#fff",
+                  background: commentDraft.trim() ? "var(--c-accent-blue)" : "var(--c-border)", color: "#fff",
                   border: "none", borderRadius: 4, padding: "4px 12px", fontSize: 11, fontWeight: 600,
                   cursor: commentDraft.trim() ? "pointer" : "not-allowed",
                   opacity: posting ? 0.6 : 1,
@@ -4349,7 +4349,7 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
           {/* Lista de comentarios — más recientes primero */}
           <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
             {comments.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 11, color: "#3A4560", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--c-text-placeholder)", fontStyle: "italic" }}>
                 Sin comentarios todavía.
               </p>
             ) : comments.map(c => {
@@ -4363,24 +4363,24 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
                       style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   ) : (
                     <div style={{
-                      width: 24, height: 24, borderRadius: "50%", background: "#3D7EFF",
+                      width: 24, height: 24, borderRadius: "50%", background: "var(--c-accent-blue)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 10, fontWeight: 700, color: "#fff", flexShrink: 0,
                     }}>{initials}</div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F8" }}>{authorName}</span>
-                      <span style={{ fontSize: 10, color: "#7A8BAD", fontFamily: "monospace" }}>{timeAgo(c.createdAt)}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-text-primary)" }}>{authorName}</span>
+                      <span style={{ fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>{timeAgo(c.createdAt)}</span>
                       <button onClick={() => deleteComment(c.id)}
                         title="Eliminar"
-                        style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 0, fontSize: 10, opacity: 0.5 }}
-                        onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "#F43F5E"; }}
-                        onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.color = "#7A8BAD"; }}>
+                        style={{ marginLeft: "auto", background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer", padding: 0, fontSize: 10, opacity: 0.5 }}
+                        onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "var(--c-accent-red)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.color = "var(--c-text-muted)"; }}>
                         <Trash2 style={{ width: 10, height: 10 }} />
                       </button>
                     </div>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "#C4CFEA", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                       {c.body}
                     </p>
                   </div>
@@ -4390,9 +4390,9 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
           </div>
         </div>
       </div>
-      <div style={{ padding: "10px 14px", borderTop: "1px solid #1E2540", marginTop: "auto", display: "flex", gap: 8 }}>
-        <button onClick={onSave} style={{ flex: 1, background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6, padding: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Guardar</button>
-        <button onClick={onClose} style={{ flex: 1, background: "#141928", color: "#7A8BAD", border: "1px solid #1E2540", borderRadius: 6, padding: 8, fontSize: 13, cursor: "pointer" }}>Cancelar</button>
+      <div style={{ padding: "10px 14px", borderTop: "1px solid var(--c-border)", marginTop: "auto", display: "flex", gap: 8 }}>
+        <button onClick={onSave} style={{ flex: 1, background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6, padding: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Guardar</button>
+        <button onClick={onClose} style={{ flex: 1, background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", border: "1px solid var(--c-border)", borderRadius: 6, padding: 8, fontSize: 13, cursor: "pointer" }}>Cancelar</button>
       </div>
     </div>
   );

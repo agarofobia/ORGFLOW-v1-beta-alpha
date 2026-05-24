@@ -31,23 +31,23 @@ export function AddPositionPanel({ onAdd, onClose }: {
   };
 
   return (
-    <div style={{ width: 260, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+    <div style={{ width: 260, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, padding: 14, boxShadow: "0 8px 32px var(--c-shadow-strong)" }}>
       <div className="mb-3 flex items-center justify-between">
-        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>Nuevo puesto</p>
-        <button onClick={onClose} title="Cerrar" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Nuevo puesto</p>
+        <button onClick={onClose} title="Cerrar" aria-label="Cerrar" className="rounded p-1 hover:bg-[var(--c-border)]" style={{ color: "var(--c-text-muted)" }}>
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
       <form onSubmit={submit} className="flex flex-col gap-2.5">
         <input autoFocus value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Puesto"
-          className="rounded px-3 py-2 text-sm outline-none placeholder:text-[#3A4560]"
-          style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }} />
+          className="rounded px-3 py-2 text-sm outline-none placeholder:text-[var(--c-text-placeholder)]"
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
         <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Persona (opcional)"
-          className="rounded px-3 py-2 text-sm outline-none placeholder:text-[#3A4560]"
-          style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }} />
+          className="rounded px-3 py-2 text-sm outline-none placeholder:text-[var(--c-text-placeholder)]"
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
         <button type="submit" disabled={!jobTitle.trim() || saving}
           className="mt-1 flex items-center justify-center gap-2 rounded py-2 text-sm font-medium text-white disabled:opacity-50"
-          style={{ background: "#3D7EFF" }}>
+          style={{ background: "var(--c-accent-blue)" }}>
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           Agregar
         </button>
@@ -83,30 +83,30 @@ export function AddGroupPanel({ type, divisions, onAdd, onClose }: {
   };
 
   return (
-    <div style={{ width: 280, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, padding: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
+    <div style={{ width: 280, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, padding: 14, boxShadow: "0 8px 32px var(--c-shadow-strong)" }}>
       <div className="mb-3 flex items-center justify-between">
-        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
+        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
           {type === "division" ? "Nueva división" : "Nuevo departamento"}
         </p>
-        <button onClick={onClose} title="Cerrar" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+        <button onClick={onClose} title="Cerrar" aria-label="Cerrar" className="rounded p-1 hover:bg-[var(--c-border)]" style={{ color: "var(--c-text-muted)" }}>
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
       <form onSubmit={submit} className="flex flex-col gap-2.5">
         <input autoFocus value={name} onChange={e => setName(e.target.value)}
           placeholder={type === "division" ? "ej: Comercial" : "ej: Ventas LATAM"}
-          className="rounded px-3 py-2 text-sm outline-none placeholder:text-[#3A4560]"
-          style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }} />
+          className="rounded px-3 py-2 text-sm outline-none placeholder:text-[var(--c-text-placeholder)]"
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
         {type === "department" && (
           <select value={divisionId} onChange={e => setDivisionId(e.target.value)}
             className="rounded px-3 py-2 text-sm outline-none"
-            style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }}>
+            style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}>
             <option value="">Sin división (independiente)</option>
             {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         )}
         <div>
-          <label className="mb-1.5 block font-mono text-[10px] uppercase" style={{ color: "#7A8BAD" }}>Color</label>
+          <label className="mb-1.5 block font-mono text-[10px] uppercase" style={{ color: "var(--c-text-muted)" }}>Color</label>
           <div className="flex flex-wrap gap-1.5">
             {COLORS.map(c => (
               <button key={c} type="button" onClick={() => setColor(c)}
@@ -116,7 +116,7 @@ export function AddGroupPanel({ type, divisions, onAdd, onClose }: {
         </div>
         <button type="submit" disabled={!name.trim() || saving}
           className="mt-1 flex items-center justify-center gap-2 rounded py-2 text-sm font-medium text-white disabled:opacity-50"
-          style={{ background: "#3D7EFF" }}>
+          style={{ background: "var(--c-accent-blue)" }}>
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           Crear {type === "division" ? "división" : "departamento"}
         </button>
@@ -142,7 +142,7 @@ export function SearchPanel({ divisions, departments, employees, onNavigate, onC
     const r: { id: string; label: string; sub: string; color: string }[] = [];
     divisions.forEach(d => {
       if (d.name.toLowerCase().includes(q))
-        r.push({ id: d.id, label: d.name, sub: "División", color: d.color ?? "#3D7EFF" });
+        r.push({ id: d.id, label: d.name, sub: "División", color: d.color ?? "var(--c-accent-blue)" });
     });
     departments.forEach(d => {
       if (d.name.toLowerCase().includes(q))
@@ -150,24 +150,24 @@ export function SearchPanel({ divisions, departments, employees, onNavigate, onC
     });
     employees.forEach(e => {
       if (e.fullName.toLowerCase().includes(q) || (e.jobTitle ?? "").toLowerCase().includes(q))
-        r.push({ id: e.id, label: e.fullName, sub: e.jobTitle ?? "Sin puesto", color: e.color ?? "#3D7EFF" });
+        r.push({ id: e.id, label: e.fullName, sub: e.jobTitle ?? "Sin puesto", color: e.color ?? "var(--c-accent-blue)" });
     });
     return r.slice(0, 8);
   }, [query, divisions, departments, employees]);
 
   return (
-    <div style={{ width: 300, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid #1E2540" }}>
-        <Search size={14} style={{ color: "#7A8BAD", flexShrink: 0 }} />
+    <div style={{ width: 300, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, overflow: "hidden", boxShadow: "0 8px 32px var(--c-shadow-strong)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--c-border)" }}>
+        <Search size={14} style={{ color: "var(--c-text-muted)", flexShrink: 0 }} />
         <input
           autoFocus
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === "Escape") onClose(); }}
           placeholder="Buscar división, dpto, persona…"
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#E2E8F8", fontSize: 13 }}
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "var(--c-text-primary)", fontSize: 13 }}
         />
-        <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer", display: "flex" }}>
+        <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer", display: "flex" }}>
           <X size={14} />
         </button>
       </div>
@@ -178,20 +178,20 @@ export function SearchPanel({ divisions, departments, employees, onNavigate, onC
               key={r.id}
               onClick={() => { onNavigate(r.id); onClose(); }}
               style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 12px", background: "transparent", border: "none", textAlign: "left", cursor: "pointer" }}
-              onMouseEnter={ev => (ev.currentTarget.style.background = "#141928")}
+              onMouseEnter={ev => (ev.currentTarget.style.background = "var(--c-bg-elevated)")}
               onMouseLeave={ev => (ev.currentTarget.style.background = "transparent")}
             >
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: r.color, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 13, color: "#E2E8F8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</p>
-                <p style={{ margin: 0, fontSize: 10, color: "#7A8BAD", fontFamily: "monospace", textTransform: "uppercase" }}>{r.sub}</p>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.label}</p>
+                <p style={{ margin: 0, fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace", textTransform: "uppercase" }}>{r.sub}</p>
               </div>
             </button>
           ))}
         </div>
       )}
       {query.trim() && results.length === 0 && (
-        <p style={{ padding: "16px 12px", textAlign: "center", color: "#7A8BAD", fontSize: 12, margin: 0 }}>Sin resultados</p>
+        <p style={{ padding: "16px 12px", textAlign: "center", color: "var(--c-text-muted)", fontSize: 12, margin: 0 }}>Sin resultados</p>
       )}
     </div>
   );
@@ -270,9 +270,9 @@ export function ContextMenu({ target, onAction, onClose }: {
       <div
         style={{
           position: "fixed", left: target.x, top: target.y, zIndex: 1000,
-          background: "#0E1220", border: "1px solid #1E2540", borderRadius: 6,
+          background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 6,
           padding: 4, minWidth: 200,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+          boxShadow: "0 8px 32px var(--c-shadow-strong)",
         }}
       >
         {items.map(item => (
@@ -280,11 +280,11 @@ export function ContextMenu({ target, onAction, onClose }: {
             key={item.action}
             onClick={() => { onAction(item.action); onClose(); }}
             className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-xs transition-all"
-            style={{ background: "transparent", border: "none", color: item.danger ? "#F43F5E" : "#C4CFEA", cursor: "pointer" }}
-            onMouseEnter={e => (e.currentTarget.style.background = item.danger ? "rgba(244,63,94,0.12)" : "#1E2540")}
+            style={{ background: "transparent", border: "none", color: item.danger ? "var(--c-accent-red)" : "var(--c-text-secondary)", cursor: "pointer" }}
+            onMouseEnter={e => (e.currentTarget.style.background = item.danger ? "rgb(var(--c-accent-red-rgb) / 0.12)" : "var(--c-border)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
-            <span style={{ color: item.danger ? "#F43F5E" : "#7A8BAD" }}>{item.icon}</span>
+            <span style={{ color: item.danger ? "var(--c-accent-red)" : "var(--c-text-muted)" }}>{item.icon}</span>
             {item.label}
           </button>
         ))}

@@ -11,7 +11,7 @@ export function ThemeBridge() {
   useEffect(() => {
     const apply = () => {
       const theme = (localStorage.getItem("flowos-theme") || "dark") as "dark" | "light" | "system";
-      const accent = localStorage.getItem("flowos-accent") || "#3D7EFF";
+      const accent = localStorage.getItem("flowos-accent") || "var(--c-accent-blue)";
       const root = document.documentElement;
 
       // Theme class

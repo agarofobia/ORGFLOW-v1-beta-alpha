@@ -57,42 +57,42 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 
 const METRICS: MetricSpec[] = [
   {
-    key: "employees_active", label: "Empleados activos", icon: Users, color: "#3D7EFF",
+    key: "employees_active", label: "Empleados activos", icon: Users, color: "var(--c-accent-blue)",
     fetch: async () => {
       const data = await fetchJson<unknown[]>("/api/employees");
       return Array.isArray(data) ? data.length : 0;
     },
   },
   {
-    key: "employees_total", label: "Total empleados (incl. archivados)", icon: Users, color: "#7A8BAD",
+    key: "employees_total", label: "Total empleados (incl. archivados)", icon: Users, color: "var(--c-text-muted)",
     fetch: async () => {
       const data = await fetchJson<unknown[]>("/api/employees?includeInactive=true");
       return Array.isArray(data) ? data.length : 0;
     },
   },
   {
-    key: "divisions_count", label: "Divisiones", icon: GitBranch, color: "#A855F7",
+    key: "divisions_count", label: "Divisiones", icon: GitBranch, color: "var(--c-accent-violet)",
     fetch: async () => {
       const data = await fetchJson<unknown[]>("/api/divisions");
       return Array.isArray(data) ? data.length : 0;
     },
   },
   {
-    key: "departments_count", label: "Departamentos", icon: GitBranch, color: "#EC4899",
+    key: "departments_count", label: "Departamentos", icon: GitBranch, color: "var(--c-accent-pink)",
     fetch: async () => {
       const data = await fetchJson<unknown[]>("/api/departments");
       return Array.isArray(data) ? data.length : 0;
     },
   },
   {
-    key: "projects_count", label: "Proyectos", icon: CheckSquare, color: "#10D9A0",
+    key: "projects_count", label: "Proyectos", icon: CheckSquare, color: "var(--c-accent-emerald)",
     fetch: async () => {
       const data = await fetchJson<unknown[]>("/api/projects");
       return Array.isArray(data) ? data.length : 0;
     },
   },
   {
-    key: "tasks_open", label: "Tareas abiertas", icon: CheckSquare, color: "#F59E0B",
+    key: "tasks_open", label: "Tareas abiertas", icon: CheckSquare, color: "var(--c-accent-amber)",
     fetch: async () => {
       const projs = await fetchJson<{ id: string }[]>("/api/projects");
       if (!Array.isArray(projs)) return 0;
@@ -106,7 +106,7 @@ const METRICS: MetricSpec[] = [
     },
   },
   {
-    key: "tasks_done", label: "Tareas completadas", icon: CheckSquare, color: "#10D9A0",
+    key: "tasks_done", label: "Tareas completadas", icon: CheckSquare, color: "var(--c-accent-emerald)",
     fetch: async () => {
       const projs = await fetchJson<{ id: string }[]>("/api/projects");
       if (!Array.isArray(projs)) return 0;
@@ -120,35 +120,35 @@ const METRICS: MetricSpec[] = [
     },
   },
   {
-    key: "processes_active", label: "Procesos activos", icon: Workflow, color: "#3D7EFF",
+    key: "processes_active", label: "Procesos activos", icon: Workflow, color: "var(--c-accent-blue)",
     fetch: async () => {
       const data = await fetchJson<{ status: string }[]>("/api/processes");
       return Array.isArray(data) ? data.filter(p => p.status === "active").length : 0;
     },
   },
   {
-    key: "instances_running", label: "Instancias en curso", icon: Workflow, color: "#F59E0B",
+    key: "instances_running", label: "Instancias en curso", icon: Workflow, color: "var(--c-accent-amber)",
     fetch: async () => {
       const data = await fetchJson<{ status: string }[]>("/api/instances");
       return Array.isArray(data) ? data.filter(i => i.status === "running").length : 0;
     },
   },
   {
-    key: "inbox_pending", label: "Bandeja: pendientes", icon: Inbox, color: "#F43F5E",
+    key: "inbox_pending", label: "Bandeja: pendientes", icon: Inbox, color: "var(--c-accent-red)",
     fetch: async () => {
       const data = await fetchJson<unknown[]>("/api/inbox?status=pending");
       return Array.isArray(data) ? data.length : 0;
     },
   },
   {
-    key: "inbox_completed", label: "Bandeja: completadas", icon: Inbox, color: "#10D9A0",
+    key: "inbox_completed", label: "Bandeja: completadas", icon: Inbox, color: "var(--c-accent-emerald)",
     fetch: async () => {
       const data = await fetchJson<unknown[]>("/api/inbox?status=completed");
       return Array.isArray(data) ? data.length : 0;
     },
   },
   {
-    key: "documents_count", label: "Documentos", icon: FileText, color: "#06B6D4",
+    key: "documents_count", label: "Documentos", icon: FileText, color: "var(--c-accent-cyan)",
     fetch: async () => {
       const data = await fetchJson<unknown[]>("/api/documents");
       return Array.isArray(data) ? data.length : 0;
@@ -218,7 +218,7 @@ function LineChart({ data, color, height = 180 }: {
         {/* Y-axis grid */}
         {[0.25, 0.5, 0.75].map(p => {
           const y = padY + p * (h - padY * 2);
-          return <line key={p} x1={padX} y1={y} x2={w - padX} y2={y} stroke="#1E2540" strokeWidth="0.5" strokeDasharray="3 3" />;
+          return <line key={p} x1={padX} y1={y} x2={w - padX} y2={y} stroke="var(--c-border)" strokeWidth="0.5" strokeDasharray="3 3" />;
         })}
         {/* Fill */}
         <defs>
@@ -244,7 +244,7 @@ function LineChart({ data, color, height = 180 }: {
               <>
                 <line x1={p.x} y1={padY} x2={p.x} y2={h - padY} stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.5" />
                 <circle cx={p.x} cy={p.y} r="5" fill={color} />
-                <circle cx={p.x} cy={p.y} r="2.5" fill="#0E1220" />
+                <circle cx={p.x} cy={p.y} r="2.5" fill="var(--c-bg-surface)" />
               </>
             )}
           </g>
@@ -254,17 +254,17 @@ function LineChart({ data, color, height = 180 }: {
           const p = points[i];
           if (!p) return null;
           const label = new Date(p.d.date).toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
-          return <text key={i} x={p.x} y={h - 4} textAnchor="middle" fontSize="9" fill="#7A8BAD" fontFamily="monospace">{label}</text>;
+          return <text key={i} x={p.x} y={h - 4} textAnchor="middle" fontSize="9" fill="var(--c-text-muted)" fontFamily="monospace">{label}</text>;
         })}
       </svg>
       {hoverIdx !== null && (
         <div style={{
           position: "absolute", top: 8, left: 8,
-          background: "#141928", border: "1px solid #1E2540", borderRadius: 6,
-          padding: "6px 10px", fontSize: 11, color: "#E2E8F8",
+          background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6,
+          padding: "6px 10px", fontSize: 11, color: "var(--c-text-primary)",
           fontFamily: "monospace", pointerEvents: "none",
         }}>
-          <div style={{ color: "#7A8BAD", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <div style={{ color: "var(--c-text-muted)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             {new Date(points[hoverIdx].d.date).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
           </div>
           <div style={{ color, fontSize: 16, fontWeight: 700 }}>{points[hoverIdx].d.value}</div>
@@ -288,36 +288,36 @@ function WidgetDetailModal({ widget, value, onClose }: {
   const last = series[series.length - 1]?.value ?? 0;
   const change = first === 0 ? 0 : Math.round(((last - first) / first) * 100);
   const TrendIcon = change > 0 ? TrendingUp : change < 0 ? TrendingDown : Minus;
-  const trendColor = change > 0 ? "#10D9A0" : change < 0 ? "#F43F5E" : "#7A8BAD";
+  const trendColor = change > 0 ? "var(--c-accent-emerald)" : change < 0 ? "var(--c-accent-red)" : "var(--c-text-muted)";
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
       onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{
-        background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
+        background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12,
         width: "100%", maxWidth: 720, maxHeight: "90vh",
         display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         {/* Header */}
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 8, background: `${spec.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icon size={18} style={{ color: spec.color }} strokeWidth={1.75} />
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>{widget.customLabel ?? spec.label}</p>
-            <p style={{ fontSize: 11, color: "#7A8BAD", margin: "2px 0 0", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>{widget.customLabel ?? spec.label}</p>
+            <p style={{ fontSize: 11, color: "var(--c-text-muted)", margin: "2px 0 0", fontFamily: "monospace" }}>
               vista detallada · serie temporal
             </p>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
             <X size={16} />
           </button>
         </div>
 
         {/* Stats row */}
-        <div style={{ padding: "20px", display: "flex", gap: 28, alignItems: "center", borderBottom: "1px solid #1E2540" }}>
+        <div style={{ padding: "20px", display: "flex", gap: 28, alignItems: "center", borderBottom: "1px solid var(--c-border)" }}>
           <div>
-            <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px", fontFamily: "monospace" }}>
               Valor actual
             </p>
             <p style={{ fontSize: 32, fontWeight: 700, color: spec.color, margin: 0, fontVariantNumeric: "tabular-nums" }}>
@@ -325,7 +325,7 @@ function WidgetDetailModal({ widget, value, onClose }: {
             </p>
           </div>
           <div>
-            <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px", fontFamily: "monospace" }}>
+            <p style={{ fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 4px", fontFamily: "monospace" }}>
               Cambio en {days}d
             </p>
             <p style={{ fontSize: 24, fontWeight: 700, color: trendColor, margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
@@ -333,14 +333,14 @@ function WidgetDetailModal({ widget, value, onClose }: {
               {change > 0 ? "+" : ""}{change}%
             </p>
           </div>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: "#141928", borderRadius: 6, padding: 3, border: "1px solid #1E2540" }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: "var(--c-bg-elevated)", borderRadius: 6, padding: 3, border: "1px solid var(--c-border)" }}>
             {(["7d", "30d", "90d", "365d"] as const).map(p => (
               <button key={p} onClick={() => setPeriod(p)}
                 style={{
                   padding: "5px 10px", fontSize: 11, border: "none", cursor: "pointer",
                   borderRadius: 4, fontFamily: "monospace",
                   background: period === p ? spec.color : "transparent",
-                  color: period === p ? "#fff" : "#7A8BAD",
+                  color: period === p ? "#fff" : "var(--c-text-muted)",
                 }}>
                 {p}
               </button>
@@ -351,7 +351,7 @@ function WidgetDetailModal({ widget, value, onClose }: {
         {/* Chart */}
         <div style={{ padding: 20, flex: 1, overflow: "auto" }}>
           <LineChart data={series} color={spec.color} height={220} />
-          <p style={{ fontSize: 10, color: "#7A8BAD", margin: "12px 0 0", textAlign: "center", fontFamily: "monospace" }}>
+          <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "12px 0 0", textAlign: "center", fontFamily: "monospace" }}>
             ⓘ Serie temporal estimada — el histórico real se acumulará con el uso
           </p>
         </div>
@@ -368,15 +368,15 @@ function AddWidgetPicker({ usedKeys, onAdd, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center" }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
       onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{
-        background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12,
+        background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12,
         width: "100%", maxWidth: 540, maxHeight: "80vh", overflow: "auto",
       }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #1E2540", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>Agregar widget</p>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>Agregar widget</p>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
             <X size={16} />
           </button>
         </div>
@@ -391,8 +391,8 @@ function AddWidgetPicker({ usedKeys, onAdd, onClose }: {
                 disabled={used}
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: 12, background: used ? "#080B12" : "#141928",
-                  border: "1px solid #1E2540", borderRadius: 8,
+                  padding: 12, background: used ? "var(--c-bg-base)" : "var(--c-bg-elevated)",
+                  border: "1px solid var(--c-border)", borderRadius: 8,
                   cursor: used ? "not-allowed" : "pointer",
                   textAlign: "left", opacity: used ? 0.5 : 1,
                 }}
@@ -401,10 +401,10 @@ function AddWidgetPicker({ usedKeys, onAdd, onClose }: {
                   <Icon size={15} style={{ color: m.color }} strokeWidth={1.75} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--c-text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {m.label}
                   </p>
-                  {used && <p style={{ fontSize: 10, color: "#7A8BAD", margin: "2px 0 0" }}>Ya agregado</p>}
+                  {used && <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "2px 0 0" }}>Ya agregado</p>}
                 </div>
               </button>
             );
@@ -434,8 +434,8 @@ function WidgetCard({ widget, value, loading, editing, onRemove, onClick }: {
       style={{
         position: "relative",
         padding: 18,
-        background: "#0E1220",
-        border: "1px solid #1E2540",
+        background: "var(--c-bg-surface)",
+        border: "1px solid var(--c-border)",
         borderRadius: 10,
         cursor: editing ? "default" : "pointer",
         transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, box-shadow 180ms ease",
@@ -447,7 +447,7 @@ function WidgetCard({ widget, value, loading, editing, onRemove, onClick }: {
         e.currentTarget.style.boxShadow = `0 12px 32px ${spec.color}33, 0 0 0 1px ${spec.color}1a inset`;
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = "#1E2540";
+        e.currentTarget.style.borderColor = "var(--c-border)";
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.boxShadow = "none";
       }}
@@ -458,8 +458,8 @@ function WidgetCard({ widget, value, loading, editing, onRemove, onClick }: {
           style={{
             position: "absolute", top: 8, right: 8,
             width: 22, height: 22, borderRadius: "50%",
-            background: "rgba(244,63,94,0.15)", border: "1px solid rgba(244,63,94,0.3)",
-            color: "#F43F5E", cursor: "pointer",
+            background: "rgb(var(--c-accent-red-rgb) / 0.15)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.3)",
+            color: "var(--c-accent-red)", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}
         >
@@ -467,17 +467,17 @@ function WidgetCard({ widget, value, loading, editing, onRemove, onClick }: {
         </button>
       )}
       {!editing && (
-        <Maximize2 size={11} style={{ position: "absolute", top: 12, right: 12, color: "#7A8BAD", opacity: 0.5 }} />
+        <Maximize2 size={11} style={{ position: "absolute", top: 12, right: 12, color: "var(--c-text-muted)", opacity: 0.5 }} />
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div style={{ width: 32, height: 32, borderRadius: 6, background: `${spec.color}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Icon size={15} style={{ color: spec.color }} strokeWidth={1.75} />
         </div>
-        <p style={{ fontSize: 12, color: "#7A8BAD", margin: 0, lineHeight: 1.3, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        <p style={{ fontSize: 12, color: "var(--c-text-muted)", margin: 0, lineHeight: 1.3, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.04em" }}>
           {widget.customLabel ?? spec.label}
         </p>
       </div>
-      <div style={{ fontSize: 32, fontWeight: 700, color: "#E2E8F8", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ fontSize: 32, fontWeight: 700, color: "var(--c-text-primary)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
         {loading ? <Loader2 size={20} className="animate-spin" style={{ color: spec.color }} /> : (value ?? "—")}
       </div>
     </div>
@@ -487,10 +487,10 @@ function WidgetCard({ widget, value, loading, editing, onRemove, onClick }: {
 // ─── Stats section ───────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  active:   "#10D9A0",
-  vacation: "#3D7EFF",
-  leave:    "#F59E0B",
-  inactive: "#7A8BAD",
+  active:   "var(--c-accent-emerald)",
+  vacation: "var(--c-accent-blue)",
+  leave:    "var(--c-accent-amber)",
+  inactive: "var(--c-text-muted)",
 };
 const STATUS_LABELS: Record<string, string> = {
   active:   "Activos",
@@ -548,7 +548,7 @@ function StatsSection() {
   if (statsLoading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", padding: "32px 0" }}>
-        <Loader2 size={20} className="animate-spin" style={{ color: "#3D7EFF" }} />
+        <Loader2 size={20} className="animate-spin" style={{ color: "var(--c-accent-blue)" }} />
       </div>
     );
   }
@@ -556,20 +556,20 @@ function StatsSection() {
   if (emps.length === 0) return null;
 
   const tooltipStyle = {
-    background: "#0E1220", border: "1px solid #1E2540", borderRadius: 8,
-    fontSize: 12, color: "#E2E8F8",
+    background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8,
+    fontSize: 12, color: "var(--c-text-primary)",
   };
 
   return (
     <section style={{ marginTop: 36 }}>
-      <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 14px", fontFamily: "monospace" }}>
+      <p style={{ fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 14px", fontFamily: "monospace" }}>
         Análisis
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,2fr)", gap: 12, alignItems: "start" }}>
 
         {/* Pie: empleados por estado */}
-        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: "16px 12px" }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "#7A8BAD", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "monospace" }}>
+        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "16px 12px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--c-text-muted)", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "monospace" }}>
             Empleados por estado
           </p>
           <ResponsiveContainer width="100%" height={180}>
@@ -584,33 +584,33 @@ function StatsSection() {
                 dataKey="value"
               >
                 {statusData.map((entry, i) => (
-                  <Cell key={i} fill={STATUS_COLORS[entry.status] ?? "#3D7EFF"} stroke="transparent" />
+                  <Cell key={i} fill={STATUS_COLORS[entry.status] ?? "var(--c-accent-blue)"} stroke="transparent" />
                 ))}
               </Pie>
-              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "#E2E8F8" }} />
+              <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "var(--c-text-primary)" }} />
               <Legend
                 iconType="circle"
                 iconSize={8}
-                formatter={(v) => <span style={{ fontSize: 11, color: "#7A8BAD" }}>{v}</span>}
+                formatter={(v) => <span style={{ fontSize: 11, color: "var(--c-text-muted)" }}>{v}</span>}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
         {/* Bar: empleados por departamento */}
-        <div style={{ background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10, padding: "16px 12px" }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "#7A8BAD", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "monospace" }}>
+        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "16px 12px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--c-text-muted)", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "monospace" }}>
             Empleados por departamento
           </p>
           {deptData.length === 0 ? (
-            <p style={{ fontSize: 12, color: "#7A8BAD", textAlign: "center", padding: "24px 0" }}>Sin datos</p>
+            <p style={{ fontSize: 12, color: "var(--c-text-muted)", textAlign: "center", padding: "24px 0" }}>Sin datos</p>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={deptData} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
-                <XAxis type="number" tick={{ fontSize: 10, fill: "#7A8BAD" }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#C4CFEA" }} axisLine={false} tickLine={false} width={96} />
-                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "#E2E8F8" }} cursor={{ fill: "rgba(61,126,255,0.07)" }} />
-                <Bar dataKey="value" name="Empleados" fill="#3D7EFF" radius={[0, 4, 4, 0]} maxBarSize={18} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: "var(--c-text-muted)" }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--c-text-secondary)" }} axisLine={false} tickLine={false} width={96} />
+                <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: "var(--c-text-primary)" }} cursor={{ fill: "rgb(var(--c-accent-blue-rgb) / 0.07)" }} />
+                <Bar dataKey="value" name="Empleados" fill="var(--c-accent-blue)" radius={[0, 4, 4, 0]} maxBarSize={18} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -692,36 +692,36 @@ export default function DashboardHome() {
     <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px clamp(16px, 4vw, 32px) 64px" }}>
       {/* Greeting */}
       <div style={{ marginBottom: 32 }}>
-        <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 4px", fontFamily: "monospace" }}>
+        <p style={{ fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 4px", fontFamily: "monospace" }}>
           {getGreeting()}
         </p>
-        <h2 style={{ fontSize: 24, fontWeight: 700, color: "#E2E8F8", margin: 0, lineHeight: 1.2 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: "var(--c-text-primary)", margin: 0, lineHeight: 1.2 }}>
           Hola, {firstName}.{" "}
-          <span style={{ color: "#7A8BAD" }}>¿Qué medimos hoy?</span>
+          <span style={{ color: "var(--c-text-muted)" }}>¿Qué medimos hoy?</span>
         </h2>
       </div>
 
       {/* Stats dashboard */}
       <section>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em", margin: 0, fontFamily: "monospace" }}>
+          <p style={{ fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", margin: 0, fontFamily: "monospace" }}>
             Indicadores
           </p>
           {isAdmin && (
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => setShowPicker(true)} style={{
                 display: "flex", alignItems: "center", gap: 5, padding: "5px 10px",
-                background: "rgba(61,126,255,0.12)", border: "1px solid rgba(61,126,255,0.3)",
-                color: "#3D7EFF", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                background: "rgb(var(--c-accent-blue-rgb) / 0.12)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.3)",
+                color: "var(--c-accent-blue)", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
               }}>
                 <Plus size={12} strokeWidth={2.5} />
                 Agregar
               </button>
               <button onClick={() => setEditing(v => !v)} style={{
                 display: "flex", alignItems: "center", gap: 5, padding: "5px 10px",
-                background: editing ? "rgba(245,158,11,0.18)" : "transparent",
-                border: editing ? "1px solid rgba(245,158,11,0.4)" : "1px solid #1E2540",
-                color: editing ? "#F59E0B" : "#7A8BAD",
+                background: editing ? "rgb(var(--c-accent-amber-rgb) / 0.18)" : "transparent",
+                border: editing ? "1px solid rgb(var(--c-accent-amber-rgb) / 0.4)" : "1px solid var(--c-border)",
+                color: editing ? "var(--c-accent-amber)" : "var(--c-text-muted)",
                 borderRadius: 6, fontSize: 11, fontWeight: 500, cursor: "pointer",
               }}>
                 <Settings2 size={12} />
@@ -734,15 +734,15 @@ export default function DashboardHome() {
         {widgets.length === 0 ? (
           <div style={{
             padding: "48px 24px", textAlign: "center",
-            border: "1px dashed #1E2540", borderRadius: 12, background: "#0E1220",
+            border: "1px dashed var(--c-border)", borderRadius: 12, background: "var(--c-bg-surface)",
           }}>
-            <Sparkles size={28} style={{ color: "#1E2540", margin: "0 auto 10px", display: "block" }} strokeWidth={1.5} />
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>Tu dashboard está vacío</p>
-            <p style={{ fontSize: 12, color: "#7A8BAD", margin: "6px 0 14px" }}>
+            <Sparkles size={28} style={{ color: "var(--c-border)", margin: "0 auto 10px", display: "block" }} strokeWidth={1.5} />
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>Tu dashboard está vacío</p>
+            <p style={{ fontSize: 12, color: "var(--c-text-muted)", margin: "6px 0 14px" }}>
               Agregá widgets para ver métricas en tiempo real.
             </p>
             <button onClick={() => setShowPicker(true)} style={{
-              background: "#3D7EFF", color: "#fff", border: "none", borderRadius: 6,
+              background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6,
               padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer",
             }}>
               Agregar primer widget
@@ -773,18 +773,18 @@ export default function DashboardHome() {
 
       {/* Quick actions */}
       <section style={{ marginTop: 36 }}>
-        <p style={{ fontSize: 10, color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 14px", fontFamily: "monospace" }}>
+        <p style={{ fontSize: 10, color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 14px", fontFamily: "monospace" }}>
           Acciones rápidas
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
           <ActionCard href="/dashboard/orgchart" icon={GitBranch} title="Diseñar org chart"
-            description="Visualizá la estructura del equipo." accentColor="#3D7EFF" />
+            description="Visualizá la estructura del equipo." accentColor="var(--c-accent-blue)" />
           <ActionCard href="/dashboard/processes" icon={Workflow} title="Crear proceso"
-            description="Definí flujos de trabajo automatizables." accentColor="#10D9A0" />
+            description="Definí flujos de trabajo automatizables." accentColor="var(--c-accent-emerald)" />
           <ActionCard href="/dashboard/projects" icon={CheckSquare} title="Nuevo proyecto"
-            description="Organizá tareas y miembros." accentColor="#F59E0B" />
+            description="Organizá tareas y miembros." accentColor="var(--c-accent-amber)" />
           <ActionCard href="/dashboard/inbox" icon={Inbox} title="Bandeja"
-            description="Resolvé tus tareas pendientes." accentColor="#F43F5E" />
+            description="Resolvé tus tareas pendientes." accentColor="var(--c-accent-red)" />
         </div>
       </section>
 
@@ -820,7 +820,7 @@ function ActionCard({ href, icon: Icon, title, description, accentColor }: {
       style={{
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         minHeight: 116, padding: 16,
-        background: "#0E1220", border: "1px solid #1E2540", borderRadius: 10,
+        background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10,
         textDecoration: "none",
         transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, box-shadow 180ms ease",
         position: "relative", overflow: "hidden",
@@ -831,18 +831,18 @@ function ActionCard({ href, icon: Icon, title, description, accentColor }: {
         e.currentTarget.style.boxShadow = `0 10px 28px ${accentColor}26, 0 0 0 1px ${accentColor}14 inset`;
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = "#1E2540";
+        e.currentTarget.style.borderColor = "var(--c-border)";
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.boxShadow = "none";
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <Icon size={18} style={{ color: accentColor }} strokeWidth={1.75} />
-        <ArrowUpRight size={13} style={{ color: "#7A8BAD" }} strokeWidth={1.5} />
+        <ArrowUpRight size={13} style={{ color: "var(--c-text-muted)" }} strokeWidth={1.5} />
       </div>
       <div style={{ marginTop: 10 }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>{title}</p>
-        <p style={{ fontSize: 11, color: "#7A8BAD", margin: "3px 0 0", lineHeight: 1.4 }}>{description}</p>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>{title}</p>
+        <p style={{ fontSize: 11, color: "var(--c-text-muted)", margin: "3px 0 0", lineHeight: 1.4 }}>{description}</p>
       </div>
     </Link>
   );

@@ -27,10 +27,10 @@ const STATUS_LABELS: Record<Status, string> = {
   todo: "Por hacer", in_progress: "En progreso", in_review: "En revisión", done: "Completado",
 };
 const STATUS_COLORS: Record<Status, string> = {
-  todo: "#7A8BAD", in_progress: "#3D7EFF", in_review: "#F59E0B", done: "#10D9A0",
+  todo: "var(--c-text-muted)", in_progress: "var(--c-accent-blue)", in_review: "var(--c-accent-amber)", done: "var(--c-accent-emerald)",
 };
 const PRIORITY_COLORS: Record<Priority, string> = {
-  low: "#7A8BAD", medium: "#3D7EFF", high: "#F59E0B", urgent: "#F43F5E",
+  low: "var(--c-text-muted)", medium: "var(--c-accent-blue)", high: "var(--c-accent-amber)", urgent: "var(--c-accent-red)",
 };
 const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Baja", medium: "Media", high: "Alta", urgent: "Urgente",
@@ -52,11 +52,11 @@ function bucketize(t: MyTask, now: Date, weekEnd: Date): Bucket {
 }
 
 const BUCKET_META: Record<Bucket, { label: string; icon: string; accent: string; subtitle: string }> = {
-  overdue: { label: "Atrasadas", icon: "⚠️", accent: "#F43F5E", subtitle: "Ya pasó la fecha" },
-  today: { label: "Hoy", icon: "🔥", accent: "#F59E0B", subtitle: "Vence hoy" },
-  week: { label: "Esta semana", icon: "📅", accent: "#3D7EFF", subtitle: "Próximos 7 días" },
-  later: { label: "Por venir / Sin fecha", icon: "📦", accent: "#7A8BAD", subtitle: "Resto del backlog" },
-  done: { label: "Completadas", icon: "✓", accent: "#10D9A0", subtitle: "Últimas cerradas" },
+  overdue: { label: "Atrasadas", icon: "⚠️", accent: "var(--c-accent-red)", subtitle: "Ya pasó la fecha" },
+  today: { label: "Hoy", icon: "🔥", accent: "var(--c-accent-amber)", subtitle: "Vence hoy" },
+  week: { label: "Esta semana", icon: "📅", accent: "var(--c-accent-blue)", subtitle: "Próximos 7 días" },
+  later: { label: "Por venir / Sin fecha", icon: "📦", accent: "var(--c-text-muted)", subtitle: "Resto del backlog" },
+  done: { label: "Completadas", icon: "✓", accent: "var(--c-accent-emerald)", subtitle: "Últimas cerradas" },
 };
 
 function formatDate(dateStr: string): string {
@@ -123,8 +123,8 @@ export default function MyDayPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", background: "#080B12" }}>
-        <Loader2 className="animate-spin" style={{ color: "#3D7EFF", width: 22, height: 22 }} />
+      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", background: "var(--c-bg-base)" }}>
+        <Loader2 className="animate-spin" style={{ color: "var(--c-accent-blue)", width: 22, height: 22 }} />
       </div>
     );
   }
@@ -132,20 +132,20 @@ export default function MyDayPage() {
   // No vinculado todavía → onboarding
   if (!employee) {
     return (
-      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", background: "#080B12", padding: 32 }}>
-        <div style={{ maxWidth: 480, padding: 32, background: "#0E1220", border: "1px solid #1E2540", borderRadius: 12, textAlign: "center" }}>
-          <UserPlus style={{ width: 44, height: 44, margin: "0 auto 14px", color: "#3D7EFF" }} strokeWidth={1.5} />
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#E2E8F8" }}>
+      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", background: "var(--c-bg-base)", padding: 32 }}>
+        <div style={{ maxWidth: 480, padding: 32, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, textAlign: "center" }}>
+          <UserPlus style={{ width: 44, height: 44, margin: "0 auto 14px", color: "var(--c-accent-blue)" }} strokeWidth={1.5} />
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--c-text-primary)" }}>
             Vinculá tu cuenta a un puesto del organigrama
           </h2>
-          <p style={{ margin: "10px 0 18px", fontSize: 13, color: "#7A8BAD", lineHeight: 1.6 }}>
+          <p style={{ margin: "10px 0 18px", fontSize: 13, color: "var(--c-text-muted)", lineHeight: 1.6 }}>
             Para usar &quot;Mi día&quot; necesitamos saber qué posición ocupás en el orgchart.
             Andá a <strong>Empleados</strong>, encontrá tu puesto y hacé click en &quot;Soy yo&quot;.
           </p>
           <Link href="/dashboard/employees" style={{
-            display: "inline-flex", alignItems: "center", gap: 6, background: "#3D7EFF", color: "#fff",
+            display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-accent-blue)", color: "#fff",
             border: "none", borderRadius: 6, padding: "10px 18px", fontSize: 13, fontWeight: 600,
-            textDecoration: "none", boxShadow: "0 0 12px rgba(61,126,255,0.3)",
+            textDecoration: "none", boxShadow: "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.3)",
           }}>
             Ir a Empleados <ExternalLink style={{ width: 13, height: 13 }} />
           </Link>
@@ -158,32 +158,32 @@ export default function MyDayPage() {
   const totalOverdue = grouped.overdue.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#080B12", overflow: "auto" }}>
-      <div style={{ padding: "24px clamp(16px, 4vw, 32px) 18px", borderBottom: "1px solid #1E2540" }}>
-        <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "#7A8BAD", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--c-bg-base)", overflow: "auto" }}>
+      <div style={{ padding: "24px clamp(16px, 4vw, 32px) 18px", borderBottom: "1px solid var(--c-border)" }}>
+        <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
           Workspace · {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
         </p>
-        <h1 style={{ margin: "4px 0 0", fontSize: 24, fontWeight: 700, color: "#E2E8F8" }}>
+        <h1 style={{ margin: "4px 0 0", fontSize: 24, fontWeight: 700, color: "var(--c-text-primary)" }}>
           Mi día — {employee.fullName.split(" ")[0]}
         </h1>
-        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#7A8BAD" }}>
+        <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--c-text-muted)" }}>
           {totalOpen} pendiente{totalOpen !== 1 ? "s" : ""}
-          {totalOverdue > 0 && <span style={{ color: "#F43F5E", marginLeft: 8 }}>· {totalOverdue} atrasada{totalOverdue !== 1 ? "s" : ""}</span>}
+          {totalOverdue > 0 && <span style={{ color: "var(--c-accent-red)", marginLeft: 8 }}>· {totalOverdue} atrasada{totalOverdue !== 1 ? "s" : ""}</span>}
         </p>
 
         <div style={{ marginTop: 14, display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => setShowDone(v => !v)} style={{
             fontSize: 11, padding: "4px 10px", borderRadius: 4,
-            background: showDone ? "rgba(16,217,160,0.15)" : "transparent",
-            border: `1px solid ${showDone ? "#10D9A066" : "#1E2540"}`,
-            color: showDone ? "#10D9A0" : "#7A8BAD",
+            background: showDone ? "rgb(var(--c-accent-emerald-rgb) / 0.15)" : "transparent",
+            border: `1px solid ${showDone ? "rgb(var(--c-accent-emerald-rgb) / 0.4)" : "var(--c-border)"}`,
+            color: showDone ? "var(--c-accent-emerald)" : "var(--c-text-muted)",
             cursor: "pointer", fontFamily: "monospace", textTransform: "uppercase",
           }}>
             Ver completadas
           </button>
           <Link href="/dashboard/workload" style={{
             fontSize: 11, padding: "4px 10px", borderRadius: 4,
-            background: "transparent", border: "1px solid #1E2540", color: "#7A8BAD",
+            background: "transparent", border: "1px solid var(--c-border)", color: "var(--c-text-muted)",
             textDecoration: "none", fontFamily: "monospace", textTransform: "uppercase",
           }}>
             Ver carga del equipo →
@@ -213,12 +213,12 @@ export default function MyDayPage() {
                 <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: meta.accent }}>
                   {meta.label}
                 </h2>
-                <span style={{ fontSize: 10, fontFamily: "monospace", color: "#7A8BAD" }}>
+                <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)" }}>
                   {list.length} · {meta.subtitle}
                 </span>
               </div>
               {list.length === 0 ? (
-                <div style={{ padding: "16px", background: "#0E1220", border: "1px dashed #1E2540", borderRadius: 8, fontSize: 12, color: "#7A8BAD", textAlign: "center" }}>
+                <div style={{ padding: "16px", background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)", borderRadius: 8, fontSize: 12, color: "var(--c-text-muted)", textAlign: "center" }}>
                   {emptyCopy[b]}
                 </div>
               ) : (
@@ -240,7 +240,7 @@ export default function MyDayPage() {
               <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: BUCKET_META.done.accent }}>
                 {BUCKET_META.done.label}
               </h2>
-              <span style={{ fontSize: 10, fontFamily: "monospace", color: "#7A8BAD" }}>
+              <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)" }}>
                 {grouped.done.length} cerradas
               </span>
             </div>
@@ -263,8 +263,8 @@ function TaskCard({ task, onCycleStatus }: { task: MyTask; onCycleStatus: () => 
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 12,
-      padding: "10px 14px", background: "#0E1220",
-      border: "1px solid #1E2540", borderRadius: 8,
+      padding: "10px 14px", background: "var(--c-bg-surface)",
+      border: "1px solid var(--c-border)", borderRadius: 8,
       opacity: isDone ? 0.65 : 1,
     }}>
       {/* Status circle — click cycle */}
@@ -277,13 +277,13 @@ function TaskCard({ task, onCycleStatus }: { task: MyTask; onCycleStatus: () => 
           cursor: "pointer", padding: 0, flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-        {isDone && <span style={{ color: "#080B12", fontSize: 9, fontWeight: 900 }}>✓</span>}
+        {isDone && <span style={{ color: "var(--c-bg-base)", fontSize: 9, fontWeight: 900 }}>✓</span>}
       </button>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Link href={`/dashboard/projects?id=${task.projectId}`} style={{
-            fontSize: 13, color: isDone ? "#7A8BAD" : "#E2E8F8",
+            fontSize: 13, color: isDone ? "var(--c-text-muted)" : "var(--c-text-primary)",
             textDecoration: isDone ? "line-through" : "none",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
@@ -294,14 +294,14 @@ function TaskCard({ task, onCycleStatus }: { task: MyTask; onCycleStatus: () => 
           {task.projectName && (
             <Link href={`/dashboard/projects?id=${task.projectId}`} style={{
               display: "flex", alignItems: "center", gap: 3,
-              fontSize: 10, color: "#7A8BAD", fontFamily: "monospace",
+              fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace",
               textDecoration: "none",
             }}>
               <Briefcase style={{ width: 9, height: 9 }} /> {task.projectName}
             </Link>
           )}
           {task.milestoneId && (
-            <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "#A855F7", fontFamily: "monospace" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "var(--c-accent-violet)", fontFamily: "monospace" }}>
               <Flag style={{ width: 9, height: 9 }} /> Hito
             </span>
           )}
@@ -320,7 +320,7 @@ function TaskCard({ task, onCycleStatus }: { task: MyTask; onCycleStatus: () => 
           </span>
         )}
         {dueDate && (
-          <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: isOverdue ? "#F43F5E" : "#7A8BAD", fontFamily: "monospace" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: isOverdue ? "var(--c-accent-red)" : "var(--c-text-muted)", fontFamily: "monospace" }}>
             {isOverdue && <AlertTriangle style={{ width: 10, height: 10 }} />}
             <Calendar style={{ width: 10, height: 10 }} /> {dueDate}
           </span>

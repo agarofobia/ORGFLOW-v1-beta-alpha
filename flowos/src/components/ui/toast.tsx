@@ -43,10 +43,10 @@ export function useToast(): ToastAPI {
 }
 
 const KIND_META: Record<ToastKind, { icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>; color: string; bg: string; border: string }> = {
-  success: { icon: CheckCircle2, color: "#10D9A0", bg: "rgba(16,217,160,0.08)", border: "rgba(16,217,160,0.4)" },
-  error:   { icon: AlertTriangle, color: "#F43F5E", bg: "rgba(244,63,94,0.08)", border: "rgba(244,63,94,0.4)" },
-  info:    { icon: Info, color: "#3D7EFF", bg: "rgba(61,126,255,0.08)", border: "rgba(61,126,255,0.4)" },
-  warning: { icon: AlertTriangle, color: "#F59E0B", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.4)" },
+  success: { icon: CheckCircle2, color: "var(--c-accent-emerald)", bg: "rgb(var(--c-accent-emerald-rgb) / 0.08)", border: "rgb(var(--c-accent-emerald-rgb) / 0.4)" },
+  error:   { icon: AlertTriangle, color: "var(--c-accent-red)", bg: "rgb(var(--c-accent-red-rgb) / 0.08)", border: "rgb(var(--c-accent-red-rgb) / 0.4)" },
+  info:    { icon: Info, color: "var(--c-accent-blue)", bg: "rgb(var(--c-accent-blue-rgb) / 0.08)", border: "rgb(var(--c-accent-blue-rgb) / 0.4)" },
+  warning: { icon: AlertTriangle, color: "var(--c-accent-amber)", bg: "rgb(var(--c-accent-amber-rgb) / 0.08)", border: "rgb(var(--c-accent-amber-rgb) / 0.4)" },
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -105,11 +105,11 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
     <div style={{
       pointerEvents: "auto",
       minWidth: 280, maxWidth: 380,
-      background: "#0E1220",
+      background: "var(--c-bg-surface)",
       border: `1px solid ${meta.border}`,
       borderLeft: `3px solid ${meta.color}`,
       borderRadius: 8,
-      boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+      boxShadow: "0 8px 24px var(--c-shadow-medium)",
       padding: "10px 12px",
       display: "flex", alignItems: "flex-start", gap: 10,
       opacity: exiting ? 0 : 1,
@@ -124,17 +124,17 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
         <Icon size={13} style={{ color: meta.color }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#E2E8F8", lineHeight: 1.3 }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", lineHeight: 1.3 }}>
           {item.title}
         </p>
         {item.body && (
-          <p style={{ margin: "3px 0 0", fontSize: 12, color: "#7A8BAD", lineHeight: 1.45 }}>
+          <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--c-text-muted)", lineHeight: 1.45 }}>
             {item.body}
           </p>
         )}
       </div>
       <button onClick={() => setExiting(true)}
-        style={{ background: "transparent", border: "none", color: "#7A8BAD", cursor: "pointer", padding: 2, flexShrink: 0 }}>
+        style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer", padding: 2, flexShrink: 0 }}>
         <X size={12} />
       </button>
     </div>

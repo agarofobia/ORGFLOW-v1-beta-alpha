@@ -44,7 +44,7 @@ function FieldInput({
   onChange: (v: unknown) => void;
 }) {
   const base = "w-full rounded px-3 py-2 text-sm outline-none";
-  const style = { background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" };
+  const style = { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" };
   const dynamicOptions = useDynamicOptions(field.source);
 
   if (field.type === "textarea") {
@@ -70,7 +70,7 @@ function FieldInput({
         onChange={(e) => onChange(e.target.value)}
         required={field.required}
         className={base}
-        style={{ ...style, color: value ? "#E2E8F8" : "#7A8BAD" }}
+        style={{ ...style, color: value ? "var(--c-text-primary)" : "var(--c-text-muted)" }}
       >
         <option value="">— Seleccionar —</option>
         {opts.map((opt) => (
@@ -81,7 +81,7 @@ function FieldInput({
   }
   if (field.type === "checkbox") {
     return (
-      <label className="flex items-center gap-2 text-sm" style={{ color: "#C4CFEA", cursor: "pointer" }}>
+      <label className="flex items-center gap-2 text-sm" style={{ color: "var(--c-text-secondary)", cursor: "pointer" }}>
         <input
           type="checkbox"
           checked={(value as boolean) ?? false}
@@ -183,39 +183,39 @@ export default function TaskRunnerModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.65)" }}
+      style={{ background: "var(--c-shadow-strong)" }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         className="w-full max-w-lg rounded-xl"
-        style={{ background: "#0E1220", border: "1px solid #1E2540", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
+        style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: "#1E2540" }}>
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: "var(--c-border)" }}>
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4" style={{ color: "#3D7EFF" }} />
-            <span className="font-semibold text-sm" style={{ color: "#E2E8F8" }}>
+            <FileText className="h-4 w-4" style={{ color: "var(--c-accent-blue)" }} />
+            <span className="font-semibold text-sm" style={{ color: "var(--c-text-primary)" }}>
               {loading ? "Cargando…" : task?.nodeLabel ?? "Tarea"}
             </span>
           </div>
-          <button onClick={onClose} title="Cerrar (Esc)" aria-label="Cerrar" className="rounded p-1 hover:bg-[#1E2540]" style={{ color: "#7A8BAD" }}>
+          <button onClick={onClose} title="Cerrar (Esc)" aria-label="Cerrar" className="rounded p-1 hover:bg-[var(--c-border)]" style={{ color: "var(--c-text-muted)" }}>
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#3D7EFF" }} />
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--c-accent-blue)" }} />
           </div>
         ) : !task ? (
-          <div className="py-12 text-center text-sm" style={{ color: "#F43F5E" }}>
+          <div className="py-12 text-center text-sm" style={{ color: "var(--c-accent-red)" }}>
             Tarea no encontrada
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {/* Task info */}
-              <p className="mb-5 text-xs leading-relaxed" style={{ color: "#7A8BAD" }}>
+              <p className="mb-5 text-xs leading-relaxed" style={{ color: "var(--c-text-muted)" }}>
                 {task.processName}
                 {task.nodeLabel !== task.processName && <> · {task.nodeLabel}</>}
               </p>
@@ -223,13 +223,13 @@ export default function TaskRunnerModal({
               {!hasFields ? (
                 <div
                   className="rounded-lg p-5 text-center"
-                  style={{ background: "#141928", border: "1px dashed #1E2540" }}
+                  style={{ background: "var(--c-bg-elevated)", border: "1px dashed var(--c-border)" }}
                 >
-                  <CheckCircle2 className="mx-auto mb-2 h-8 w-8" style={{ color: "#10D9A0" }} />
-                  <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>
+                  <CheckCircle2 className="mx-auto mb-2 h-8 w-8" style={{ color: "var(--c-accent-emerald)" }} />
+                  <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>
                     Sin formulario requerido
                   </p>
-                  <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>
+                  <p className="mt-1 text-xs" style={{ color: "var(--c-text-muted)" }}>
                     Esta etapa solo requiere confirmación. Hacé click en "Completar" para avanzar.
                   </p>
                 </div>
@@ -238,9 +238,9 @@ export default function TaskRunnerModal({
                   {task.formFields!.map((field) => (
                     <div key={field.id}>
                       {field.type !== "checkbox" && (
-                        <label className="mb-1.5 block text-sm font-medium" style={{ color: "#C4CFEA" }}>
+                        <label className="mb-1.5 block text-sm font-medium" style={{ color: "var(--c-text-secondary)" }}>
                           {field.label}
-                          {field.required && <span className="ml-1" style={{ color: "#F43F5E" }}>*</span>}
+                          {field.required && <span className="ml-1" style={{ color: "var(--c-accent-red)" }}>*</span>}
                         </label>
                       )}
                       <FieldInput
@@ -254,20 +254,20 @@ export default function TaskRunnerModal({
               )}
 
               {error && (
-                <div className="mt-4 flex items-center gap-2 rounded px-3 py-2" style={{ background: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.2)" }}>
-                  <AlertCircle className="h-4 w-4 shrink-0" style={{ color: "#F43F5E" }} />
-                  <p className="text-xs" style={{ color: "#F43F5E" }}>{error}</p>
+                <div className="mt-4 flex items-center gap-2 rounded px-3 py-2" style={{ background: "rgb(var(--c-accent-red-rgb) / 0.1)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.2)" }}>
+                  <AlertCircle className="h-4 w-4 shrink-0" style={{ color: "var(--c-accent-red)" }} />
+                  <p className="text-xs" style={{ color: "var(--c-accent-red)" }}>{error}</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-2 border-t px-6 py-4" style={{ borderColor: "#1E2540" }}>
+            <div className="flex justify-end gap-2 border-t px-6 py-4" style={{ borderColor: "var(--c-border)" }}>
               <button
                 type="button"
                 onClick={onClose}
                 className="rounded px-4 py-2 text-sm"
-                style={{ color: "#7A8BAD", background: "#141928", border: "1px solid #1E2540" }}
+                style={{ color: "var(--c-text-muted)", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}
               >
                 Cancelar
               </button>
@@ -275,7 +275,7 @@ export default function TaskRunnerModal({
                 type="submit"
                 disabled={submitting}
                 className="flex items-center gap-2 rounded px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
-                style={{ background: "#10D9A0" }}
+                style={{ background: "var(--c-accent-emerald)" }}
               >
                 {submitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

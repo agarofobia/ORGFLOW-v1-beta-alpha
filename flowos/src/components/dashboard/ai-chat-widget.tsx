@@ -177,14 +177,14 @@ export default function AiChatWidget() {
             width: 52,
             height: 52,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #3D7EFF 0%, #A855F7 100%)",
+            background: "linear-gradient(135deg, var(--c-accent-blue) 0%, var(--c-accent-violet) 100%)",
             border: "none",
             color: "#fff",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 8px 24px rgba(61,126,255,0.4)",
+            boxShadow: "0 8px 24px rgb(var(--c-accent-blue-rgb) / 0.4)",
             transition: "transform 0.15s",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
@@ -204,24 +204,24 @@ export default function AiChatWidget() {
             zIndex: 50,
             width: "min(400px, calc(100vw - 40px))",
             height: "min(640px, calc(100vh - 40px))",
-            background: "#0A0F1C",
-            border: "1px solid #1E2540",
+            background: "var(--c-bg-darker)",
+            border: "1px solid var(--c-border)",
             borderRadius: 14,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+            boxShadow: "0 20px 60px var(--c-shadow-strong)",
           }}
         >
           {/* Header */}
           <div
             style={{
               padding: "12px 14px",
-              borderBottom: "1px solid #1E2540",
+              borderBottom: "1px solid var(--c-border)",
               display: "flex",
               alignItems: "center",
               gap: 10,
-              background: "linear-gradient(90deg, rgba(61,126,255,0.08), rgba(168,85,247,0.08))",
+              background: "linear-gradient(90deg, rgb(var(--c-accent-blue-rgb) / 0.08), rgb(var(--c-accent-violet-rgb) / 0.08))",
             }}
           >
             <div
@@ -229,7 +229,7 @@ export default function AiChatWidget() {
                 width: 28,
                 height: 28,
                 borderRadius: 6,
-                background: "linear-gradient(135deg, #3D7EFF, #A855F7)",
+                background: "linear-gradient(135deg, var(--c-accent-blue), var(--c-accent-violet))",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -238,8 +238,8 @@ export default function AiChatWidget() {
               <Sparkles size={14} style={{ color: "#fff" }} strokeWidth={2} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>Asistente FlowOS</p>
-              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "2px 0 0", fontFamily: "monospace" }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>Asistente FlowOS</p>
+              <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "2px 0 0", fontFamily: "monospace" }}>
                 Claude · BYOK · respeta tus permisos
               </p>
             </div>
@@ -250,7 +250,7 @@ export default function AiChatWidget() {
               style={{
                 background: "transparent",
                 border: "none",
-                color: "#7A8BAD",
+                color: "var(--c-text-muted)",
                 cursor: "pointer",
                 padding: 4,
                 display: "flex",
@@ -266,7 +266,7 @@ export default function AiChatWidget() {
               style={{
                 background: "transparent",
                 border: "none",
-                color: "#7A8BAD",
+                color: "var(--c-text-muted)",
                 cursor: "pointer",
                 padding: 4,
                 display: "flex",
@@ -282,7 +282,7 @@ export default function AiChatWidget() {
               style={{
                 background: "transparent",
                 border: "none",
-                color: "#7A8BAD",
+                color: "var(--c-text-muted)",
                 cursor: "pointer",
                 padding: 4,
                 display: "flex",
@@ -310,13 +310,13 @@ export default function AiChatWidget() {
                 style={{
                   textAlign: "center",
                   padding: "32px 12px",
-                  color: "#7A8BAD",
+                  color: "var(--c-text-muted)",
                   fontSize: 12,
                   lineHeight: 1.5,
                 }}
               >
-                <Sparkles size={28} style={{ margin: "0 auto 8px", display: "block", color: "#1E2540" }} />
-                <p style={{ margin: "0 0 8px", fontSize: 13, color: "#C4CFEA", fontWeight: 500 }}>
+                <Sparkles size={28} style={{ margin: "0 auto 8px", display: "block", color: "var(--c-border)" }} />
+                <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--c-text-secondary)", fontWeight: 500 }}>
                   ¿En qué te ayudo?
                 </p>
                 <p style={{ margin: 0 }}>Probá pedirme algo como:</p>
@@ -330,12 +330,12 @@ export default function AiChatWidget() {
                       key={s}
                       onClick={() => setInput(s)}
                       style={{
-                        background: "#0E1220",
-                        border: "1px solid #1E2540",
+                        background: "var(--c-bg-surface)",
+                        border: "1px solid var(--c-border)",
                         borderRadius: 6,
                         padding: "6px 10px",
                         fontSize: 11,
-                        color: "#C4CFEA",
+                        color: "var(--c-text-secondary)",
                         cursor: "pointer",
                         textAlign: "left",
                       }}
@@ -357,12 +357,12 @@ export default function AiChatWidget() {
                   style={{
                     alignSelf: isUser ? "flex-end" : "flex-start",
                     maxWidth: "85%",
-                    background: isUser ? "rgba(61,126,255,0.15)" : "#0E1220",
-                    border: `1px solid ${isUser ? "rgba(61,126,255,0.3)" : "#1E2540"}`,
+                    background: isUser ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "var(--c-bg-surface)",
+                    border: `1px solid ${isUser ? "rgb(var(--c-accent-blue-rgb) / 0.3)" : "var(--c-border)"}`,
                     borderRadius: 10,
                     padding: "8px 12px",
                     fontSize: 12.5,
-                    color: "#E2E8F8",
+                    color: "var(--c-text-primary)",
                     lineHeight: 1.5,
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
@@ -377,8 +377,8 @@ export default function AiChatWidget() {
                           style={{
                             fontSize: 10,
                             fontFamily: "monospace",
-                            background: "rgba(168,85,247,0.12)",
-                            color: "#A855F7",
+                            background: "rgb(var(--c-accent-violet-rgb) / 0.12)",
+                            color: "var(--c-accent-violet)",
                             padding: "2px 6px",
                             borderRadius: 4,
                           }}
@@ -395,12 +395,12 @@ export default function AiChatWidget() {
               <div
                 style={{
                   alignSelf: "flex-start",
-                  background: "#0E1220",
-                  border: "1px solid #1E2540",
+                  background: "var(--c-bg-surface)",
+                  border: "1px solid var(--c-border)",
                   borderRadius: 10,
                   padding: "8px 12px",
                   fontSize: 12,
-                  color: "#7A8BAD",
+                  color: "var(--c-text-muted)",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -414,12 +414,12 @@ export default function AiChatWidget() {
               <div
                 style={{
                   alignSelf: "stretch",
-                  background: "rgba(244,63,94,0.1)",
-                  border: "1px solid rgba(244,63,94,0.3)",
+                  background: "rgb(var(--c-accent-red-rgb) / 0.1)",
+                  border: "1px solid rgb(var(--c-accent-red-rgb) / 0.3)",
                   borderRadius: 8,
                   padding: "8px 12px",
                   fontSize: 12,
-                  color: "#F43F5E",
+                  color: "var(--c-accent-red)",
                 }}
               >
                 {error}
@@ -431,7 +431,7 @@ export default function AiChatWidget() {
           <div
             style={{
               padding: 10,
-              borderTop: "1px solid #1E2540",
+              borderTop: "1px solid var(--c-border)",
               display: "flex",
               gap: 8,
               alignItems: "flex-end",
@@ -446,12 +446,12 @@ export default function AiChatWidget() {
               rows={1}
               style={{
                 flex: 1,
-                background: "#0E1220",
-                border: "1px solid #1E2540",
+                background: "var(--c-bg-surface)",
+                border: "1px solid var(--c-border)",
                 borderRadius: 8,
                 padding: "8px 10px",
                 fontSize: 12.5,
-                color: "#E2E8F8",
+                color: "var(--c-text-primary)",
                 outline: "none",
                 resize: "none",
                 maxHeight: 120,
@@ -466,8 +466,8 @@ export default function AiChatWidget() {
               style={{
                 background:
                   !input.trim() || thinking
-                    ? "#1E2540"
-                    : "linear-gradient(135deg, #3D7EFF, #A855F7)",
+                    ? "var(--c-border)"
+                    : "linear-gradient(135deg, var(--c-accent-blue), var(--c-accent-violet))",
                 border: "none",
                 color: "#fff",
                 width: 34,

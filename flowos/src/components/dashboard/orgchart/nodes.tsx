@@ -82,7 +82,7 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
             gap: 3,
             borderTopLeftRadius: Math.max(0, radius.topLeft - 1),
             borderTopRightRadius: Math.max(0, radius.topRight - 1),
-            background: `linear-gradient(180deg, ${data.color}28 0%, ${data.color}10 100%), #0A0F1C`,
+            background: `linear-gradient(180deg, ${data.color}28 0%, ${data.color}10 100%), var(--c-bg-darker)`,
             borderBottom: `1px solid ${data.color}40`,
             cursor: "grab",
             padding: "0 12px",
@@ -117,7 +117,7 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
               position: "absolute", top: 8, right: 12,
               display: "flex", alignItems: "center", gap: 8,
               padding: "4px 10px 4px 4px",
-              background: "#0E1220EE",
+              background: "rgb(var(--c-bg-surface-rgb) / 0.93)",
               border: `1px solid ${(data.senior.color ?? data.color) + "55"}`,
               borderRadius: 22,
               zIndex: 7,
@@ -137,14 +137,14 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
             </div>
             <div style={{ minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
               <span style={{
-                fontSize: 11, fontWeight: 600, color: "#E2E8F8",
+                fontSize: 11, fontWeight: 600, color: "var(--c-text-primary)",
                 maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
                 {data.senior.fullName}
               </span>
               {data.senior.jobTitle && (
                 <span style={{
-                  fontSize: 9, color: "#7A8BAD",
+                  fontSize: 9, color: "var(--c-text-muted)",
                   maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
                   {data.senior.jobTitle}
@@ -247,8 +247,8 @@ export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentN
             borderTopRightRadius: Math.max(0, radius.topRight - 1),
             // Fondo 100% opaco para que edges no se vean atrás del header.
             background: `linear-gradient(180deg,
-              color-mix(in srgb, ${data.color} 18%, #0A0F1C) 0%,
-              color-mix(in srgb, ${data.color} 8%, #0A0F1C) 100%)`,
+              color-mix(in srgb, ${data.color} 18%, var(--c-bg-darker)) 0%,
+              color-mix(in srgb, ${data.color} 8%, var(--c-bg-darker)) 100%)`,
             borderBottom: `1px solid ${data.color}40`,
             cursor: "grab",
             // zIndex alto + isolation del padre: queda encima de contenido interno.
@@ -314,7 +314,7 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
       className="transition-shadow hover:shadow-lg"
       style={{
         width: 200,
-        background: isVacant && !hasSubsInside ? "#0E122099" : "#0E1220",
+        background: isVacant && !hasSubsInside ? "rgb(var(--c-bg-surface-rgb) / 0.6)" : "var(--c-bg-surface)",
         borderTop: sideBorder,
         borderRight: sideBorder,
         borderBottom: sideBorder,
@@ -365,8 +365,8 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
             className="flex flex-shrink-0 items-center justify-center font-semibold"
             style={{
               background: isVacant ? "transparent" : data.color,
-              border: isVacant ? "1.5px dashed #7A8BAD66" : "none",
-              color: isVacant ? "#7A8BAD" : "#fff",
+              border: isVacant ? "1.5px dashed rgb(122 139 173 / 0.4)" : "none",
+              color: isVacant ? "var(--c-text-muted)" : "#fff",
               borderRadius: 6,
               width: avatarSize, height: avatarSize,
               fontSize: isCompact ? 9 : 12,
@@ -378,11 +378,11 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
         <div className="min-w-0 flex-1">
           {/* Para vacantes: jobTitle prominente arriba, "Vacante" como label pequeño abajo.
               Para ocupados: fullName arriba, jobTitle abajo. Más fácil escanear quién es quién. */}
-          <div className="truncate font-medium" style={{ color: isVacant ? "#7A8BAD" : "#E2E8F8", fontSize: fontSizeName, lineHeight: 1.15, fontStyle: isVacant ? "italic" : "normal" }}>
+          <div className="truncate font-medium" style={{ color: isVacant ? "var(--c-text-muted)" : "var(--c-text-primary)", fontSize: fontSizeName, lineHeight: 1.15, fontStyle: isVacant ? "italic" : "normal" }}>
             {isVacant ? (data.jobTitle || "Puesto sin definir") : data.fullName}
           </div>
           {(!isCompact || isVacant) && (
-            <div className="truncate" style={{ color: isVacant ? "#7A8BAD" : "#7A8BAD", fontSize: isCompact ? 9 : 11, fontFamily: isVacant ? "monospace" : "inherit", textTransform: isVacant ? "uppercase" : "none", letterSpacing: isVacant ? "0.08em" : "normal" }}>
+            <div className="truncate" style={{ color: isVacant ? "var(--c-text-muted)" : "var(--c-text-muted)", fontSize: isCompact ? 9 : 11, fontFamily: isVacant ? "monospace" : "inherit", textTransform: isVacant ? "uppercase" : "none", letterSpacing: isVacant ? "0.08em" : "normal" }}>
               {isVacant ? "Vacante" : data.jobTitle}
             </div>
           )}
@@ -405,7 +405,7 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
             return (
               <div
                 key={sub.id}
-                className="flex items-center gap-2 hover:bg-[rgba(61,126,255,0.08)]"
+                className="flex items-center gap-2 hover:bg-[rgb(var(--c-accent-blue-rgb) / 0.08)]"
                 onMouseDown={e => e.stopPropagation()}
                 onClick={e => { e.stopPropagation(); data.onSubClick?.(sub.id); }}
                 style={{
@@ -435,7 +435,7 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
                   <div
                     className="flex flex-shrink-0 items-center justify-center text-white"
                     style={{
-                      background: sub.isVacant ? "#7A8BAD" : sub.color,
+                      background: sub.isVacant ? "var(--c-text-muted)" : sub.color,
                       borderRadius: 4,
                       width: 18, height: 18,
                       fontSize: 8, fontWeight: 600,
@@ -445,11 +445,11 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="truncate" style={{ color: sub.isVacant ? "#7A8BAD" : "#C4CFEA", fontSize: 11, lineHeight: 1.15 }}>
+                  <div className="truncate" style={{ color: sub.isVacant ? "var(--c-text-muted)" : "var(--c-text-secondary)", fontSize: 11, lineHeight: 1.15 }}>
                     {sub.isVacant ? sub.jobTitle : sub.fullName}
                   </div>
                   {!sub.isVacant && (
-                    <div className="truncate" style={{ color: "#7A8BAD", fontSize: 9, lineHeight: 1.1 }}>
+                    <div className="truncate" style={{ color: "var(--c-text-muted)", fontSize: 9, lineHeight: 1.1 }}>
                       {sub.jobTitle}
                     </div>
                   )}
@@ -520,9 +520,9 @@ export function EmployeeNodeView({ data, selected }: NodeProps<EmployeeNode>) {
           position: "absolute", top: -7, right: 6,
           fontSize: 8, fontWeight: 700, letterSpacing: "0.06em",
           padding: "2px 5px", borderRadius: 8,
-          background: data.color, color: "#0A0F1C",
+          background: data.color, color: "var(--c-bg-darker)",
           fontFamily: "monospace",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+          boxShadow: "0 1px 4px var(--c-shadow-medium)",
           pointerEvents: "none",
         }}>
           {roleBadge}
@@ -552,8 +552,8 @@ export const BicolorEdge = ({
   const sourceNode = nodes.find((n) => n.id === source);
   const targetNode = nodes.find((n) => n.id === target);
 
-  const sourceColor = (sourceNode?.data as { color?: string })?.color ?? "#3D7EFF";
-  const targetColor = (targetNode?.data as { color?: string })?.color ?? "#3D7EFF";
+  const sourceColor = (sourceNode?.data as { color?: string })?.color ?? "var(--c-accent-blue)";
+  const targetColor = (targetNode?.data as { color?: string })?.color ?? "var(--c-accent-blue)";
   const gradientId = `bg-${id.replace(/[^a-zA-Z0-9-]/g, "-")}`;
 
   // L-lines (ángulos rectos puros) cuando:

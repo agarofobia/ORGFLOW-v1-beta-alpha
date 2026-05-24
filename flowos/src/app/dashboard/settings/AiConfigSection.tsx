@@ -84,7 +84,7 @@ export default function AiConfigSection() {
   if (permsLoading || loading) {
     return (
       <section className="mt-12">
-        <div className="flex items-center gap-2" style={{ color: "#7A8BAD" }}>
+        <div className="flex items-center gap-2" style={{ color: "var(--c-text-muted)" }}>
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="text-sm">Cargando configuración IA…</span>
         </div>
@@ -99,20 +99,20 @@ export default function AiConfigSection() {
   return (
     <section className="mt-12">
       <div className="mb-5">
-        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "#7A8BAD" }}>
+        <p className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
           Asistente IA
         </p>
-        <h2 className="mt-1 text-lg font-semibold" style={{ color: "#E2E8F8" }}>
+        <h2 className="mt-1 text-lg font-semibold" style={{ color: "var(--c-text-primary)" }}>
           Configurar asistente
         </h2>
-        <p className="mt-1 text-sm" style={{ color: "#7A8BAD" }}>
+        <p className="mt-1 text-sm" style={{ color: "var(--c-text-muted)" }}>
           Trae tu propia API key de Anthropic (Claude). FlowOS no cobra por uso del modelo — pagás directo a Anthropic. La key se guarda encriptada con AES-256-GCM y nunca se devuelve al cliente.
         </p>
       </div>
 
       <div
         className="rounded-lg p-5"
-        style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+        style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
       >
         {/* Status row */}
         <div className="mb-4 flex items-center justify-between">
@@ -120,27 +120,27 @@ export default function AiConfigSection() {
             <div
               className="flex h-9 w-9 items-center justify-center rounded-lg"
               style={{
-                background: config?.configured ? "rgba(16,217,160,0.12)" : "rgba(122,139,173,0.12)",
+                background: config?.configured ? "rgb(var(--c-accent-emerald-rgb) / 0.12)" : "rgba(122,139,173,0.12)",
               }}
             >
               <Sparkles
                 className="h-4 w-4"
-                style={{ color: config?.configured ? "#10D9A0" : "#7A8BAD" }}
+                style={{ color: config?.configured ? "var(--c-accent-emerald)" : "var(--c-text-muted)" }}
                 strokeWidth={1.75}
               />
             </div>
             <div>
-              <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>
+              <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>
                 {config?.configured ? "API key configurada" : "Sin API key"}
               </p>
-              <p className="font-mono text-[11px]" style={{ color: "#7A8BAD" }}>
+              <p className="font-mono text-[11px]" style={{ color: "var(--c-text-muted)" }}>
                 {config?.preview ?? "No configurada"} · {config?.model ?? "claude-sonnet-4-6"}
               </p>
             </div>
           </div>
           {config?.configured && (
             <div className="flex items-center gap-2">
-              <label className="flex cursor-pointer items-center gap-2 text-xs" style={{ color: "#C4CFEA" }}>
+              <label className="flex cursor-pointer items-center gap-2 text-xs" style={{ color: "var(--c-text-secondary)" }}>
                 <input
                   type="checkbox"
                   checked={config.enabled}
@@ -155,9 +155,9 @@ export default function AiConfigSection() {
                 title="Eliminar configuración"
                 aria-label="Eliminar configuración"
                 className="rounded p-1.5 transition-colors"
-                style={{ color: "#7A8BAD" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#F43F5E")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#7A8BAD")}
+                style={{ color: "var(--c-text-muted)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--c-accent-red)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--c-text-muted)")}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -167,7 +167,7 @@ export default function AiConfigSection() {
 
         {/* API key input */}
         <div className="mb-3">
-          <label className="mb-1.5 block text-xs font-medium" style={{ color: "#C4CFEA" }}>
+          <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--c-text-secondary)" }}>
             {config?.configured ? "Reemplazar API key" : "API key de Anthropic"}
           </label>
           <div className="flex gap-2">
@@ -178,13 +178,13 @@ export default function AiConfigSection() {
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-ant-api03-…"
                 className="w-full rounded px-3 py-2 pr-10 font-mono text-xs outline-none"
-                style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }}
+                style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
               />
               <button
                 type="button"
                 onClick={() => setShowKey((v) => !v)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1"
-                style={{ color: "#7A8BAD" }}
+                style={{ color: "var(--c-text-muted)" }}
                 title={showKey ? "Ocultar" : "Mostrar"}
               >
                 {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -194,19 +194,19 @@ export default function AiConfigSection() {
               onClick={() => save()}
               disabled={saving || (!apiKey.trim() && !config?.configured)}
               className="flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-all"
-              style={{ background: "#3D7EFF", opacity: saving || (!apiKey.trim() && !config?.configured) ? 0.5 : 1 }}
+              style={{ background: "var(--c-accent-blue)", opacity: saving || (!apiKey.trim() && !config?.configured) ? 0.5 : 1 }}
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
               {config?.configured ? "Actualizar" : "Guardar"}
             </button>
           </div>
-          <p className="mt-1.5 text-xs" style={{ color: "#7A8BAD" }}>
+          <p className="mt-1.5 text-xs" style={{ color: "var(--c-text-muted)" }}>
             Generala en{" "}
             <a
               href="https://console.anthropic.com/settings/keys"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: "#3D7EFF" }}
+              style={{ color: "var(--c-accent-blue)" }}
             >
               console.anthropic.com/settings/keys
             </a>
@@ -216,7 +216,7 @@ export default function AiConfigSection() {
 
         {/* Model selector */}
         <div className="mb-1">
-          <label className="mb-1.5 block text-xs font-medium" style={{ color: "#C4CFEA" }}>
+          <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--c-text-secondary)" }}>
             Modelo
           </label>
           <select
@@ -224,7 +224,7 @@ export default function AiConfigSection() {
             onChange={(e) => setModel(e.target.value)}
             onBlur={() => model !== config?.model && save()}
             className="w-full rounded px-3 py-2 text-xs outline-none"
-            style={{ background: "#141928", border: "1px solid #1E2540", color: "#E2E8F8" }}
+            style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
           >
             <option value="claude-sonnet-4-6">Sonnet 4.6 (rápido, costo medio) — recomendado</option>
             <option value="claude-opus-4-7">Opus 4.7 (más potente, más caro)</option>
@@ -233,14 +233,14 @@ export default function AiConfigSection() {
         </div>
 
         {savedAt && Date.now() - savedAt < 3000 && (
-          <p className="mt-3 text-xs" style={{ color: "#10D9A0" }}>
+          <p className="mt-3 text-xs" style={{ color: "var(--c-accent-emerald)" }}>
             ✓ Guardado
           </p>
         )}
 
         <div
           className="mt-5 rounded p-3 text-xs"
-          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: "#C4A672" }}
+          style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.08)", border: "1px solid rgb(var(--c-accent-amber-rgb) / 0.2)", color: "#C4A672" }}
         >
           <strong>Importante:</strong> el asistente solo puede ver/crear cosas que el usuario que lo invoca pueda
           ver/crear (hereda permisos). Nunca puede eliminar registros.

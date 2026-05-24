@@ -74,7 +74,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
           onClick={() => close(false)}
           style={{
             position: "fixed", inset: 0, zIndex: 250,
-            background: "rgba(0,0,0,0.65)",
+            background: "var(--c-shadow-strong)",
             display: "flex", alignItems: "center", justifyContent: "center",
             padding: 16,
           }}
@@ -86,8 +86,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
             aria-labelledby="confirm-title"
             style={{
               width: "100%", maxWidth: 420,
-              background: "#0E1220",
-              border: "1px solid #1E2540",
+              background: "var(--c-bg-surface)",
+              border: "1px solid var(--c-border)",
               borderRadius: 12,
               padding: 24,
               boxShadow: "0 24px 60px rgba(0,0,0,0.55)",
@@ -96,20 +96,20 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
             <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                background: pending.danger !== false ? "rgba(244,63,94,0.12)" : "rgba(61,126,255,0.12)",
+                background: pending.danger !== false ? "rgb(var(--c-accent-red-rgb) / 0.12)" : "rgb(var(--c-accent-blue-rgb) / 0.12)",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
                 <AlertTriangle
-                  style={{ width: 18, height: 18, color: pending.danger !== false ? "#F43F5E" : "#3D7EFF" }}
+                  style={{ width: 18, height: 18, color: pending.danger !== false ? "var(--c-accent-red)" : "var(--c-accent-blue)" }}
                   strokeWidth={2}
                 />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 id="confirm-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#E2E8F8" }}>
+                <h2 id="confirm-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--c-text-primary)" }}>
                   {pending.title}
                 </h2>
                 {pending.description && (
-                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "#7A8BAD", lineHeight: 1.5 }}>
+                  <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--c-text-muted)", lineHeight: 1.5 }}>
                     {pending.description}
                   </p>
                 )}
@@ -121,8 +121,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                 style={{
                   padding: "8px 16px", fontSize: 13, fontWeight: 500,
                   background: "transparent",
-                  border: "1px solid #1E2540",
-                  borderRadius: 6, color: "#7A8BAD", cursor: "pointer",
+                  border: "1px solid var(--c-border)",
+                  borderRadius: 6, color: "var(--c-text-muted)", cursor: "pointer",
                 }}
               >
                 {pending.cancelText ?? "Cancelar"}
@@ -132,12 +132,12 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                 onClick={() => close(true)}
                 style={{
                   padding: "8px 16px", fontSize: 13, fontWeight: 600,
-                  background: pending.danger !== false ? "#F43F5E" : "#3D7EFF",
+                  background: pending.danger !== false ? "var(--c-accent-red)" : "var(--c-accent-blue)",
                   border: "none",
                   borderRadius: 6, color: "#fff", cursor: "pointer",
                   boxShadow: pending.danger !== false
-                    ? "0 0 12px rgba(244,63,94,0.4)"
-                    : "0 0 12px rgba(61,126,255,0.4)",
+                    ? "0 0 12px rgb(var(--c-accent-red-rgb) / 0.4)"
+                    : "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.4)",
                 }}
               >
                 {pending.confirmText ?? "Confirmar"}

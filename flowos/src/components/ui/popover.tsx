@@ -67,10 +67,10 @@ export function Popover({
         left,
         marginTop: 4,
         zIndex: 100,
-        background: "#0E1220",
-        border: "1px solid #1E2540",
+        background: "var(--c-bg-surface)",
+        border: "1px solid var(--c-border)",
         borderRadius: 8,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+        boxShadow: "0 8px 24px var(--c-shadow-strong)",
         width,
         maxHeight,
         display: "flex",
@@ -92,23 +92,23 @@ export const popoverOptionStyle = (active: boolean): CSSProperties => ({
   gap: 8,
   width: "100%",
   padding: "7px 12px",
-  background: active ? "rgba(61,126,255,0.1)" : "transparent",
+  background: active ? "rgb(var(--c-accent-blue-rgb) / 0.1)" : "transparent",
   border: "none",
-  borderLeft: active ? "2px solid #3D7EFF" : "2px solid transparent",
+  borderLeft: active ? "2px solid var(--c-accent-blue)" : "2px solid transparent",
   cursor: "pointer",
   textAlign: "left",
   fontSize: 12,
-  color: "#E2E8F8",
+  color: "var(--c-text-primary)",
 });
 
 // Handlers de hover para opciones — replica el highlight original.
 export function popoverOptionHover(active: boolean) {
   return {
     onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = "#1E2540";
+      e.currentTarget.style.background = "var(--c-border)";
     },
     onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = active ? "rgba(61,126,255,0.1)" : "transparent";
+      e.currentTarget.style.background = active ? "rgb(var(--c-accent-blue-rgb) / 0.1)" : "transparent";
     },
   };
 }

@@ -8,20 +8,68 @@
 
 @layer base {
   :root {
-    /* OrgFlow Dark Design System
-     * bg-base     #080B12  — fondo principal
-     * bg-surface  #0E1220  — superficie de cards
-     * bg-elevated #141928  — elementos elevados
-     * bg-overlay  #1A2035  — overlays / popovers
-     * border      #1E2540  — borde sutil
-     * border-strong #2A3356 — borde destacado
-     * text-primary  #E2E8F8 — texto principal
-     * text-secondary #7A8BAD — texto secundario
-     * accent-blue   #3D7EFF — acento principal
-     * accent-emerald #10D9A0 — éxito / positivo
-     * accent-amber   #F59E0B — advertencia
-     * accent-red     #F43F5E — error / destructivo
+    /* ─── OrgFlow / FlowOS — Sistema canónico de variables (DARK por default)
+     *
+     * Convención:
+     *   --c-*       → color final (var consumido en inline styles via var(--c-xxx))
+     *   --c-*-rgb   → triplete RGB para usar en rgba: rgb(var(--c-accent-blue-rgb) / 0.3)
+     *   --c-shadow-*→ sombras semánticas (se aclaran en light mode)
+     *
+     * El theme switch cambia estos valores en html.light. Los inline styles
+     * de los componentes usan var(--c-...), no hex literales. Eso permite
+     * cambiar todo el tema con 1 sola swap de variables.
      */
+
+    /* Surfaces */
+    --c-bg-base:     #080B12;
+    --c-bg-surface:  #0E1220;
+    --c-bg-elevated: #141928;
+    --c-bg-overlay:  #1A2035;
+    --c-bg-darker:   #0A0F1C;
+    --c-bg-darkest:  #0A0E1A;
+
+    /* Borders */
+    --c-border:        #1E2540;
+    --c-border-strong: #2A3356;
+
+    /* Text */
+    --c-text-primary:     #E2E8F8;
+    --c-text-secondary:   #C4CFEA;
+    --c-text-muted:       #7A8BAD;
+    --c-text-dim:         #4A5568;
+    --c-text-placeholder: #3A4560;
+
+    /* Accents — el accent-blue deriva del --app-accent dinámico (ThemeBridge).
+       Si no hay app-accent seteado, usa el azul default. */
+    --c-accent-blue:    var(--app-accent, #3D7EFF);
+    --c-accent-emerald: #10D9A0;
+    --c-accent-amber:   #F59E0B;
+    --c-accent-red:     #F43F5E;
+    --c-accent-violet:  #A855F7;
+    --c-accent-cyan:    #06B6D4;
+    --c-accent-pink:    #EC4899;
+    --c-accent-lime:    #84CC16;
+    --c-accent-orange:  #F97316;
+
+    /* RGB triples — para rgba dinámicos.
+       Sintaxis moderna: rgb(var(--c-accent-blue-rgb) / 0.32) */
+    --c-bg-surface-rgb:     14 18 32;
+    --c-border-rgb:         30 37 64;
+    --c-accent-blue-rgb:    var(--app-accent-rgb, 61 126 255);
+    --c-accent-emerald-rgb: 16 217 160;
+    --c-accent-amber-rgb:   245 158 11;
+    --c-accent-red-rgb:     244 63 94;
+    --c-accent-violet-rgb:  168 85 247;
+    --c-accent-cyan-rgb:    6 182 212;
+    --c-accent-pink-rgb:    236 72 153;
+
+    /* Shadows — semánticas, se aclaran en light */
+    --c-shadow-soft:   rgba(0, 0, 0, 0.25);
+    --c-shadow-medium: rgba(0, 0, 0, 0.4);
+    --c-shadow-strong: rgba(0, 0, 0, 0.6);
+    --c-shadow-heavy:  rgba(0, 0, 0, 0.7);
+
+    /* ─── Legacy HSL (mantenidas para Tailwind / shadcn) ───────────────── */
     --bg-base:      222 39% 5%;
     --bg-surface:   221 30% 9%;
     --bg-elevated:  224 27% 12%;
@@ -35,7 +83,7 @@
     --accent-amber:  38 92% 50%;
     --accent-red:    350 90% 60%;
 
-    /* Aliases que usan los componentes shadcn/Tailwind */
+    /* Aliases shadcn/Tailwind */
     --background:        var(--bg-base);
     --foreground:        var(--text-primary);
     --card:              var(--bg-surface);
@@ -59,9 +107,60 @@
     border-color: hsl(var(--border));
   }
 
-  /* ── Light theme overrides ─────────────────────────────── */
+  /* ── Light theme ───────────────────────────────────────────────────────
+   * Cambia los --c-* y los HSL. Los inline styles que usan var(--c-...)
+   * se actualizan automáticamente. */
   html.light {
     color-scheme: light;
+
+    /* Surfaces */
+    --c-bg-base:     #F8FAFC;
+    --c-bg-surface:  #FFFFFF;
+    --c-bg-elevated: #F1F5F9;
+    --c-bg-overlay:  #E2E8F0;
+    --c-bg-darker:   #F1F5F9;
+    --c-bg-darkest:  #F8FAFC;
+
+    /* Borders */
+    --c-border:        #E2E8F0;
+    --c-border-strong: #CBD5E1;
+
+    /* Text */
+    --c-text-primary:     #1A1F2E;
+    --c-text-secondary:   #334155;
+    --c-text-muted:       #64748B;
+    --c-text-dim:         #94A3B8;
+    --c-text-placeholder: #94A3B8;
+
+    /* Accents — más oscuros en light para mantener contraste sobre fondo claro */
+    --c-accent-blue:    var(--app-accent, #2563EB);
+    --c-accent-emerald: #059669;
+    --c-accent-amber:   #D97706;
+    --c-accent-red:     #DC2626;
+    --c-accent-violet:  #7C3AED;
+    --c-accent-cyan:    #0891B2;
+    --c-accent-pink:    #DB2777;
+    --c-accent-lime:    #65A30D;
+    --c-accent-orange:  #EA580C;
+
+    /* RGB triples — ajustados para light */
+    --c-bg-surface-rgb:     255 255 255;
+    --c-border-rgb:         226 232 240;
+    --c-accent-blue-rgb:    var(--app-accent-rgb, 37 99 235);
+    --c-accent-emerald-rgb: 5 150 105;
+    --c-accent-amber-rgb:   217 119 6;
+    --c-accent-red-rgb:     220 38 38;
+    --c-accent-violet-rgb:  124 58 237;
+    --c-accent-cyan-rgb:    8 145 178;
+    --c-accent-pink-rgb:    219 39 119;
+
+    /* Shadows — mucho más sutiles en light */
+    --c-shadow-soft:   rgba(15, 23, 42, 0.04);
+    --c-shadow-medium: rgba(15, 23, 42, 0.08);
+    --c-shadow-strong: rgba(15, 23, 42, 0.12);
+    --c-shadow-heavy:  rgba(15, 23, 42, 0.16);
+
+    /* Legacy HSL */
     --bg-base:       210 20% 98%;
     --bg-surface:    0 0% 100%;
     --bg-elevated:   220 15% 95%;
@@ -76,87 +175,39 @@
     --accent-red:    350 85% 52%;
   }
 
-  /* Light-theme overrides for hardcoded inline hex colors used across the app.
-     This avoids a full component refactor by mapping each known dark-palette hex
-     to its light-mode equivalent via attribute substring matching. */
-  html.light body { background-color: #F8FAFC !important; color: #1A1F2E !important; }
+  /* ── Body + safety nets para edge cases ────────────────────────────────
+   * Después del refactor a CSS variables, el theme switch funciona via
+   * var(--c-*) en los inline styles. Quedan algunos casos especiales que
+   * usan classNames de Tailwind con notación bracket (que NO son inline
+   * styles), o SVG props directos. Esos siguen necesitando overrides. */
+  html.light body { background-color: var(--c-bg-base); color: var(--c-text-primary); }
 
-  /* Backgrounds */
-  html.light [style*="background: #080B12"],
-  html.light [style*="background:#080B12"],
-  html.light [style*="background-color: #080B12"] { background-color: #F8FAFC !important; }
-  html.light [style*="background: #0E1220"],
-  html.light [style*="background:#0E1220"],
-  html.light [style*="background-color: #0E1220"] { background-color: #FFFFFF !important; }
-  html.light [style*="background: #141928"],
-  html.light [style*="background:#141928"],
-  html.light [style*="background-color: #141928"] { background-color: #F1F5F9 !important; }
-  html.light [style*="background: #1A2035"],
-  html.light [style*="background:#1A2035"] { background-color: #E2E8F0 !important; }
-  html.light [style*="background: #0A0E1A"] { background-color: #F8FAFC !important; }
-  html.light [style*="background: #0A0F1C"] { background-color: #F1F5F9 !important; }
+  /* Tailwind bracket-notation classes — no son inline styles, requieren regla específica */
+  .bg-\[\#080B12\]  { background-color: var(--c-bg-base) !important; }
+  .bg-\[\#0E1220\]  { background-color: var(--c-bg-surface) !important; }
+  .bg-\[\#141928\]  { background-color: var(--c-bg-elevated) !important; }
+  .bg-\[\#1E2540\]  { background-color: var(--c-border) !important; }
+  .border-\[\#1E2540\] { border-color: var(--c-border) !important; }
+  .text-\[\#E2E8F8\] { color: var(--c-text-primary) !important; }
+  .text-\[\#C4CFEA\] { color: var(--c-text-secondary) !important; }
+  .text-\[\#7A8BAD\] { color: var(--c-text-muted) !important; }
+  .hover\:bg-\[\#1E2540\]:hover { background-color: var(--c-border) !important; }
+  .hover\:bg-\[\#141928\]:hover { background-color: var(--c-bg-elevated) !important; }
 
-  /* Borders */
-  html.light [style*="border: 1px solid #1E2540"],
-  html.light [style*="border:1px solid #1E2540"],
-  html.light [style*="border-color: #1E2540"],
-  html.light [style*="1px solid #1E2540"] { border-color: #E2E8F0 !important; }
-  html.light [style*="2px solid #1E2540"] { border-color: #E2E8F0 !important; }
-  html.light [style*="border: 1px dashed #1E2540"],
-  html.light [style*="1px dashed #1E2540"] { border-color: #CBD5E1 !important; }
-  html.light [style*="borderBottom: 1px solid #1E2540"] { border-bottom-color: #E2E8F0 !important; }
-  html.light [style*="borderTop: 1px solid #1E2540"] { border-top-color: #E2E8F0 !important; }
-  html.light [style*="borderLeft: 1px solid #1E2540"] { border-left-color: #E2E8F0 !important; }
-  html.light [style*="borderRight: 1px solid #1E2540"] { border-right-color: #E2E8F0 !important; }
-
-  /* Text colors */
-  html.light [style*="color: #E2E8F8"] { color: #1A1F2E !important; }
-  html.light [style*="color: #C4CFEA"] { color: #334155 !important; }
-  html.light [style*="color: #7A8BAD"] { color: #64748B !important; }
-  html.light [style*="color:#7A8BAD"] { color: #64748B !important; }
-  html.light [style*="color: #4A5568"] { color: #94A3B8 !important; }
-  html.light [style*="color: #1E2540"] { color: #CBD5E1 !important; } /* used as muted dividers */
-
-  /* Background variants del sprint (stats section, modals) */
-  html.light [style*="background: #1E2540"],
-  html.light [style*="background:#1E2540"] { background-color: #E2E8F0 !important; }
-  html.light [style*="background: #2A3356"],
-  html.light [style*="background:#2A3356"] { background-color: #CBD5E1 !important; }
-
-  /* Stroke/fill SVG (recharts grid lines) */
+  /* SVG stroke en Recharts (gridlines) — no se puede expresar como var sin tocar componentes */
   html.light [stroke="#1E2540"] { stroke: #CBD5E1 !important; }
 
-  /* Box shadows dark */
-  html.light [style*="boxShadow"][style*="rgba(0,0,0,0.5)"],
-  html.light [style*="box-shadow"][style*="rgba(0,0,0,0.5)"] { box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important; }
-  html.light [style*="boxShadow"][style*="rgba(0,0,0,0.6)"],
-  html.light [style*="box-shadow"][style*="rgba(0,0,0,0.6)"] { box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important; }
-
-  /* Placeholder text */
-  html.light [style*="color: #3A4560"] { color: #94A3B8 !important; }
-
-  /* Tailwind classes that hardcode colors */
-  html.light .bg-\[\#080B12\] { background-color: #F8FAFC !important; }
-  html.light .bg-\[\#0E1220\] { background-color: #FFFFFF !important; }
-  html.light .bg-\[\#141928\] { background-color: #F1F5F9 !important; }
-  html.light .bg-\[\#1E2540\] { background-color: #E2E8F0 !important; }
-  html.light .border-\[\#1E2540\] { border-color: #E2E8F0 !important; }
-  html.light .text-\[\#E2E8F8\] { color: #1A1F2E !important; }
-  html.light .text-\[\#C4CFEA\] { color: #334155 !important; }
-  html.light .text-\[\#7A8BAD\] { color: #64748B !important; }
-  html.light .hover\:bg-\[\#1E2540\]:hover { background-color: #E2E8F0 !important; }
-  html.light .hover\:bg-\[\#141928\]:hover { background-color: #F1F5F9 !important; }
-
-  /* Native form elements adapt automatically via color-scheme: light */
+  /* Native form elements — adapt automatically via color-scheme: light pero
+     algunos navegadores (Firefox) no respetan eso del todo en option */
   html.light select option { background-color: #FFFFFF !important; color: #1A1F2E !important; }
   html.light select option:hover, html.light select option:checked {
     background: linear-gradient(#E2E8F0, #E2E8F0) !important;
     color: #1A1F2E !important;
   }
 
-  /* ── Accent color: dynamic via --app-accent. Default = blue. ──────────── */
+  /* ── Accent color dinámico — fallback si ThemeBridge no corrió todavía ── */
   :root { --app-accent: #3D7EFF; --app-accent-rgb: 61 126 255; }
-  /* Note: applied via inline style on root by ThemeBridge component */
+  /* Note: ThemeBridge component lo actualiza con la preferencia del user */
 
   html {
     color-scheme: dark;

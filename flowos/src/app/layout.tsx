@@ -37,22 +37,22 @@ export default function RootLayout({
       localization={esES}
       appearance={{
         variables: {
-          colorPrimary: "#3D7EFF",
-          colorBackground: "#0E1220",
-          colorText: "#E2E8F8",
-          colorTextSecondary: "#7A8BAD",
-          colorInputBackground: "#141928",
-          colorInputText: "#E2E8F8",
-          colorNeutral: "#7A8BAD",
+          colorPrimary: "var(--c-accent-blue)",
+          colorBackground: "var(--c-bg-surface)",
+          colorText: "var(--c-text-primary)",
+          colorTextSecondary: "var(--c-text-muted)",
+          colorInputBackground: "var(--c-bg-elevated)",
+          colorInputText: "var(--c-text-primary)",
+          colorNeutral: "var(--c-text-muted)",
           borderRadius: "0.5rem",
           fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
         },
         elements: {
-          card: "shadow-none border border-[#1E2540] bg-[#0E1220]",
+          card: "shadow-none border border-[var(--c-border)] bg-[var(--c-bg-surface)]",
           formButtonPrimary:
-            "bg-[#3D7EFF] hover:bg-[#5a93ff] text-white shadow-[0_0_20px_rgba(61,126,255,0.35)]",
+            "bg-[var(--c-accent-blue)] hover:bg-[#5a93ff] text-white shadow-[0_0_20px_rgb(var(--c-accent-blue-rgb) / 0.35)]",
           socialButtonsBlockButton:
-            "border-[#1E2540] bg-[#141928] text-[#E2E8F8] hover:bg-[#1A2035]",
+            "border-[var(--c-border)] bg-[var(--c-bg-elevated)] text-[var(--c-text-primary)] hover:bg-[var(--c-bg-overlay)]",
         },
       }}
     >

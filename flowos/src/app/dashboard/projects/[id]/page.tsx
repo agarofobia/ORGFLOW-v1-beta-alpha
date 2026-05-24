@@ -23,9 +23,9 @@ interface Member {
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
 const MILESTONE_STATUS_COLORS = {
-  pending: "#7A8BAD",
-  in_progress: "#3D7EFF",
-  done: "#10D9A0",
+  pending: "var(--c-text-muted)",
+  in_progress: "var(--c-accent-blue)",
+  done: "var(--c-accent-emerald)",
 };
 const MILESTONE_STATUS_LABELS = {
   pending: "Pendiente",
@@ -38,7 +38,7 @@ function Avatar({ name, color, size = 32 }: { name: string | null; color: string
   return (
     <div
       className="flex shrink-0 items-center justify-center rounded-full font-bold text-white"
-      style={{ width: size, height: size, background: color ?? "#3D7EFF", fontSize: size * 0.35 }}
+      style={{ width: size, height: size, background: color ?? "var(--c-accent-blue)", fontSize: size * 0.35 }}
     >
       {initials}
     </div>
@@ -93,18 +93,18 @@ function MilestonesTab({ projectId }: { projectId: string }) {
     setMilestones((prev) => prev.filter((m) => m.id !== id));
   };
 
-  if (loading) return <p className="py-12 text-center text-sm" style={{ color: "#7A8BAD" }}>Cargando…</p>;
+  if (loading) return <p className="py-12 text-center text-sm" style={{ color: "var(--c-text-muted)" }}>Cargando…</p>;
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm" style={{ color: "#7A8BAD" }}>
+        <p className="text-sm" style={{ color: "var(--c-text-muted)" }}>
           {milestones.length} hitos · {milestones.filter((m) => m.status === "done").length} completados
         </p>
         <button
           onClick={() => setAdding(true)}
           className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-white"
-          style={{ background: "#3D7EFF" }}
+          style={{ background: "var(--c-accent-blue)" }}
         >
           <Plus className="h-3.5 w-3.5" /> Agregar hito
         </button>
@@ -119,38 +119,38 @@ function MilestonesTab({ projectId }: { projectId: string }) {
             onKeyDown={(e) => { if (e.key === "Enter") createMilestone(); if (e.key === "Escape") setAdding(false); }}
             placeholder="Nombre del hito…"
             className="flex-1 rounded px-3 py-2 text-sm outline-none"
-            style={{ background: "#141928", border: "1px solid #3D7EFF", color: "#E2E8F8" }}
+            style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-accent-blue)", color: "var(--c-text-primary)" }}
           />
-          <button onClick={createMilestone} className="rounded px-4 py-2 text-sm font-medium text-white" style={{ background: "#3D7EFF" }}>Crear</button>
-          <button onClick={() => setAdding(false)} className="rounded px-3 py-2 text-sm" style={{ color: "#7A8BAD", background: "#141928", border: "1px solid #1E2540" }}>✕</button>
+          <button onClick={createMilestone} className="rounded px-4 py-2 text-sm font-medium text-white" style={{ background: "var(--c-accent-blue)" }}>Crear</button>
+          <button onClick={() => setAdding(false)} className="rounded px-3 py-2 text-sm" style={{ color: "var(--c-text-muted)", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>✕</button>
         </div>
       )}
 
       {milestones.length === 0 ? (
-        <div className="rounded-lg p-10 text-center" style={{ background: "#0E1220", border: "1px dashed #1E2540" }}>
-          <Flag className="mx-auto mb-3 h-8 w-8" style={{ color: "#1E2540" }} />
-          <p className="text-sm" style={{ color: "#C4CFEA" }}>Sin hitos todavía</p>
+        <div className="rounded-lg p-10 text-center" style={{ background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)" }}>
+          <Flag className="mx-auto mb-3 h-8 w-8" style={{ color: "var(--c-border)" }} />
+          <p className="text-sm" style={{ color: "var(--c-text-secondary)" }}>Sin hitos todavía</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {milestones.map((m, i) => (
             <div key={m.id} className="flex items-center gap-3 rounded-lg px-4 py-3"
-              style={{ background: "#0E1220", border: "1px solid #1E2540" }}>
-              <span className="font-mono text-xs w-5 text-right" style={{ color: "#4A5568" }}>{i + 1}</span>
+              style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}>
+              <span className="font-mono text-xs w-5 text-right" style={{ color: "var(--c-text-dim)" }}>{i + 1}</span>
               <button onClick={() => cycleStatus(m)} className="shrink-0">
                 {m.status === "done"
-                  ? <CheckCircle2 className="h-5 w-5" style={{ color: "#10D9A0" }} />
+                  ? <CheckCircle2 className="h-5 w-5" style={{ color: "var(--c-accent-emerald)" }} />
                   : m.status === "in_progress"
-                  ? <Circle className="h-5 w-5" style={{ color: "#3D7EFF" }} />
-                  : <Circle className="h-5 w-5" style={{ color: "#4A5568" }} />}
+                  ? <Circle className="h-5 w-5" style={{ color: "var(--c-accent-blue)" }} />
+                  : <Circle className="h-5 w-5" style={{ color: "var(--c-text-dim)" }} />}
               </button>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: m.status === "done" ? "#7A8BAD" : "#E2E8F8",
+                <p className="text-sm font-medium truncate" style={{ color: m.status === "done" ? "var(--c-text-muted)" : "var(--c-text-primary)",
                   textDecoration: m.status === "done" ? "line-through" : "none" }}>
                   {m.title}
                 </p>
                 {m.dueDate && (
-                  <p className="mt-0.5 text-xs" style={{ color: "#7A8BAD" }}>
+                  <p className="mt-0.5 text-xs" style={{ color: "var(--c-text-muted)" }}>
                     <Calendar className="inline h-3 w-3 mr-1" />
                     {new Date(m.dueDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                   </p>
@@ -160,7 +160,7 @@ function MilestonesTab({ projectId }: { projectId: string }) {
                 style={{ background: `${MILESTONE_STATUS_COLORS[m.status]}18`, color: MILESTONE_STATUS_COLORS[m.status], border: `1px solid ${MILESTONE_STATUS_COLORS[m.status]}30` }}>
                 {MILESTONE_STATUS_LABELS[m.status]}
               </span>
-              <button onClick={() => deleteMilestone(m.id)} className="rounded p-1 hover:bg-red-500/10" style={{ color: "#4A5568" }}>
+              <button onClick={() => deleteMilestone(m.id)} className="rounded p-1 hover:bg-red-500/10" style={{ color: "var(--c-text-dim)" }}>
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -219,7 +219,7 @@ function MembersTab({ projectId }: { projectId: string }) {
   const memberEmployeeIds = new Set(members.map((m) => m.employeeId));
   const availableEmployees = employees.filter((e) => !memberEmployeeIds.has(e.id));
 
-  if (loading) return <p className="py-12 text-center text-sm" style={{ color: "#7A8BAD" }}>Cargando…</p>;
+  if (loading) return <p className="py-12 text-center text-sm" style={{ color: "var(--c-text-muted)" }}>Cargando…</p>;
 
   return (
     <div>
@@ -229,7 +229,7 @@ function MembersTab({ projectId }: { projectId: string }) {
           value={selectedEmployee}
           onChange={(e) => setSelectedEmployee(e.target.value)}
           className="flex-1 rounded px-3 py-2 text-sm outline-none"
-          style={{ background: "#141928", border: "1px solid #1E2540", color: selectedEmployee ? "#E2E8F8" : "#7A8BAD" }}
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: selectedEmployee ? "var(--c-text-primary)" : "var(--c-text-muted)" }}
         >
           <option value="">Seleccionar empleado…</option>
           {availableEmployees.map((e) => (
@@ -240,7 +240,7 @@ function MembersTab({ projectId }: { projectId: string }) {
           value={selectedRole}
           onChange={(e) => setSelectedRole(e.target.value)}
           className="rounded px-3 py-2 text-sm outline-none"
-          style={{ background: "#141928", border: "1px solid #1E2540", color: "#C4CFEA" }}
+          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}
         >
           <option value="owner">Owner</option>
           <option value="member">Miembro</option>
@@ -250,32 +250,32 @@ function MembersTab({ projectId }: { projectId: string }) {
           onClick={addMember}
           disabled={!selectedEmployee}
           className="flex items-center gap-1.5 rounded px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
-          style={{ background: "#3D7EFF" }}
+          style={{ background: "var(--c-accent-blue)" }}
         >
           <Plus className="h-4 w-4" /> Agregar
         </button>
       </div>
 
       {members.length === 0 ? (
-        <div className="rounded-lg p-10 text-center" style={{ background: "#0E1220", border: "1px dashed #1E2540" }}>
-          <Users className="mx-auto mb-3 h-8 w-8" style={{ color: "#1E2540" }} />
-          <p className="text-sm" style={{ color: "#C4CFEA" }}>Sin miembros asignados</p>
+        <div className="rounded-lg p-10 text-center" style={{ background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)" }}>
+          <Users className="mx-auto mb-3 h-8 w-8" style={{ color: "var(--c-border)" }} />
+          <p className="text-sm" style={{ color: "var(--c-text-secondary)" }}>Sin miembros asignados</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {members.map((m) => (
             <div key={m.id} className="flex items-center gap-3 rounded-lg px-4 py-3"
-              style={{ background: "#0E1220", border: "1px solid #1E2540" }}>
+              style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}>
               <Avatar name={m.fullName} color={m.color} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>{m.fullName ?? "Sin nombre"}</p>
-                {m.jobTitle && <p className="text-xs" style={{ color: "#7A8BAD" }}>{m.jobTitle}</p>}
+                <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>{m.fullName ?? "Sin nombre"}</p>
+                {m.jobTitle && <p className="text-xs" style={{ color: "var(--c-text-muted)" }}>{m.jobTitle}</p>}
               </div>
               <span className="rounded px-2 py-0.5 font-mono text-[10px] capitalize"
-                style={{ background: "#141928", color: "#7A8BAD", border: "1px solid #1E2540" }}>
+                style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", border: "1px solid var(--c-border)" }}>
                 {m.role}
               </span>
-              <button onClick={() => removeMember(m.id)} className="rounded p-1 hover:bg-red-500/10" style={{ color: "#4A5568" }}>
+              <button onClick={() => removeMember(m.id)} className="rounded p-1 hover:bg-red-500/10" style={{ color: "var(--c-text-dim)" }}>
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -362,15 +362,15 @@ function FilesTab({ projectId }: { projectId: string }) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  if (loading) return <p className="py-12 text-center text-sm" style={{ color: "#7A8BAD" }}>Cargando…</p>;
+  if (loading) return <p className="py-12 text-center text-sm" style={{ color: "var(--c-text-muted)" }}>Cargando…</p>;
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm" style={{ color: "#7A8BAD" }}>{files.length} archivo{files.length !== 1 ? "s" : ""}</p>
+        <p className="text-sm" style={{ color: "var(--c-text-muted)" }}>{files.length} archivo{files.length !== 1 ? "s" : ""}</p>
         <label
           className="flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-white"
-          style={{ background: uploading ? "#2A3356" : "#3D7EFF" }}
+          style={{ background: uploading ? "var(--c-border-strong)" : "var(--c-accent-blue)" }}
         >
           {uploading ? (
             <>
@@ -387,10 +387,10 @@ function FilesTab({ projectId }: { projectId: string }) {
       </div>
 
       {files.length === 0 ? (
-        <div className="rounded-lg p-10 text-center" style={{ background: "#0E1220", border: "1px dashed #1E2540" }}>
-          <FileText className="mx-auto mb-3 h-8 w-8" style={{ color: "#1E2540" }} />
-          <p className="text-sm" style={{ color: "#C4CFEA" }}>Sin archivos adjuntos</p>
-          <p className="mt-1 text-xs" style={{ color: "#7A8BAD" }}>Subí archivos para vincularlos a este proyecto</p>
+        <div className="rounded-lg p-10 text-center" style={{ background: "var(--c-bg-surface)", border: "1px dashed var(--c-border)" }}>
+          <FileText className="mx-auto mb-3 h-8 w-8" style={{ color: "var(--c-border)" }} />
+          <p className="text-sm" style={{ color: "var(--c-text-secondary)" }}>Sin archivos adjuntos</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--c-text-muted)" }}>Subí archivos para vincularlos a este proyecto</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -398,27 +398,27 @@ function FilesTab({ projectId }: { projectId: string }) {
             const isImage = f.content?.fileType?.startsWith("image/");
             return (
               <div key={f.linkId} className="flex items-center gap-3 rounded-lg px-4 py-3"
-                style={{ background: "#0E1220", border: "1px solid #1E2540" }}>
+                style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}>
                 {isImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={f.content.data} alt={f.title} className="h-10 w-10 rounded object-cover shrink-0"
-                    style={{ border: "1px solid #1E2540" }} />
+                    style={{ border: "1px solid var(--c-border)" }} />
                 ) : (
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded"
-                    style={{ background: "#141928", border: "1px solid #1E2540" }}>
-                    <FileText className="h-5 w-5" style={{ color: "#7A8BAD" }} />
+                    style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
+                    <FileText className="h-5 w-5" style={{ color: "var(--c-text-muted)" }} />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: "#E2E8F8" }}>{f.title}</p>
-                  <p className="text-xs" style={{ color: "#7A8BAD" }}>
+                  <p className="text-sm font-medium truncate" style={{ color: "var(--c-text-primary)" }}>{f.title}</p>
+                  <p className="text-xs" style={{ color: "var(--c-text-muted)" }}>
                     {f.content?.fileType ?? "file"} · {formatSize(f.content?.size ?? 0)} · {new Date(f.addedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
                   </p>
                 </div>
-                <button onClick={() => downloadFile(f)} className="rounded p-1.5 hover:bg-blue-500/10 transition-colors" style={{ color: "#7A8BAD" }} title="Descargar">
+                <button onClick={() => downloadFile(f)} className="rounded p-1.5 hover:bg-blue-500/10 transition-colors" style={{ color: "var(--c-text-muted)" }} title="Descargar">
                   <Download className="h-4 w-4" />
                 </button>
-                <button onClick={() => deleteFile(f.linkId, f.id)} className="rounded p-1.5 hover:bg-red-500/10 transition-colors" style={{ color: "#4A5568" }} title="Eliminar">
+                <button onClick={() => deleteFile(f.linkId, f.id)} className="rounded p-1.5 hover:bg-red-500/10 transition-colors" style={{ color: "var(--c-text-dim)" }} title="Eliminar">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -471,12 +471,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   if (loading) return (
     <div className="flex h-full items-center justify-center">
-      <p className="text-sm" style={{ color: "#7A8BAD" }}>Cargando proyecto…</p>
+      <p className="text-sm" style={{ color: "var(--c-text-muted)" }}>Cargando proyecto…</p>
     </div>
   );
   if (!project) return (
     <div className="flex h-full items-center justify-center">
-      <p className="text-sm" style={{ color: "#F43F5E" }}>Proyecto no encontrado.</p>
+      <p className="text-sm" style={{ color: "var(--c-accent-red)" }}>Proyecto no encontrado.</p>
     </div>
   );
 
@@ -486,7 +486,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <button
         onClick={() => router.push("/dashboard/projects")}
         className="mb-6 flex items-center gap-2 text-sm transition-colors hover:opacity-80"
-        style={{ color: "#7A8BAD" }}
+        style={{ color: "var(--c-text-muted)" }}
       >
         <ArrowLeft className="h-4 w-4" /> Volver a proyectos
       </button>
@@ -501,29 +501,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               onChange={(e) => setNameInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditingName(false); }}
               className="flex-1 rounded px-3 py-2 text-xl font-bold outline-none"
-              style={{ background: "#141928", border: "1px solid #3D7EFF", color: "#E2E8F8" }}
+              style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-accent-blue)", color: "var(--c-text-primary)" }}
             />
-            <button onClick={saveName} className="rounded px-4 py-2 text-sm font-medium text-white" style={{ background: "#3D7EFF" }}>
+            <button onClick={saveName} className="rounded px-4 py-2 text-sm font-medium text-white" style={{ background: "var(--c-accent-blue)" }}>
               <Check className="h-4 w-4" />
             </button>
           </div>
         ) : (
           <h1
             className="cursor-pointer text-2xl font-bold transition-opacity hover:opacity-80"
-            style={{ color: "#E2E8F8" }}
+            style={{ color: "var(--c-text-primary)" }}
             onClick={() => setEditingName(true)}
             title="Click para editar"
           >
             {project.name}
           </h1>
         )}
-        <p className="mt-1 text-xs" style={{ color: "#4A5568" }}>
+        <p className="mt-1 text-xs" style={{ color: "var(--c-text-dim)" }}>
           Creado {new Date(project.createdAt).toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric" })}
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-1 rounded-lg p-1" style={{ background: "#0A0F1C", border: "1px solid #1E2540" }}>
+      <div className="mb-6 flex gap-1 rounded-lg p-1" style={{ background: "var(--c-bg-darker)", border: "1px solid var(--c-border)" }}>
         {TABS.map(({ key, label, icon }) => (
           <button
             key={key}
@@ -531,8 +531,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-sm font-medium transition-all"
             style={
               tab === key
-                ? { background: "#141928", color: "#E2E8F8", border: "1px solid #1E2540" }
-                : { color: "#7A8BAD" }
+                ? { background: "var(--c-bg-elevated)", color: "var(--c-text-primary)", border: "1px solid var(--c-border)" }
+                : { color: "var(--c-text-muted)" }
             }
           >
             {icon} {label}

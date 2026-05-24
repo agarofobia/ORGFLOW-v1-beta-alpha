@@ -94,25 +94,25 @@ export function DashboardTopbar() {
   return (
     <header
       className="flex h-14 shrink-0 items-center justify-between px-6"
-      style={{ borderBottom: "1px solid #1E2540", background: "#080B12" }}
+      style={{ borderBottom: "1px solid var(--c-border)", background: "var(--c-bg-base)" }}
     >
       {/* Hamburger + Título */}
       <div className="flex items-center gap-3">
         {/* Hamburger — visible solo en mobile, abre el sidebar overlay */}
         <button
           onClick={toggleMobileNav}
-          className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-[#141928] md:hidden"
-          style={{ color: "#7A8BAD" }}
+          className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-bg-elevated)] md:hidden"
+          style={{ color: "var(--c-text-muted)" }}
           aria-label="Abrir menú"
         >
           <Menu className="h-4 w-4" strokeWidth={1.75} />
         </button>
         <div className="flex items-baseline gap-2.5">
-          <h1 className="text-base font-semibold" style={{ color: "#E2E8F8" }}>
+          <h1 className="text-base font-semibold" style={{ color: "var(--c-text-primary)" }}>
             {meta.title}
           </h1>
           {meta.subtitle && (
-            <span className="hidden sm:inline text-sm" style={{ color: "#7A8BAD" }}>
+            <span className="hidden sm:inline text-sm" style={{ color: "var(--c-text-muted)" }}>
               {meta.subtitle}
             </span>
           )}
@@ -129,11 +129,11 @@ export function DashboardTopbar() {
             // Dispara el shortcut Ctrl+K para abrir el palette (el listener vive en CommandPalette).
             window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
           }}
-          className="hidden sm:flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-[#141928]"
+          className="hidden sm:flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-[var(--c-bg-elevated)]"
           style={{
-            background: "#0E1220",
-            border: "1px solid #1E2540",
-            color: "#7A8BAD",
+            background: "var(--c-bg-surface)",
+            border: "1px solid var(--c-border)",
+            color: "var(--c-text-muted)",
             minWidth: "200px",
             cursor: "pointer",
           }}
@@ -144,11 +144,11 @@ export function DashboardTopbar() {
           <span
             className="font-mono text-[9px]"
             style={{
-              background: "#141928",
-              border: "1px solid #1E2540",
+              background: "var(--c-bg-elevated)",
+              border: "1px solid var(--c-border)",
               borderRadius: 3,
               padding: "1px 5px",
-              color: "#7A8BAD",
+              color: "var(--c-text-muted)",
             }}
           >
             Ctrl K
@@ -161,14 +161,14 @@ export function DashboardTopbar() {
             onClick={() => setNotifOpen((o) => !o)}
             title={unreadCount > 0 ? `${unreadCount} notificación${unreadCount !== 1 ? "es" : ""} sin leer` : "Notificaciones"}
             aria-label="Notificaciones"
-            className="relative flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-[#141928]"
-            style={{ color: "#7A8BAD" }}
+            className="relative flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-bg-elevated)]"
+            style={{ color: "var(--c-text-muted)" }}
           >
             <Bell className="h-4 w-4" strokeWidth={1.75} />
             {unreadCount > 0 && (
               <span
                 className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
-                style={{ background: "#F43F5E" }}
+                style={{ background: "var(--c-accent-red)" }}
               />
             )}
           </button>
@@ -176,12 +176,12 @@ export function DashboardTopbar() {
           {notifOpen && (
             <div
               className="absolute right-0 top-10 z-50 w-80 rounded-lg shadow-xl"
-              style={{ background: "#0E1220", border: "1px solid #1E2540" }}
+              style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }}
             >
-              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid #1E2540" }}>
-                <span className="text-sm font-medium" style={{ color: "#E2E8F8" }}>Notificaciones</span>
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--c-border)" }}>
+                <span className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>Notificaciones</span>
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="flex items-center gap-1 text-xs" style={{ color: "#3D7EFF" }}>
+                  <button onClick={markAllRead} className="flex items-center gap-1 text-xs" style={{ color: "var(--c-accent-blue)" }}>
                     <CheckCheck className="h-3.5 w-3.5" />
                     Marcar todo como leído
                   </button>
@@ -189,7 +189,7 @@ export function DashboardTopbar() {
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm" style={{ color: "#7A8BAD" }}>
+                  <p className="px-4 py-6 text-center text-sm" style={{ color: "var(--c-text-muted)" }}>
                     No hay notificaciones todavía
                   </p>
                 ) : (
@@ -198,12 +198,12 @@ export function DashboardTopbar() {
                     const content = (
                       <>
                         {unread && (
-                          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: "#3D7EFF" }} />
+                          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--c-accent-blue)" }} />
                         )}
                         <div className={unread ? "flex-1" : "flex-1 pl-5"}>
-                          <p className="text-sm font-medium" style={{ color: "#E2E8F8" }}>{n.title}</p>
-                          {n.body && <p className="mt-0.5 text-xs" style={{ color: "#7A8BAD", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.body}</p>}
-                          <p className="mt-1 text-xs" style={{ color: "#4A5568" }}>{timeAgo(n.createdAt)}</p>
+                          <p className="text-sm font-medium" style={{ color: "var(--c-text-primary)" }}>{n.title}</p>
+                          {n.body && <p className="mt-0.5 text-xs" style={{ color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{n.body}</p>}
+                          <p className="mt-1 text-xs" style={{ color: "var(--c-text-dim)" }}>{timeAgo(n.createdAt)}</p>
                         </div>
                       </>
                     );
@@ -211,8 +211,8 @@ export function DashboardTopbar() {
                       return (
                         <Link key={n.id} href={n.linkUrl}
                           onClick={() => { markOneRead(n.id); setNotifOpen(false); }}
-                          className="flex gap-3 px-4 py-3 transition-colors hover:bg-[#141928]"
-                          style={{ borderBottom: "1px solid #1E2540", textDecoration: "none" }}>
+                          className="flex gap-3 px-4 py-3 transition-colors hover:bg-[var(--c-bg-elevated)]"
+                          style={{ borderBottom: "1px solid var(--c-border)", textDecoration: "none" }}>
                           {content}
                         </Link>
                       );
@@ -220,8 +220,8 @@ export function DashboardTopbar() {
                     return (
                       <div key={n.id}
                         onClick={() => markOneRead(n.id)}
-                        className="flex gap-3 px-4 py-3 transition-colors hover:bg-[#141928] cursor-pointer"
-                        style={{ borderBottom: "1px solid #1E2540" }}>
+                        className="flex gap-3 px-4 py-3 transition-colors hover:bg-[var(--c-bg-elevated)] cursor-pointer"
+                        style={{ borderBottom: "1px solid var(--c-border)" }}>
                         {content}
                       </div>
                     );
