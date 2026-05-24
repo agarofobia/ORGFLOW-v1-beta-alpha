@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 export async function GET() {
   const { orgId, userId } = await auth();
@@ -35,6 +36,13 @@ export async function POST(req: NextRequest) {
         // Se omite para evitar error de tipo uuid
       })
       .returning();
+    if (result[0]) {
+      dispatchWebhook({
+        organizationId: orgId,
+        eventType: "project.created",
+        payload: { projectId: result[0].id, name: result[0].name, description: result[0].description },
+      });
+    }
     return NextResponse.json(result[0], { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/project-activity";
 import { advanceInstance } from "@/lib/bpm";
 import { logProcessEvent } from "@/lib/process-events";
+import { notify } from "@/lib/notifications";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 export async function PUT(
   req: NextRequest,
@@ -43,6 +45,18 @@ export async function PUT(
     if (!result.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const after = result[0];
 
+    // Notificar al nuevo owner si cambió
+    if (before && body.ownerEmployeeId !== undefined && before.ownerEmployeeId !== after.ownerEmployeeId && after.ownerEmployeeId) {
+      await notify({
+        employeeId: after.ownerEmployeeId,
+        organizationId: orgId,
+        type: "task_assigned",
+        title: `Sos owner del hito "${after.title}"`,
+        body: after.acceptanceCriteria ?? "",
+        linkUrl: `/dashboard/projects?id=${projectId}`,
+      });
+    }
+
     // Si se completó: log + BPM reverse trigger (avanzar nodo del proceso si está vinculado)
     let bpmAdvanced = false;
     if (before && body.status !== undefined && before.status !== after.status && after.status === "done") {
@@ -50,6 +64,11 @@ export async function PUT(
         projectId, organizationId: orgId, clerkUserId,
         type: "milestone_completed",
         payload: { milestoneId: after.id, title: after.title },
+      });
+      dispatchWebhook({
+        organizationId: orgId,
+        eventType: "milestone.completed",
+        payload: { milestoneId: after.id, title: after.title, projectId },
       });
 
       // BPM inverso: si el milestone tiene bpmNodeId Y el proyecto vino de un proceso → avanzar nodo

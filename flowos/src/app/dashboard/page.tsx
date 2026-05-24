@@ -283,7 +283,23 @@ function WidgetDetailModal({ widget, value, onClose }: {
   const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
   const spec = METRICS_BY_KEY[widget.metric];
   const Icon = spec.icon;
-  const series = useMemo(() => generateTimeSeries(value ?? 0, days), [value, days]);
+
+  // Fetch del histórico real (snapshots diarios). Si no hay datos, cae al mock.
+  const [realSeries, setRealSeries] = useState<{ date: string; value: number }[] | null>(null);
+  useEffect(() => {
+    fetch(`/api/metrics/timeseries?metric=${encodeURIComponent(widget.metric)}&days=${days}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.series)) setRealSeries(data.series);
+      })
+      .catch(() => setRealSeries([]));
+  }, [widget.metric, days]);
+
+  const mockSeries = useMemo(() => generateTimeSeries(value ?? 0, days), [value, days]);
+
+  // Si hay al menos 3 días reales → usar reales. Sino mock (con badge informativo).
+  const hasRealData = realSeries !== null && realSeries.length >= 3;
+  const series = hasRealData ? realSeries! : mockSeries;
   const first = series[0]?.value ?? 0;
   const last = series[series.length - 1]?.value ?? 0;
   const change = first === 0 ? 0 : Math.round(((last - first) / first) * 100);
@@ -351,8 +367,10 @@ function WidgetDetailModal({ widget, value, onClose }: {
         {/* Chart */}
         <div style={{ padding: 20, flex: 1, overflow: "auto" }}>
           <LineChart data={series} color={spec.color} height={220} />
-          <p style={{ fontSize: 10, color: "var(--c-text-muted)", margin: "12px 0 0", textAlign: "center", fontFamily: "monospace" }}>
-            ⓘ Serie temporal estimada — el histórico real se acumulará con el uso
+          <p style={{ fontSize: 10, color: hasRealData ? "var(--c-accent-emerald)" : "var(--c-text-muted)", margin: "12px 0 0", textAlign: "center", fontFamily: "monospace" }}>
+            {hasRealData
+              ? `● Datos reales · ${realSeries!.length} snapshots históricos`
+              : "ⓘ Serie estimada — los datos reales se acumulan diariamente (cron de snapshot)"}
           </p>
         </div>
       </div>

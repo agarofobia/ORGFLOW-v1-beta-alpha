@@ -18,6 +18,7 @@ import Link from "next/link";
 import PermissionGroupsSection from "./PermissionGroupsSection";
 import AiConfigSection from "./AiConfigSection";
 import AiVisibilityToggle from "./AiVisibilityToggle";
+import WebhooksSection from "./WebhooksSection";
 
 type Theme = "dark" | "light" | "system";
 type Lang = "es" | "en" | "pt";
@@ -422,6 +423,9 @@ export default function SettingsPage() {
       {/* ── Asistente IA (BYOK) — config (admin) + visibilidad personal (todos) ── */}
       <AiConfigSection />
       <AiVisibilityToggle />
+
+      {/* ── Webhooks salientes (integración con apps externas) ── */}
+      <WebhooksSection />
 
       {/* ── Plan y facturación ── */}
       <section className="mt-10">

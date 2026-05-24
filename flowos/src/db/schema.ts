@@ -122,9 +122,6 @@ export const departments = pgTable(
     organizationId: text("organization_id").notNull(),
     divisionId: uuid("division_id").references(() => divisions.id, { onDelete: "set null" }),
     name: text("name").notNull(),
-    // @deprecated — pensado para sub-departamentos jerárquicos, nunca se implementó.
-    // No borrar todavía sin migración SQL (la columna existe en producción).
-    parentId: uuid("parent_id"),
     color: text("color").default("#C8902C"),
     positionX: doublePrecision("position_x").default(0),
     positionY: doublePrecision("position_y").default(0),
@@ -649,6 +646,74 @@ export const aiConversations = pgTable(
   })
 );
 
+// ─── Webhooks salientes ─────────────────────────────────────────────────────
+// Subscriptions: el user/admin configura URLs a las que FlowOS enviará eventos.
+// Deliveries: historial de cada intento de entrega (status, response, errores).
+// HMAC-SHA256 signing usando `secret` para que el receiver pueda validar.
+
+export const webhookSubscriptions = pgTable(
+  "webhook_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    events: text("events").array().notNull().default([]),
+    active: boolean("active").notNull().default(true),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    orgIdx: index("webhook_subs_org_idx").on(t.organizationId),
+  })
+);
+
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => webhookSubscriptions.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").notNull(),
+    eventType: text("event_type").notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    responseCode: integer("response_code"),
+    responseBody: text("response_body"),
+    errorMessage: text("error_message"),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    subIdx: index("webhook_deliveries_sub_idx").on(t.subscriptionId, t.createdAt),
+    orgIdx: index("webhook_deliveries_org_idx").on(t.organizationId, t.createdAt),
+  })
+);
+
+// ─── Metric snapshots — para sparklines reales en widgets ─────────────────────
+// Cron diario captura los valores de cada métrica. Permite calcular tendencias
+// históricas en lugar de generar series sintéticas con noise.
+
+export const metricSnapshots = pgTable(
+  "metric_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    snapshotDate: text("snapshot_date").notNull(), // YYYY-MM-DD
+    metricKey: text("metric_key").notNull(),
+    value: integer("value").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    orgDateIdx: index("metric_snapshots_org_date_idx").on(t.organizationId, t.snapshotDate),
+    metricIdx: index("metric_snapshots_metric_idx").on(t.organizationId, t.metricKey, t.snapshotDate),
+  })
+);
+
 // ─── Process events — audit trail + métricas de proceso ─────────────────────
 // Cada acción significativa sobre un proceso o instancia registra una fila acá.
 // Sirve para: audit trail visible al usuario, cycle time por nodo, throughput,
@@ -766,6 +831,10 @@ export type AiConfig = typeof aiConfig.$inferSelect;
 export type NewAiConfig = typeof aiConfig.$inferInsert;
 export type AiConversation = typeof aiConversations.$inferSelect;
 export type NewAiConversation = typeof aiConversations.$inferInsert;
+export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
+export type NewWebhookSubscription = typeof webhookSubscriptions.$inferInsert;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type MetricSnapshot = typeof metricSnapshots.$inferSelect;
 export type PermissionGroup = typeof permissionGroups.$inferSelect;
 export type NewPermissionGroup = typeof permissionGroups.$inferInsert;
 export type PermissionAssignment = typeof permissionAssignments.$inferSelect;

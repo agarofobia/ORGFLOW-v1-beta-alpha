@@ -64,6 +64,10 @@ type BpmData = {
   serviceAction?: string;
   formFields?: FormField[];
   allowTracking?: boolean;
+  // Heatmap overlay — cuando está activo en el editor, este campo se inyecta
+  // con el color calculado del cycle time del nodo (verde rápido → rojo lento).
+  heatBorder?: string;
+  heatLabel?: string;  // ej "23s avg" para tooltip
 };
 
 type BpmNode = Node<BpmData>;
@@ -149,7 +153,13 @@ function EndEventNode({ data }: { data: BpmData }) {
 function UserTaskNode({ data }: { data: BpmData }) {
   return (
     <div className="relative min-w-[160px] rounded-lg p-3"
-      style={{ background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)", borderLeft: "3px solid var(--c-accent-blue)" }}>
+      title={data.heatLabel}
+      style={{
+        background: "var(--c-bg-surface)",
+        border: data.heatBorder ? `1px solid ${data.heatBorder}` : "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)",
+        borderLeft: data.heatBorder ? `5px solid ${data.heatBorder}` : "3px solid var(--c-accent-blue)",
+        boxShadow: data.heatBorder ? `0 0 24px ${data.heatBorder}40` : undefined,
+      }}>
       <Handle type="target" position={Position.Top}
         style={{ background: "var(--c-accent-blue)", width: 8, height: 8, border: "none" }} />
       <div className="flex items-center gap-2">
@@ -175,7 +185,13 @@ function UserTaskNode({ data }: { data: BpmData }) {
 function ServiceTaskNode({ data }: { data: BpmData }) {
   return (
     <div className="relative min-w-[160px] rounded-lg p-3"
-      style={{ background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-amber-rgb) / 0.25)", borderLeft: "3px solid var(--c-accent-amber)" }}>
+      title={data.heatLabel}
+      style={{
+        background: "var(--c-bg-surface)",
+        border: data.heatBorder ? `1px solid ${data.heatBorder}` : "1px solid rgb(var(--c-accent-amber-rgb) / 0.25)",
+        borderLeft: data.heatBorder ? `5px solid ${data.heatBorder}` : "3px solid var(--c-accent-amber)",
+        boxShadow: data.heatBorder ? `0 0 24px ${data.heatBorder}40` : undefined,
+      }}>
       <Handle type="target" position={Position.Top}
         style={{ background: "var(--c-accent-amber)", width: 8, height: 8, border: "none" }} />
       <div className="flex items-center gap-2">
@@ -618,11 +634,13 @@ function DesignerFlow({
   onSave,
   saving,
   onDirtyChange,
+  heatmapData,
 }: {
   definition: ProcessDefinition;
   onSave: (nodes: ProcessNode[], edges: ProcessEdge[]) => Promise<void>;
   saving: boolean;
   onDirtyChange?: (dirty: boolean) => void;
+  heatmapData?: Record<string, { color: string; label: string }>;
 }) {
   const { screenToFlowPosition } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState<BpmNode>([]);
@@ -643,6 +661,27 @@ function DesignerFlow({
     // El load (inicial o post-save) limpia el dirty flag.
     setIsDirty(false);
   }, [definition.id, definition.nodes, definition.edges, setNodes, setEdges]);
+
+  // Aplicar/quitar heatmap: cuando cambia heatmapData, inyectamos heatBorder
+  // en cada node.data sin alterar la posición ni otros campos. Esto NO marca dirty.
+  useEffect(() => {
+    setNodes((curr) =>
+      curr.map((n) => {
+        const hit = heatmapData?.[n.id];
+        if (hit) {
+          return { ...n, data: { ...n.data, heatBorder: hit.color, heatLabel: hit.label } };
+        }
+        if (n.data.heatBorder || n.data.heatLabel) {
+          // Remover heat si ya no aplica
+          const cleaned = { ...n.data };
+          delete cleaned.heatBorder;
+          delete cleaned.heatLabel;
+          return { ...n, data: cleaned };
+        }
+        return n;
+      })
+    );
+  }, [heatmapData, setNodes]);
 
   // Wrap onNodesChange para detectar mutaciones persistentes (no "select" / "dimensions").
   const handleNodesChange = useCallback((changes: Parameters<typeof onNodesChange>[0]) => {
@@ -928,8 +967,51 @@ export default function ProcessDesignerPage({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [heatmapOn, setHeatmapOn] = useState(false);
+  const [heatmapData, setHeatmapData] = useState<Record<string, { color: string; label: string }>>({});
   const { can: canDo } = usePermissions();
   const canAudit = canDo("processes", "create");
+
+  // Fetch heatmap data cuando se prende el toggle.
+  // Calcula color por nodo basado en avgDurationMs (percentil simple).
+  useEffect(() => {
+    if (!heatmapOn) {
+      setHeatmapData({});
+      return;
+    }
+    fetch(`/api/processes/${processId}/events`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const nodeStats = data?.metrics?.nodeStats as Array<{ nodeId: string; nodeLabel: string; avgDurationMs: number }> | undefined;
+        if (!Array.isArray(nodeStats) || nodeStats.length === 0) {
+          setHeatmapData({});
+          return;
+        }
+        // Calcular percentiles
+        const durations = nodeStats.map((n) => n.avgDurationMs).filter((d) => d > 0);
+        if (durations.length === 0) return;
+        const sorted = [...durations].sort((a, b) => a - b);
+        const p33 = sorted[Math.floor(sorted.length * 0.33)];
+        const p66 = sorted[Math.floor(sorted.length * 0.66)];
+
+        const map: Record<string, { color: string; label: string }> = {};
+        for (const stat of nodeStats) {
+          if (stat.avgDurationMs <= 0) continue;
+          const color =
+            stat.avgDurationMs <= p33 ? "#10D9A0" :    // verde — rápido
+            stat.avgDurationMs <= p66 ? "#F59E0B" :    // ámbar — medio
+            "#F43F5E";                                  // rojo — cuello de botella
+          const s = stat.avgDurationMs / 1000;
+          const label =
+            s < 60 ? `${s.toFixed(1)}s avg` :
+            s < 3600 ? `${(s / 60).toFixed(1)}m avg` :
+            `${(s / 3600).toFixed(1)}h avg`;
+          map[stat.nodeId] = { color, label };
+        }
+        setHeatmapData(map);
+      })
+      .catch(() => setHeatmapData({}));
+  }, [heatmapOn, processId]);
   // Refs para click-outside en dropdowns del topbar
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const templateDropdownRef = useRef<HTMLDivElement>(null);
@@ -1284,6 +1366,23 @@ export default function ProcessDesignerPage({
           </button>
         )}
 
+        {canAudit && (
+          <button
+            onClick={() => setHeatmapOn((v) => !v)}
+            title={heatmapOn ? "Apagar heatmap de cycle time" : "Mostrar cycle time por nodo (verde=rápido, rojo=lento)"}
+            aria-label="Toggle heatmap"
+            className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs transition-all hover:bg-[var(--c-bg-elevated)]"
+            style={{
+              color: heatmapOn ? "#F43F5E" : "var(--c-text-muted)",
+              border: `1px solid ${heatmapOn ? "rgb(244 63 94 / 0.4)" : "var(--c-border)"}`,
+              background: heatmapOn ? "rgb(244 63 94 / 0.08)" : "transparent",
+            }}
+          >
+            <span style={{ fontSize: 11 }}>🔥</span>
+            <span className="hidden md:inline">Heatmap</span>
+          </button>
+        )}
+
         <button
           onClick={() => setIsFullscreen(v => !v)}
           title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
@@ -1319,6 +1418,7 @@ export default function ProcessDesignerPage({
             onSave={handleSave}
             saving={saving}
             onDirtyChange={setEditorDirty}
+            heatmapData={heatmapData}
           />
         </ReactFlowProvider>
       </div>

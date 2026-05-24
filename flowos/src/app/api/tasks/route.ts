@@ -4,6 +4,7 @@ import { tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/project-activity";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 export async function GET(req: NextRequest) {
   const { orgId } = await auth();
@@ -58,6 +59,17 @@ export async function POST(req: NextRequest) {
         clerkUserId,
         type: "task_created",
         payload: { taskId: result[0].id, title: result[0].title },
+      });
+      dispatchWebhook({
+        organizationId: orgId,
+        eventType: "task.created",
+        payload: {
+          taskId: result[0].id,
+          title: result[0].title,
+          projectId: result[0].projectId,
+          priority: result[0].priority,
+          status: result[0].status,
+        },
       });
     }
 

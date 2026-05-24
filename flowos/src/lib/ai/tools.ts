@@ -481,6 +481,20 @@ export function buildTools(ctx: ToolContext) {
               label: z.string(),
               description: z.string().optional(),
               assigneeDeptId: z.string().optional().describe("Department UUID para userTask"),
+              expectedDurationMs: z.number().optional().describe("SLA: tiempo esperado en ms para completar el nodo"),
+              formFields: z
+                .array(
+                  z.object({
+                    id: z.string(),
+                    type: z.enum(["text", "textarea", "number", "date", "select", "checkbox", "file"]),
+                    label: z.string(),
+                    required: z.boolean(),
+                    options: z.array(z.string()).optional().describe("Para select"),
+                    placeholder: z.string().optional(),
+                  })
+                )
+                .optional()
+                .describe("Form fields que el usuario debe completar al ejecutar un userTask"),
             })
           )
           .describe("Mínimo: 1 startEvent, 1 endEvent y al menos 1 task en el medio"),

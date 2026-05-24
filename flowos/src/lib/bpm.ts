@@ -5,6 +5,7 @@ import {
 } from "@/db/schema";
 import { eq, and, ne } from "drizzle-orm";
 import { logProcessEvent } from "@/lib/process-events";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,10 @@ export interface ProcessNode {
   assigneeDeptId?: string;
   serviceAction?: string;
   position?: { x: number; y: number };
+  // SLA: tiempo esperado para completar este nodo en ms.
+  // Si la instancia supera este tiempo, se considera "atrasada" (visible en audit).
+  // Null = sin SLA definido (no se trackea).
+  expectedDurationMs?: number | null;
 }
 
 export interface ProcessEdge {
@@ -122,6 +127,18 @@ export async function startInstance(opts: {
     event: "instance_started",
     clerkUserId: startedBy,
     metadata: { processName: definition.name, startNodeId: startNode.id },
+  });
+
+  // Webhook outgoing
+  dispatchWebhook({
+    organizationId,
+    eventType: "process.instance_started",
+    payload: {
+      instanceId: instance.id,
+      processDefinitionId,
+      processName: definition.name,
+      startedBy,
+    },
   });
 
   // Audit: first node entered (si firstNode existe y es distinto del start)
@@ -499,6 +516,11 @@ export async function advanceInstance(opts: {
       actorType: completedBy === "system" ? "system" : "user",
       durationMs: totalMs,
       metadata: { endNodeId: nextNode.id },
+    });
+    dispatchWebhook({
+      organizationId: instance.organizationId,
+      eventType: "process.instance_completed",
+      payload: { instanceId, processDefinitionId: instance.processDefinitionId, durationMs: totalMs },
     });
     return { success: true };
   }

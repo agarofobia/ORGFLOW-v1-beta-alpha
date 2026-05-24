@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/project-activity";
 import { notify } from "@/lib/notifications";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 export async function PUT(
   req: NextRequest,
@@ -39,10 +40,22 @@ export async function PUT(
 
     // Log activity (best-effort) — solo transiciones relevantes
     if (after && before) {
-      if (body.status !== undefined && before.status !== after.status && after.status === "done") {
-        await logActivity({
-          projectId: after.projectId, organizationId: orgId, clerkUserId,
-          type: "task_completed", payload: { taskId: after.id, title: after.title },
+      if (body.status !== undefined && before.status !== after.status) {
+        if (after.status === "done") {
+          await logActivity({
+            projectId: after.projectId, organizationId: orgId, clerkUserId,
+            type: "task_completed", payload: { taskId: after.id, title: after.title },
+          });
+          dispatchWebhook({
+            organizationId: orgId,
+            eventType: "task.completed",
+            payload: { taskId: after.id, title: after.title, projectId: after.projectId },
+          });
+        }
+        dispatchWebhook({
+          organizationId: orgId,
+          eventType: "task.status_changed",
+          payload: { taskId: after.id, title: after.title, projectId: after.projectId, from: before.status, to: after.status },
         });
       }
       if (body.assigneeEmployeeId !== undefined && before.assigneeEmployeeId !== after.assigneeEmployeeId) {
@@ -52,6 +65,15 @@ export async function PUT(
             taskId: after.id, title: after.title,
             prev: before.assigneeEmployeeId, next: after.assigneeEmployeeId,
             assigneeName: after.assigneeName,
+          },
+        });
+        dispatchWebhook({
+          organizationId: orgId,
+          eventType: "task.assigned",
+          payload: {
+            taskId: after.id, title: after.title, projectId: after.projectId,
+            assigneeEmployeeId: after.assigneeEmployeeId,
+            previousAssigneeEmployeeId: before.assigneeEmployeeId,
           },
         });
         // Notificar al nuevo asignado (si tiene cuenta vinculada)
