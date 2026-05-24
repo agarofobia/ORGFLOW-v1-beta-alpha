@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@clerk/localizations": "^4.6.7",
     "@clerk/nextjs": "^6.20.0",
     "@cursor/sdk": "^1.0.9",

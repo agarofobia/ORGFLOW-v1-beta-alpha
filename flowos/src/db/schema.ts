@@ -611,6 +611,44 @@ export const inboxTasks = pgTable(
   })
 );
 
+// ─── AI Config — BYOK por organización ───────────────────────────────────────
+// Cada org puede configurar su propia API key (Claude por ahora). La key se
+// guarda encriptada con AES-256-GCM. La feature está deshabilitada hasta que
+// un admin con permission ai.configure setea la key y enabled=true.
+
+export const aiConfig = pgTable("ai_config", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: text("organization_id").notNull().unique(),
+  provider: text("provider").notNull().default("anthropic"),
+  encryptedApiKey: text("encrypted_api_key"),
+  model: text("model").notNull().default("claude-sonnet-4-6"),
+  enabled: boolean("enabled").notNull().default(false),
+  configuredByUserId: uuid("configured_by_user_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ─── AI Conversations — historial por usuario ────────────────────────────────
+// messages: array de { role: "user" | "assistant", content: string | array }
+// Persiste el contexto para que la IA pueda hilar conversación.
+
+export const aiConversations = pgTable(
+  "ai_conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    title: text("title"),
+    messages: jsonb("messages").notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    userIdx: index("ai_conv_user_idx").on(t.userId, t.updatedAt),
+    orgIdx: index("ai_conv_org_idx").on(t.organizationId),
+  })
+);
+
 // ─── Process events — audit trail + métricas de proceso ─────────────────────
 // Cada acción significativa sobre un proceso o instancia registra una fila acá.
 // Sirve para: audit trail visible al usuario, cycle time por nodo, throughput,
@@ -724,6 +762,10 @@ export type ProcessInstance = typeof processInstances.$inferSelect;
 export type InboxTask = typeof inboxTasks.$inferSelect;
 export type ProcessEvent = typeof processEvents.$inferSelect;
 export type NewProcessEvent = typeof processEvents.$inferInsert;
+export type AiConfig = typeof aiConfig.$inferSelect;
+export type NewAiConfig = typeof aiConfig.$inferInsert;
+export type AiConversation = typeof aiConversations.$inferSelect;
+export type NewAiConversation = typeof aiConversations.$inferInsert;
 export type PermissionGroup = typeof permissionGroups.$inferSelect;
 export type NewPermissionGroup = typeof permissionGroups.$inferInsert;
 export type PermissionAssignment = typeof permissionAssignments.$inferSelect;

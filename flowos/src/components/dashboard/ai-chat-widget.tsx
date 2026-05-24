@@ -1,0 +1,490 @@
+"use client";
+
+// Chat flotante con el asistente IA. Aparece solo si:
+//  1. La feature está habilitada para la org (ai_config.enabled)
+//  2. El user tiene permission ai.view + ai.create
+//  3. El user no lo desactivó manualmente (localStorage "flowos-ai-hidden")
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Sparkles, X, Send, Loader2, EyeOff, RotateCcw } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_result"; tool_use_id: string; content: string };
+
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string | ContentBlock[];
+};
+
+const HIDDEN_LS_KEY = "flowos-ai-hidden";
+
+// ─── Helpers para extraer texto de los mensajes ──────────────────────────────
+
+function getMessageText(msg: ChatMessage): string {
+  if (typeof msg.content === "string") return msg.content;
+  return msg.content
+    .filter((b): b is { type: "text"; text: string } => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+}
+
+function getToolUses(msg: ChatMessage): string[] {
+  if (typeof msg.content === "string") return [];
+  return msg.content
+    .filter((b): b is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } => b.type === "tool_use")
+    .map((b) => b.name);
+}
+
+// Solo mostramos en el feed los user-prompts originales (string) y las
+// assistant responses con texto. Los tool_use / tool_result quedan en
+// background para que el modelo los use, pero no se muestran como "mensajes".
+function isVisibleMessage(msg: ChatMessage): boolean {
+  if (msg.role === "user" && typeof msg.content === "string") return true;
+  if (msg.role === "assistant" && getMessageText(msg).trim().length > 0) return true;
+  return false;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export default function AiChatWidget() {
+  const { can, loading: permsLoading } = usePermissions();
+  const [enabledForOrg, setEnabledForOrg] = useState<boolean | null>(null);
+  const [hiddenByUser, setHiddenByUser] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [thinkingStep, setThinkingStep] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Cargar estado feature org + localStorage hidden
+  useEffect(() => {
+    try {
+      setHiddenByUser(localStorage.getItem(HIDDEN_LS_KEY) === "true");
+    } catch {}
+
+    fetch("/api/ai/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setEnabledForOrg(!!(data && data.configured && data.enabled)))
+      .catch(() => setEnabledForOrg(false));
+  }, []);
+
+  // Auto-scroll al final
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, thinking]);
+
+  // Focus al abrir
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus();
+  }, [open]);
+
+  // Esc cierra
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open]);
+
+  const hideForever = () => {
+    try {
+      localStorage.setItem(HIDDEN_LS_KEY, "true");
+    } catch {}
+    setHiddenByUser(true);
+    setOpen(false);
+  };
+
+  const reset = () => {
+    setMessages([]);
+    setError(null);
+  };
+
+  const send = useCallback(async () => {
+    const text = input.trim();
+    if (!text || thinking) return;
+    setInput("");
+    setError(null);
+
+    // Optimistic: mostramos el mensaje del user inmediatamente
+    const optimistic: ChatMessage = { role: "user", content: text };
+    setMessages((prev) => [...prev, optimistic]);
+    setThinking(true);
+    setThinkingStep("pensando…");
+
+    try {
+      const r = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages, newMessage: text }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({ error: "Error desconocido" }));
+        setError(data.error ?? "Error al consultar al asistente.");
+        // Sacar el optimistic message
+        setMessages((prev) => prev.slice(0, -1));
+        return;
+      }
+      const data = await r.json();
+      // El server devuelve la conversación entera (incluye tool_use/result)
+      setMessages(Array.isArray(data.messages) ? data.messages : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setMessages((prev) => prev.slice(0, -1));
+    } finally {
+      setThinking(false);
+      setThinkingStep("");
+    }
+  }, [input, messages, thinking]);
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  };
+
+  // ─── Gates de visibilidad ───────────────────────────────────────────────────
+  if (permsLoading || enabledForOrg === null) return null;
+  if (!enabledForOrg) return null;
+  if (!can("ai", "view") || !can("ai", "create")) return null;
+  if (hiddenByUser) return null;
+
+  return (
+    <>
+      {/* Floating button */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          title="Asistente IA (Claude)"
+          aria-label="Abrir asistente IA"
+          style={{
+            position: "fixed",
+            bottom: 20,
+            right: 20,
+            zIndex: 50,
+            width: 52,
+            height: 52,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #3D7EFF 0%, #A855F7 100%)",
+            border: "none",
+            color: "#fff",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 8px 24px rgba(61,126,255,0.4)",
+            transition: "transform 0.15s",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          <Sparkles size={22} strokeWidth={1.75} />
+        </button>
+      )}
+
+      {/* Chat panel */}
+      {open && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 20,
+            right: 20,
+            zIndex: 50,
+            width: "min(400px, calc(100vw - 40px))",
+            height: "min(640px, calc(100vh - 40px))",
+            background: "#0A0F1C",
+            border: "1px solid #1E2540",
+            borderRadius: 14,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: "12px 14px",
+              borderBottom: "1px solid #1E2540",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              background: "linear-gradient(90deg, rgba(61,126,255,0.08), rgba(168,85,247,0.08))",
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                background: "linear-gradient(135deg, #3D7EFF, #A855F7)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Sparkles size={14} style={{ color: "#fff" }} strokeWidth={2} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F8", margin: 0 }}>Asistente FlowOS</p>
+              <p style={{ fontSize: 10, color: "#7A8BAD", margin: "2px 0 0", fontFamily: "monospace" }}>
+                Claude · BYOK · respeta tus permisos
+              </p>
+            </div>
+            <button
+              onClick={reset}
+              title="Reiniciar conversación"
+              aria-label="Reiniciar conversación"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#7A8BAD",
+                cursor: "pointer",
+                padding: 4,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <RotateCcw size={13} />
+            </button>
+            <button
+              onClick={hideForever}
+              title="Ocultar el asistente (podés volver a habilitarlo borrando el storage)"
+              aria-label="Ocultar"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#7A8BAD",
+                cursor: "pointer",
+                padding: 4,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <EyeOff size={13} />
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              title="Minimizar"
+              aria-label="Cerrar"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#7A8BAD",
+                cursor: "pointer",
+                padding: 4,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div
+            ref={scrollRef}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: 14,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            {messages.filter(isVisibleMessage).length === 0 && (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "32px 12px",
+                  color: "#7A8BAD",
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                }}
+              >
+                <Sparkles size={28} style={{ margin: "0 auto 8px", display: "block", color: "#1E2540" }} />
+                <p style={{ margin: "0 0 8px", fontSize: 13, color: "#C4CFEA", fontWeight: 500 }}>
+                  ¿En qué te ayudo?
+                </p>
+                <p style={{ margin: 0 }}>Probá pedirme algo como:</p>
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {[
+                    "Listame los proyectos activos",
+                    "Mostrame el organigrama",
+                    "Creá un proyecto de marketing con un hito para el Q3",
+                  ].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setInput(s)}
+                      style={{
+                        background: "#0E1220",
+                        border: "1px solid #1E2540",
+                        borderRadius: 6,
+                        padding: "6px 10px",
+                        fontSize: 11,
+                        color: "#C4CFEA",
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      💬 {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {messages.map((m, i) => {
+              if (!isVisibleMessage(m)) return null;
+              const text = getMessageText(m);
+              const tools = m.role === "assistant" ? getToolUses(m) : [];
+              const isUser = m.role === "user";
+              return (
+                <div
+                  key={i}
+                  style={{
+                    alignSelf: isUser ? "flex-end" : "flex-start",
+                    maxWidth: "85%",
+                    background: isUser ? "rgba(61,126,255,0.15)" : "#0E1220",
+                    border: `1px solid ${isUser ? "rgba(61,126,255,0.3)" : "#1E2540"}`,
+                    borderRadius: 10,
+                    padding: "8px 12px",
+                    fontSize: 12.5,
+                    color: "#E2E8F8",
+                    lineHeight: 1.5,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {text}
+                  {tools.length > 0 && (
+                    <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {tools.map((t, ti) => (
+                        <span
+                          key={ti}
+                          style={{
+                            fontSize: 10,
+                            fontFamily: "monospace",
+                            background: "rgba(168,85,247,0.12)",
+                            color: "#A855F7",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          ⚐ {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {thinking && (
+              <div
+                style={{
+                  alignSelf: "flex-start",
+                  background: "#0E1220",
+                  border: "1px solid #1E2540",
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  color: "#7A8BAD",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Loader2 size={12} className="animate-spin" />
+                {thinkingStep || "pensando…"}
+              </div>
+            )}
+            {error && (
+              <div
+                style={{
+                  alignSelf: "stretch",
+                  background: "rgba(244,63,94,0.1)",
+                  border: "1px solid rgba(244,63,94,0.3)",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  color: "#F43F5E",
+                }}
+              >
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div
+            style={{
+              padding: 10,
+              borderTop: "1px solid #1E2540",
+              display: "flex",
+              gap: 8,
+              alignItems: "flex-end",
+            }}
+          >
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Escribí tu pedido…"
+              rows={1}
+              style={{
+                flex: 1,
+                background: "#0E1220",
+                border: "1px solid #1E2540",
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 12.5,
+                color: "#E2E8F8",
+                outline: "none",
+                resize: "none",
+                maxHeight: 120,
+                fontFamily: "inherit",
+              }}
+            />
+            <button
+              onClick={send}
+              disabled={!input.trim() || thinking}
+              title="Enviar (Enter)"
+              aria-label="Enviar"
+              style={{
+                background:
+                  !input.trim() || thinking
+                    ? "#1E2540"
+                    : "linear-gradient(135deg, #3D7EFF, #A855F7)",
+                border: "none",
+                color: "#fff",
+                width: 34,
+                height: 34,
+                borderRadius: 8,
+                cursor: !input.trim() || thinking ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Send size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

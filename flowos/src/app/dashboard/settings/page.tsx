@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import PermissionGroupsSection from "./PermissionGroupsSection";
+import AiConfigSection from "./AiConfigSection";
 
 type Theme = "dark" | "light" | "system";
 type Lang = "es" | "en" | "pt";
@@ -416,6 +417,9 @@ export default function SettingsPage() {
 
       {/* ── Grupos de permisos DB ── */}
       <PermissionGroupsSection />
+
+      {/* ── Asistente IA (BYOK Claude) ── */}
+      <AiConfigSection />
 
       {/* ── Plan y facturación ── */}
       <section className="mt-10">

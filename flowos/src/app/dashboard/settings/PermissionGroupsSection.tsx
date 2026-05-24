@@ -65,6 +65,7 @@ const MODULE_LABELS: Record<Module, string> = {
   inbox: "Inbox",
   settings: "Config",
   reports: "Reportes",
+  ai: "Asistente IA",
 };
 
 function moduleActionCount(perms: PermissionsMap, mod: Module): number {

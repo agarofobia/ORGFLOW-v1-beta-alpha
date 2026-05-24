@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { MobileNavProvider } from "@/components/dashboard/mobile-nav-context";
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
+import AiChatWidget from "@/components/dashboard/ai-chat-widget";
 
 export default function DashboardLayout({
   children,
@@ -26,6 +27,8 @@ export default function DashboardLayout({
           </div>
           {/* Command palette global — Ctrl+K / Cmd+K en cualquier lado del dashboard */}
           <CommandPalette />
+          {/* Asistente IA flotante — se auto-oculta si la org no lo configuró o el user no tiene permiso */}
+          <AiChatWidget />
         </MobileNavProvider>
       </ConfirmDialogProvider>
     </ToastProvider>

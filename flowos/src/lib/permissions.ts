@@ -11,6 +11,7 @@ export const MODULES = [
   "inbox",
   "settings",
   "reports",
+  "ai",
 ] as const;
 
 export type Module = (typeof MODULES)[number];
@@ -82,6 +83,8 @@ export const PRESETS: Record<PresetKey, Preset> = {
       processes: { view: true },
       inbox: { view: true, create: true, edit: true },
       reports: { view: true },
+      // ai.view permite ver el botón flotante. ai.create permite enviar mensajes.
+      ai: { view: true, create: true },
     },
   },
   employee: {
@@ -94,6 +97,7 @@ export const PRESETS: Record<PresetKey, Preset> = {
       projects: { view: true },
       documents: { view: true },
       inbox: { view: true, edit: true },
+      ai: { view: true, create: true },
     },
   },
   readonly: {
