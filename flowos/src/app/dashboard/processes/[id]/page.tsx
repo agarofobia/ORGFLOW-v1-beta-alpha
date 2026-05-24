@@ -861,6 +861,10 @@ function DesignerFlow({
           deleteKeyCode="Delete"
           fitView
           proOptions={{ hideAttribution: true }}
+          panOnDrag={[0, 1, 2]}
+          zoomOnPinch={true}
+          minZoom={0.2}
+          maxZoom={2}
           style={{ background: "var(--c-bg-base)" }}
         >
           <Background color="var(--c-border)" gap={32} size={1} />

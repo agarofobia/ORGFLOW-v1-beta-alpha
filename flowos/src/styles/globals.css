@@ -831,6 +831,27 @@ select:focus-visible {
   box-shadow: 0 4px 12px var(--c-shadow-medium);
 }
 
+/* ReactFlow controls más grandes en mobile + safe-area aware */
+@media (max-width: 767px) {
+  .react-flow__controls-button {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .react-flow__controls-button svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .react-flow__controls,
+  .react-flow__minimap {
+    margin-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* MiniMap más chico en mobile para no robar pantalla */
+  .react-flow__minimap {
+    width: 120px !important;
+    height: 80px !important;
+  }
+}
+
 /* ─── Auto-glow en CTAs primarios sólidos ─────────────────────────────────────
  * Cualquier button con `background: #3D7EFF` (azul primario) recibe glow + lift.
  * Mismo tratamiento para emerald y violet. No afecta ghost buttons (los que usan

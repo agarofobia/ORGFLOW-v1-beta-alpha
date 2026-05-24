@@ -2124,8 +2124,12 @@ function OrgChartFlow() {
         nodesDraggable={!locked}
         nodesConnectable={!locked}
         elementsSelectable={!locked}
-        panOnDrag={[0, 1]}
+        panOnDrag={[0, 1, 2]}
         panActivationKeyCode="Space"
+        zoomOnPinch={true}
+        panOnScroll={false}
+        minZoom={0.2}
+        maxZoom={2}
         className={locked ? "flowos-locked" : ""}
         style={{ background: "var(--c-bg-base)" }}
       >
