@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { inboxTasks, processInstances, processDefinitions, documents } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { advanceInstance } from "@/lib/bpm";
+import { logProcessEvent } from "@/lib/process-events";
 import { NextRequest, NextResponse } from "next/server";
 import type { ProcessNode } from "@/lib/bpm";
 import type { FormField } from "@/app/dashboard/processes/[id]/page";
@@ -76,6 +77,24 @@ export async function PATCH(
         .set({ status: "claimed", claimedBy: userId, updatedAt: new Date() })
         .where(eq(inboxTasks.id, id))
         .returning();
+      // Audit: claim
+      const [inst] = await db
+        .select({ processDefinitionId: processInstances.processDefinitionId })
+        .from(processInstances)
+        .where(eq(processInstances.id, task.instanceId))
+        .limit(1);
+      if (inst) {
+        await logProcessEvent({
+          organizationId: orgId,
+          processDefinitionId: inst.processDefinitionId,
+          instanceId: task.instanceId,
+          nodeId: task.nodeId,
+          nodeLabel: task.nodeLabel,
+          event: "inbox_task_claimed",
+          clerkUserId: userId,
+          metadata: { inboxTaskId: id },
+        });
+      }
       return NextResponse.json(updated);
     }
 
@@ -132,6 +151,25 @@ export async function PATCH(
         .update(inboxTasks)
         .set({ status: "completed", formData, updatedAt: new Date() })
         .where(eq(inboxTasks.id, id));
+
+      // Audit: inbox task completed (advanceInstance loggea node_completed por separado)
+      const [inst2] = await db
+        .select({ processDefinitionId: processInstances.processDefinitionId })
+        .from(processInstances)
+        .where(eq(processInstances.id, task.instanceId))
+        .limit(1);
+      if (inst2) {
+        await logProcessEvent({
+          organizationId: orgId,
+          processDefinitionId: inst2.processDefinitionId,
+          instanceId: task.instanceId,
+          nodeId: task.nodeId,
+          nodeLabel: task.nodeLabel,
+          event: "inbox_task_completed",
+          clerkUserId: userId,
+          metadata: { inboxTaskId: id, hasFormData: Object.keys(formData).length > 0 },
+        });
+      }
 
       const result = await advanceInstance({
         instanceId: task.instanceId,

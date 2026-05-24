@@ -1,10 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { projectMilestones, projects } from "@/db/schema";
+import { projectMilestones, projects, processInstances } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/project-activity";
 import { advanceInstance } from "@/lib/bpm";
+import { logProcessEvent } from "@/lib/process-events";
 
 export async function PUT(
   req: NextRequest,
@@ -58,6 +59,24 @@ export async function PUT(
           .where(and(eq(projects.id, projectId), eq(projects.organizationId, orgId))).limit(1))[0];
         if (proj?.processInstanceId) {
           try {
+            // Audit: registrar el milestone_linked_completed antes de avanzar
+            const [inst] = await db
+              .select({ processDefinitionId: processInstances.processDefinitionId })
+              .from(processInstances)
+              .where(eq(processInstances.id, proj.processInstanceId))
+              .limit(1);
+            if (inst) {
+              await logProcessEvent({
+                organizationId: orgId,
+                processDefinitionId: inst.processDefinitionId,
+                instanceId: proj.processInstanceId,
+                nodeId: after.bpmNodeId,
+                nodeLabel: after.title,
+                event: "milestone_linked_completed",
+                clerkUserId,
+                metadata: { projectId, milestoneId: after.id, title: after.title },
+              });
+            }
             const result = await advanceInstance({
               instanceId: proj.processInstanceId,
               completedNodeId: after.bpmNodeId,

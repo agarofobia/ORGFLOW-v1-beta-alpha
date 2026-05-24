@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { processInstances } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { logProcessEvent } from "@/lib/process-events";
 
 export async function GET(
   _req: NextRequest,
@@ -50,7 +51,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { orgId } = await auth();
+  const { orgId, userId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
@@ -58,12 +59,40 @@ export async function PATCH(
     const updates: Record<string, unknown> = {};
     if (body.status !== undefined) updates.status = body.status;
 
+    // Cargar estado previo para detectar transición real
+    const [prev] = await db
+      .select()
+      .from(processInstances)
+      .where(and(eq(processInstances.id, id), eq(processInstances.organizationId, orgId)))
+      .limit(1);
+    if (!prev) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const [result] = await db
       .update(processInstances)
       .set(updates)
       .where(and(eq(processInstances.id, id), eq(processInstances.organizationId, orgId)))
       .returning();
     if (!result) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    // Audit: solo si el status cambió a uno terminal/notable
+    if (body.status && body.status !== prev.status) {
+      const eventByStatus: Record<string, "instance_cancelled" | "instance_paused" | null> = {
+        cancelled: "instance_cancelled",
+        paused: "instance_paused",
+      };
+      const evt = eventByStatus[body.status as string] ?? null;
+      if (evt) {
+        await logProcessEvent({
+          organizationId: orgId,
+          processDefinitionId: prev.processDefinitionId,
+          instanceId: id,
+          event: evt,
+          clerkUserId: userId,
+          metadata: { from: prev.status, to: body.status },
+        });
+      }
+    }
+
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

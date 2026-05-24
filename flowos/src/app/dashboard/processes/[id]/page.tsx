@@ -34,10 +34,12 @@ import {
   ChevronDown,
   Maximize2,
   Minimize2,
+  Activity,
 } from "lucide-react";
 import type { ProcessDefinition } from "@/db/schema";
 import { useToast } from "@/components/ui/toast";
 import type { ProcessNode, ProcessEdge } from "@/lib/bpm";
+import AuditPanel from "@/components/dashboard/processes/audit-panel";
 
 // ─── Node data type ───────────────────────────────────────────────────────────
 
@@ -924,6 +926,7 @@ export default function ProcessDesignerPage({
   const [environment, setEnvironment] = useState<"test" | "production">("production");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   // Refs para click-outside en dropdowns del topbar
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const templateDropdownRef = useRef<HTMLDivElement>(null);
@@ -1266,6 +1269,17 @@ export default function ProcessDesignerPage({
         )}
 
         <button
+          onClick={() => setAuditOpen(true)}
+          title="Auditoría y métricas"
+          aria-label="Auditoría y métricas"
+          className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs transition-all hover:bg-[#141928]"
+          style={{ color: "#7A8BAD", border: "1px solid #1E2540" }}
+        >
+          <Activity className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Auditoría</span>
+        </button>
+
+        <button
           onClick={() => setIsFullscreen(v => !v)}
           title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
           className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs transition-all hover:bg-[#141928]"
@@ -1303,6 +1317,8 @@ export default function ProcessDesignerPage({
           />
         </ReactFlowProvider>
       </div>
+
+      {auditOpen && <AuditPanel processId={processId} onClose={() => setAuditOpen(false)} />}
     </div>
   );
 }

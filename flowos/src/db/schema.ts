@@ -611,6 +611,47 @@ export const inboxTasks = pgTable(
   })
 );
 
+// ─── Process events — audit trail + métricas de proceso ─────────────────────
+// Cada acción significativa sobre un proceso o instancia registra una fila acá.
+// Sirve para: audit trail visible al usuario, cycle time por nodo, throughput,
+// detección de cuello de botella, SLA tracking.
+//
+// event: "instance_started" | "instance_completed" | "instance_failed"
+//      | "instance_cancelled" | "node_entered" | "node_completed"
+//      | "inbox_task_created" | "inbox_task_claimed" | "inbox_task_completed"
+//      | "milestone_linked_completed" | "project_auto_created"
+//      | "definition_published" | "definition_archived"
+//
+// actor_type: "user" (acción humana) | "system" (service/automated task)
+// duration_ms: solo en node_completed — tiempo desde node_entered hasta ahora
+// metadata: jsonb libre con contexto adicional (projectId, taskId, error msg, etc.)
+
+export const processEvents = pgTable(
+  "process_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id").notNull(),
+    processDefinitionId: uuid("process_definition_id")
+      .notNull()
+      .references(() => processDefinitions.id, { onDelete: "cascade" }),
+    instanceId: uuid("instance_id").references(() => processInstances.id, { onDelete: "cascade" }),
+    nodeId: text("node_id"),
+    nodeLabel: text("node_label"),
+    event: text("event").notNull(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    actorType: text("actor_type").notNull().default("user"),
+    durationMs: integer("duration_ms"),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    instanceIdx: index("proc_events_instance_idx").on(t.instanceId, t.createdAt),
+    definitionIdx: index("proc_events_definition_idx").on(t.processDefinitionId, t.createdAt),
+    orgIdx: index("proc_events_org_idx").on(t.organizationId, t.createdAt),
+    eventIdx: index("proc_events_event_idx").on(t.event),
+  })
+);
+
 // ─── Permission Groups ────────────────────────────────────────────────────────
 
 export const permissionGroups = pgTable(
@@ -681,6 +722,8 @@ export type ProcessDefinition = typeof processDefinitions.$inferSelect;
 export type NewProcessDefinition = typeof processDefinitions.$inferInsert;
 export type ProcessInstance = typeof processInstances.$inferSelect;
 export type InboxTask = typeof inboxTasks.$inferSelect;
+export type ProcessEvent = typeof processEvents.$inferSelect;
+export type NewProcessEvent = typeof processEvents.$inferInsert;
 export type PermissionGroup = typeof permissionGroups.$inferSelect;
 export type NewPermissionGroup = typeof permissionGroups.$inferInsert;
 export type PermissionAssignment = typeof permissionAssignments.$inferSelect;

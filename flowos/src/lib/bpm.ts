@@ -4,6 +4,7 @@ import {
   projectTemplates, projects, projectMilestones, tasks,
 } from "@/db/schema";
 import { eq, and, ne } from "drizzle-orm";
+import { logProcessEvent } from "@/lib/process-events";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,8 +114,42 @@ export async function startInstance(opts: {
     })
     .returning();
 
+  // Audit: instance started
+  await logProcessEvent({
+    organizationId,
+    processDefinitionId,
+    instanceId: instance.id,
+    event: "instance_started",
+    clerkUserId: startedBy,
+    metadata: { processName: definition.name, startNodeId: startNode.id },
+  });
+
+  // Audit: first node entered (si firstNode existe y es distinto del start)
+  if (firstNode && firstNode.id !== startNode.id) {
+    await logProcessEvent({
+      organizationId,
+      processDefinitionId,
+      instanceId: instance.id,
+      nodeId: firstNode.id,
+      nodeLabel: firstNode.label,
+      event: "node_entered",
+      clerkUserId: startedBy,
+      metadata: { nodeType: firstNode.type },
+    });
+  }
+
   if (firstNode?.type === "userTask") {
     await createInboxTask({ instance, node: firstNode, context, definition });
+    await logProcessEvent({
+      organizationId,
+      processDefinitionId,
+      instanceId: instance.id,
+      nodeId: firstNode.id,
+      nodeLabel: firstNode.label,
+      event: "inbox_task_created",
+      clerkUserId: startedBy,
+      metadata: { assigneeDeptId: firstNode.assigneeDeptId ?? null },
+    });
   }
 
   // Auto-crear proyecto desde template si el proceso lo tiene asociado.
@@ -129,6 +164,16 @@ export async function startInstance(opts: {
         startedBy,
         nameSuffix: instance.id.slice(0, 8),
       });
+      if (createdProjectId) {
+        await logProcessEvent({
+          organizationId,
+          processDefinitionId,
+          instanceId: instance.id,
+          event: "project_auto_created",
+          clerkUserId: startedBy,
+          metadata: { projectId: createdProjectId, templateId: definition.projectTemplateId },
+        });
+      }
     } catch (err) {
       console.warn("Auto-instantiate project from template failed:", String(err));
     }
@@ -269,6 +314,14 @@ export async function advanceInstance(opts: {
   const context = { ...(instance.context as Record<string, unknown>), ...output };
   const now = new Date().toISOString();
 
+  // Buscar startedAt del nodo recién completado para calcular durationMs
+  const completedHistEntry = history.find(
+    (h) => h.nodeId === completedNodeId && h.status === "in_progress"
+  );
+  const completedNodeDurationMs = completedHistEntry
+    ? Math.max(0, new Date(now).getTime() - new Date(completedHistEntry.startedAt).getTime())
+    : null;
+
   const updatedHistory: HistoryEntry[] = history.map((h) =>
     h.nodeId === completedNodeId && h.status === "in_progress"
       ? { ...h, completedAt: now, completedBy, status: "completed", output }
@@ -277,6 +330,22 @@ export async function advanceInstance(opts: {
 
   const completedNode = nodes.find((n) => n.id === completedNodeId);
   const outgoingEdges = edges.filter((e) => e.from === completedNodeId);
+
+  // Audit: node completed
+  if (completedNode) {
+    await logProcessEvent({
+      organizationId: instance.organizationId,
+      processDefinitionId: instance.processDefinitionId,
+      instanceId,
+      nodeId: completedNode.id,
+      nodeLabel: completedNode.label,
+      event: "node_completed",
+      clerkUserId: completedBy,
+      actorType: completedBy === "system" ? "system" : "user",
+      durationMs: completedNodeDurationMs,
+      metadata: { nodeType: completedNode.type, output },
+    });
+  }
 
   // Parallel gateway → follow all outgoing edges
   if (completedNode?.type === "parallelGateway") {
@@ -304,8 +373,29 @@ export async function advanceInstance(opts: {
       .where(eq(processInstances.id, instanceId));
 
     for (const node of nextNodes) {
+      await logProcessEvent({
+        organizationId: instance.organizationId,
+        processDefinitionId: instance.processDefinitionId,
+        instanceId,
+        nodeId: node.id,
+        nodeLabel: node.label,
+        event: "node_entered",
+        clerkUserId: completedBy,
+        actorType: completedBy === "system" ? "system" : "user",
+        metadata: { nodeType: node.type, viaGateway: "parallel" },
+      });
       if (node.type === "userTask") {
         await createInboxTask({ instance, node, context, definition });
+        await logProcessEvent({
+          organizationId: instance.organizationId,
+          processDefinitionId: instance.processDefinitionId,
+          instanceId,
+          nodeId: node.id,
+          nodeLabel: node.label,
+          event: "inbox_task_created",
+          clerkUserId: completedBy,
+          metadata: { assigneeDeptId: node.assigneeDeptId ?? null },
+        });
       }
     }
     return { success: true };
@@ -318,6 +408,15 @@ export async function advanceInstance(opts: {
       .update(processInstances)
       .set({ status: "failed", history: updatedHistory })
       .where(eq(processInstances.id, instanceId));
+    await logProcessEvent({
+      organizationId: instance.organizationId,
+      processDefinitionId: instance.processDefinitionId,
+      instanceId,
+      event: "instance_failed",
+      clerkUserId: completedBy,
+      actorType: completedBy === "system" ? "system" : "user",
+      metadata: { reason: "no matching outgoing edge", fromNodeId: completedNodeId },
+    });
     return { success: false, error: "No matching outgoing edge — process failed" };
   }
 
@@ -327,6 +426,15 @@ export async function advanceInstance(opts: {
       .update(processInstances)
       .set({ status: "failed", history: updatedHistory })
       .where(eq(processInstances.id, instanceId));
+    await logProcessEvent({
+      organizationId: instance.organizationId,
+      processDefinitionId: instance.processDefinitionId,
+      instanceId,
+      event: "instance_failed",
+      clerkUserId: completedBy,
+      actorType: completedBy === "system" ? "system" : "user",
+      metadata: { reason: "next node not found", edgeId: nextEdge.id },
+    });
     return { success: false, error: "Next node not found — process failed" };
   }
 
@@ -352,6 +460,19 @@ export async function advanceInstance(opts: {
     })
     .where(eq(processInstances.id, instanceId));
 
+  // Audit: node entered (siempre que avancemos a un nuevo nodo)
+  await logProcessEvent({
+    organizationId: instance.organizationId,
+    processDefinitionId: instance.processDefinitionId,
+    instanceId,
+    nodeId: nextNode.id,
+    nodeLabel: nextNode.label,
+    event: "node_entered",
+    clerkUserId: completedBy,
+    actorType: completedBy === "system" ? "system" : "user",
+    metadata: { nodeType: nextNode.type, fromNodeId: completedNodeId },
+  });
+
   if (isEnd) {
     await db
       .update(inboxTasks)
@@ -362,6 +483,23 @@ export async function advanceInstance(opts: {
           ne(inboxTasks.status, "completed")
         )
       );
+    // Total wall-time desde startedAt
+    const totalMs = Math.max(
+      0,
+      new Date().getTime() - new Date(instance.startedAt).getTime()
+    );
+    await logProcessEvent({
+      organizationId: instance.organizationId,
+      processDefinitionId: instance.processDefinitionId,
+      instanceId,
+      nodeId: nextNode.id,
+      nodeLabel: nextNode.label,
+      event: "instance_completed",
+      clerkUserId: completedBy,
+      actorType: completedBy === "system" ? "system" : "user",
+      durationMs: totalMs,
+      metadata: { endNodeId: nextNode.id },
+    });
     return { success: true };
   }
 
@@ -377,6 +515,16 @@ export async function advanceInstance(opts: {
         )
       );
     await createInboxTask({ instance, node: nextNode, context, definition });
+    await logProcessEvent({
+      organizationId: instance.organizationId,
+      processDefinitionId: instance.processDefinitionId,
+      instanceId,
+      nodeId: nextNode.id,
+      nodeLabel: nextNode.label,
+      event: "inbox_task_created",
+      clerkUserId: completedBy,
+      metadata: { assigneeDeptId: nextNode.assigneeDeptId ?? null },
+    });
     return { success: true };
   }
 
