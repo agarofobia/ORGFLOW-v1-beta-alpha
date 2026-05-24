@@ -40,6 +40,7 @@ import type { ProcessDefinition } from "@/db/schema";
 import { useToast } from "@/components/ui/toast";
 import type { ProcessNode, ProcessEdge } from "@/lib/bpm";
 import AuditPanel from "@/components/dashboard/processes/audit-panel";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // ─── Node data type ───────────────────────────────────────────────────────────
 
@@ -927,6 +928,8 @@ export default function ProcessDesignerPage({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
+  const { can: canDo } = usePermissions();
+  const canAudit = canDo("processes", "create");
   // Refs para click-outside en dropdowns del topbar
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const templateDropdownRef = useRef<HTMLDivElement>(null);
@@ -1268,16 +1271,18 @@ export default function ProcessDesignerPage({
           </span>
         )}
 
-        <button
-          onClick={() => setAuditOpen(true)}
-          title="Auditoría y métricas"
-          aria-label="Auditoría y métricas"
-          className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs transition-all hover:bg-[#141928]"
-          style={{ color: "#7A8BAD", border: "1px solid #1E2540" }}
-        >
-          <Activity className="h-3.5 w-3.5" />
-          <span className="hidden md:inline">Auditoría</span>
-        </button>
+        {canAudit && (
+          <button
+            onClick={() => setAuditOpen(true)}
+            title="Auditoría y métricas (requiere permiso de crear procesos)"
+            aria-label="Auditoría y métricas"
+            className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs transition-all hover:bg-[#141928]"
+            style={{ color: "#7A8BAD", border: "1px solid #1E2540" }}
+          >
+            <Activity className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">Auditoría</span>
+          </button>
+        )}
 
         <button
           onClick={() => setIsFullscreen(v => !v)}

@@ -11,14 +11,22 @@ import { db } from "@/db";
 import { processEvents, users } from "@/db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { getUserPermissions } from "@/lib/get-user-permissions";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: processDefinitionId } = await params;
-  const { orgId } = await auth();
-  if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { orgId, userId, orgRole } = await auth();
+  if (!orgId || !userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Audit es sensible — solo quien puede crear procesos lo ve
+  const perms = await getUserPermissions(orgId, userId, orgRole);
+  if (!hasPermission(perms, "processes", "create")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const url = new URL(req.url);
   const instanceId = url.searchParams.get("instanceId");
