@@ -1,33 +1,30 @@
 // POST /api/ai/chat
 //
-// Recibe { messages: [...], newMessage: string } y devuelve { messages, lastResponse }.
-// El server maneja el tool-use loop hasta que la IA da una respuesta final.
+// Refactor multi-provider: usa Vercel AI SDK (generateText) en vez del SDK
+// de Anthropic directo. Soporta Claude, Gemini, GPT y Mistral según el
+// provider configurado por la org.
 //
-// Permission: requiere ai.create.
-// Auth: usa la API key encriptada de la org (BYOK) + permisos del user para
-// filtrar qué tools puede invocar la IA.
+// Permission: ai.create
+// El user trae su API key (BYOK), FlowOS solo orquesta + valida permisos.
 
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { aiConfig } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { generateText, type ModelMessage } from "ai";
 import { requirePermission } from "@/lib/require-permission";
 import { getUserPermissions } from "@/lib/get-user-permissions";
 import { decrypt } from "@/lib/encryption";
-import {
-  executeTool,
-  getAvailableTools,
-  toAnthropicTools,
-} from "@/lib/ai/tools";
+import { buildTools, filterToolsByPermissions } from "@/lib/ai/tools";
+import { getModel, isValidProvider } from "@/lib/ai/providers";
 
 const SYSTEM_PROMPT = `Sos el asistente de FlowOS, una suite BPM/ERP correlacional.
 La empresa del usuario tiene un organigrama, proyectos, hitos, tareas y procesos BPM.
 
 REGLAS:
 - Respondé siempre en español rioplatense, directo y conciso.
-- Antes de crear cosas (proyectos, hitos, tareas), si el user menciona "división X" o "departamento Y" o "[nombre]", usá get_organization_structure / list_employees para resolver los UUIDs reales.
+- Antes de crear cosas (proyectos, hitos, tareas), si el user menciona "división X" o "departamento Y" o "[nombre de persona]", usá get_organization_structure / list_employees para resolver los UUIDs reales.
 - Si te falta info crítica (ej: nombre del proyecto), preguntá antes de crear.
 - Para creates importantes (proyecto nuevo), confirmá con el user qué vas a hacer antes de ejecutar, salvo que el pedido sea inequívoco.
 - Si una tool devuelve { error: ... }, contale al user qué pasó.
@@ -36,19 +33,7 @@ REGLAS:
 
 Tu objetivo es ahorrarle clicks al user, no reemplazar su criterio.`;
 
-const MAX_ITERATIONS = 8;
-
-// Acepto tanto strings (cuando el cliente manda mensajes simples) como bloques
-// (cuando viene del historial con tool_use / tool_result).
-type ContentBlock =
-  | { type: "text"; text: string }
-  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-  | { type: "tool_result"; tool_use_id: string; content: string };
-
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string | ContentBlock[];
-};
+const MAX_STEPS = 8;
 
 export async function POST(req: NextRequest) {
   const block = await requirePermission("ai", "create");
@@ -58,18 +43,24 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const previousMessages = (Array.isArray(body.messages) ? body.messages : []) as ChatMessage[];
+    const previousMessages = Array.isArray(body.messages) ? (body.messages as ModelMessage[]) : [];
     const newMessage = typeof body.newMessage === "string" ? body.newMessage.trim() : "";
     if (!newMessage) {
       return NextResponse.json({ error: "newMessage requerido" }, { status: 400 });
     }
 
-    // Cargar config + API key
+    // ─── Cargar config + decrypt key ───────────────────────────────────────
     const [cfg] = await db.select().from(aiConfig).where(eq(aiConfig.organizationId, orgId)).limit(1);
     if (!cfg || !cfg.enabled || !cfg.encryptedApiKey) {
       return NextResponse.json(
         { error: "El asistente IA no está configurado o está deshabilitado para esta organización." },
         { status: 412 }
+      );
+    }
+    if (!isValidProvider(cfg.provider)) {
+      return NextResponse.json(
+        { error: `Provider configurado inválido: ${cfg.provider}` },
+        { status: 500 }
       );
     }
     let apiKey: string;
@@ -82,72 +73,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Permisos del user → filtrar tools disponibles
+    // ─── Permisos + filtrado de tools ─────────────────────────────────────
     const permissions = await getUserPermissions(orgId, clerkUserId, orgRole);
-    const availableTools = getAvailableTools(permissions);
-    const anthropicTools = toAnthropicTools(availableTools);
+    const allTools = buildTools({ orgId, clerkUserId, permissions });
+    const tools = filterToolsByPermissions(allTools, permissions);
 
-    const client = new Anthropic({ apiKey });
+    // ─── Modelo del provider seleccionado ─────────────────────────────────
+    const model = getModel(cfg.provider, apiKey, cfg.model);
 
-    // Armar conversación
-    const conversation: ChatMessage[] = [
+    // ─── Conversación ─────────────────────────────────────────────────────
+    const messages: ModelMessage[] = [
       ...previousMessages,
       { role: "user", content: newMessage },
     ];
 
-    // Tool-use loop
-    let iterations = 0;
-    let finalText = "";
+    // ─── generateText con tool-use loop integrado ─────────────────────────
+    // Vercel AI SDK maneja el loop automáticamente: ejecuta tools hasta que
+    // el modelo deja de pedirlas o se llega a maxSteps.
+    const result = await generateText({
+      model,
+      system: SYSTEM_PROMPT,
+      messages,
+      tools: tools as Parameters<typeof generateText>[0]["tools"],
+      stopWhen: ({ steps }) => steps.length >= MAX_STEPS,
+    });
 
-    while (iterations < MAX_ITERATIONS) {
-      iterations++;
-
-      const response = await client.messages.create({
-        model: cfg.model,
-        max_tokens: 4096,
-        system: SYSTEM_PROMPT,
-        tools: anthropicTools,
-        messages: conversation as unknown as Anthropic.MessageParam[],
-      });
-
-      // Agregar la respuesta del assistant a la conversación
-      conversation.push({
-        role: "assistant",
-        content: response.content as unknown as ContentBlock[],
-      });
-
-      // Si no hay tool_use, terminamos
-      const toolUses = response.content.filter((c) => c.type === "tool_use");
-      if (toolUses.length === 0 || response.stop_reason === "end_turn") {
-        const textBlock = response.content.find((c) => c.type === "text");
-        if (textBlock && textBlock.type === "text") finalText = textBlock.text;
-        break;
-      }
-
-      // Ejecutar tools y armar tool_result blocks
-      const toolResults: ContentBlock[] = [];
-      for (const block of toolUses) {
-        if (block.type !== "tool_use") continue;
-        const result = await executeTool(block.name, (block.input as Record<string, unknown>) ?? {}, {
-          orgId,
-          clerkUserId,
-          permissions,
-        });
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: block.id,
-          content: JSON.stringify(result),
-        });
-      }
-
-      // Próximo turn: user message con todos los tool_results juntos
-      conversation.push({ role: "user", content: toolResults });
-    }
+    // Devolvemos la conversación completa (incluyendo los pasos intermedios
+    // con tool calls). El client decide qué mostrar.
+    const updatedMessages: ModelMessage[] = [
+      ...messages,
+      ...result.response.messages.map((m) => ({ role: m.role, content: m.content } as ModelMessage)),
+    ];
 
     return NextResponse.json({
-      messages: conversation,
-      lastResponse: finalText || "(Sin respuesta final)",
-      iterations,
+      messages: updatedMessages,
+      lastResponse: result.text || "(Sin respuesta final)",
+      steps: result.steps.length,
+      provider: cfg.provider,
+      model: cfg.model,
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);

@@ -1,14 +1,17 @@
-// Tool definitions + executors para el asistente IA.
-// Cada tool declara su schema JSON para Anthropic + un executor que valida
-// permisos y ejecuta vía Drizzle directo (no llamadas HTTP a la propia app).
+// Tools del asistente IA — formato Vercel AI SDK (con Zod schemas).
 //
-// REGLAS:
-// - Si el user no tiene la permission requerida, el tool ni siquiera se expone
-//   a la IA (filtrado en getAvailableTools).
-// - Reads son siempre filtrados por organizationId del user.
-// - Writes nunca permiten delete. Solo create de cosas nuevas.
-// - Errores se devuelven como string al modelo para que pueda recuperarse.
+// Refactor: antes usaba JSONSchema literal porque el código llamaba al SDK de
+// Anthropic directo. Ahora usa `tool()` de Vercel AI SDK que normaliza entre
+// providers (Claude, Gemini, GPT, Mistral, etc.).
+//
+// REGLAS (igual que antes):
+// - Filtrado por permisos: ALL_TOOLS_FACTORY recibe perms y devuelve solo las
+//   tools que el user puede ejecutar.
+// - Reads filtran por organizationId.
+// - Writes nunca permiten delete.
 
+import { tool } from "ai";
+import { z } from "zod";
 import { db } from "@/db";
 import {
   divisions, departments, employees,
@@ -19,7 +22,7 @@ import { and, eq, ilike, or } from "drizzle-orm";
 import type { Module, Action, PermissionsMap } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Context ─────────────────────────────────────────────────────────────────
 
 export interface ToolContext {
   orgId: string;
@@ -27,13 +30,11 @@ export interface ToolContext {
   permissions: PermissionsMap;
 }
 
-export interface ToolDef {
-  name: string;
-  description: string;
-  input_schema: Record<string, unknown>;
-  requiresPermission?: { module: Module; action: Action };
-  execute: (input: Record<string, unknown>, ctx: ToolContext) => Promise<unknown>;
+interface ToolMeta {
+  requires?: { module: Module; action: Action };
 }
+
+const TOOL_META = new Map<string, ToolMeta>();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -41,371 +42,314 @@ function errorResult(message: string) {
   return { error: message };
 }
 
-// ─── Read tools ──────────────────────────────────────────────────────────────
-
-const getOrganizationStructure: ToolDef = {
-  name: "get_organization_structure",
-  description:
-    "Devuelve la jerarquía organizacional: divisiones y sus departamentos. " +
-    "Usá esto cuando el user mencione 'división X' o 'departamento Y' para resolver IDs.",
-  input_schema: {
-    type: "object",
-    properties: {},
-  },
-  requiresPermission: { module: "org_chart", action: "view" },
-  execute: async (_input, ctx) => {
-    const divs = await db
-      .select({ id: divisions.id, name: divisions.name })
-      .from(divisions)
-      .where(eq(divisions.organizationId, ctx.orgId));
-    const depts = await db
-      .select({
-        id: departments.id,
-        name: departments.name,
-        divisionId: departments.divisionId,
-      })
-      .from(departments)
-      .where(eq(departments.organizationId, ctx.orgId));
-    return {
-      divisions: divs.map((d) => ({
-        id: d.id,
-        name: d.name,
-        departments: depts
-          .filter((dep) => dep.divisionId === d.id)
-          .map((dep) => ({ id: dep.id, name: dep.name })),
-      })),
-      orphanDepartments: depts.filter((d) => !d.divisionId).map((d) => ({ id: d.id, name: d.name })),
-    };
-  },
-};
-
-const listEmployees: ToolDef = {
-  name: "list_employees",
-  description:
-    "Lista empleados de la org (puestos ocupados y vacantes) con sus puestos, departamentos y divisiones. " +
-    "Soporta filtro opcional por departmentId o búsqueda por nombre.",
-  input_schema: {
-    type: "object",
-    properties: {
-      departmentId: { type: "string", description: "Filtrar a un depto específico (opcional)" },
-      search: { type: "string", description: "Buscar por nombre o jobTitle (opcional)" },
-      limit: { type: "number", description: "Máximo de resultados (default 50, max 200)" },
-    },
-  },
-  requiresPermission: { module: "employees", action: "view" },
-  execute: async (input, ctx) => {
-    const limit = Math.min(Number(input.limit ?? 50), 200);
-    const conditions = [eq(employees.organizationId, ctx.orgId)];
-    if (input.departmentId) conditions.push(eq(employees.departmentId, input.departmentId as string));
-    if (input.search) {
-      const q = `%${input.search as string}%`;
-      conditions.push(
-        or(ilike(employees.fullName, q), ilike(employees.jobTitle, q))!
-      );
-    }
-    const rows = await db
-      .select({
-        id: employees.id,
-        fullName: employees.fullName,
-        jobTitle: employees.jobTitle,
-        departmentId: employees.departmentId,
-        divisionId: employees.divisionId,
-        status: employees.status,
-        email: employees.email,
-      })
-      .from(employees)
-      .where(and(...conditions))
-      .limit(limit);
-    return { employees: rows, total: rows.length };
-  },
-};
-
-const listProjects: ToolDef = {
-  name: "list_projects",
-  description:
-    "Lista proyectos de la org con su VFP, owner y status. No incluye hitos ni tareas — usá get_project para detalle.",
-  input_schema: {
-    type: "object",
-    properties: {
-      status: {
-        type: "string",
-        description: "Filtrar por status: 'activo' | 'pausado' | 'completado' | 'cancelado' | 'planning'",
-      },
-      limit: { type: "number", description: "Default 30, max 100" },
-    },
-  },
-  requiresPermission: { module: "projects", action: "view" },
-  execute: async (input, ctx) => {
-    const limit = Math.min(Number(input.limit ?? 30), 100);
-    const conditions = [eq(projects.organizationId, ctx.orgId)];
-    if (input.status) conditions.push(eq(projects.status, input.status as string));
-    const rows = await db
-      .select({
-        id: projects.id,
-        name: projects.name,
-        description: projects.description,
-        status: projects.status,
-        vfp: projects.vfp,
-        ownerEmployeeId: projects.ownerEmployeeId,
-        processInstanceId: projects.processInstanceId,
-        createdAt: projects.createdAt,
-      })
-      .from(projects)
-      .where(and(...conditions))
-      .limit(limit);
-    return { projects: rows, total: rows.length };
-  },
-};
-
-const getProjectDetails: ToolDef = {
-  name: "get_project_details",
-  description: "Devuelve un proyecto completo: VFP + hitos + tareas + owner.",
-  input_schema: {
-    type: "object",
-    properties: {
-      projectId: { type: "string", description: "UUID del proyecto" },
-    },
-    required: ["projectId"],
-  },
-  requiresPermission: { module: "projects", action: "view" },
-  execute: async (input, ctx) => {
-    const projectId = input.projectId as string;
-    const [project] = await db
-      .select()
-      .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.organizationId, ctx.orgId)))
-      .limit(1);
-    if (!project) return errorResult("Proyecto no encontrado");
-
-    const milestones = await db
-      .select()
-      .from(projectMilestones)
-      .where(eq(projectMilestones.projectId, projectId));
-    const projectTasks = await db
-      .select({
-        id: tasks.id,
-        title: tasks.title,
-        status: tasks.status,
-        priority: tasks.priority,
-        assigneeEmployeeId: tasks.assigneeEmployeeId,
-        milestoneId: tasks.milestoneId,
-        dueDate: tasks.dueDate,
-      })
-      .from(tasks)
-      .where(eq(tasks.projectId, projectId));
-
-    return { project, milestones, tasks: projectTasks };
-  },
-};
-
-const listProcesses: ToolDef = {
-  name: "list_processes",
-  description:
-    "Lista las definiciones de proceso BPM de la org. Devuelve id, nombre, descripción y status (draft/active/archived).",
-  input_schema: { type: "object", properties: {} },
-  requiresPermission: { module: "processes", action: "view" },
-  execute: async (_input, ctx) => {
-    const rows = await db
-      .select({
-        id: processDefinitions.id,
-        name: processDefinitions.name,
-        description: processDefinitions.description,
-        status: processDefinitions.status,
-        category: processDefinitions.category,
-      })
-      .from(processDefinitions)
-      .where(eq(processDefinitions.organizationId, ctx.orgId));
-    return { processes: rows };
-  },
-};
-
-// ─── Create tools ────────────────────────────────────────────────────────────
-
-const createProject: ToolDef = {
-  name: "create_project",
-  description:
-    "Crea un nuevo proyecto con VFP opcional. Devuelve el proyecto creado. " +
-    "Si el user menciona división/depto, primero llamá get_organization_structure y find_employee para resolver el ownerEmployeeId.",
-  input_schema: {
-    type: "object",
-    properties: {
-      name: { type: "string", description: "Nombre del proyecto" },
-      description: { type: "string", description: "Descripción (opcional)" },
-      ownerEmployeeId: { type: "string", description: "Employee ID del responsable (opcional pero recomendado)" },
-      vfp: {
-        type: "object",
-        description: "Valuable Final Product. Cinco campos:",
-        properties: {
-          producto: { type: "string" },
-          para: { type: "string" },
-          quien: { type: "string" },
-          aDiferenciaDe: { type: "string" },
-          terminadoCuando: { type: "string" },
-        },
-      },
-      status: {
-        type: "string",
-        description: "Default 'activo'. Valores: 'planning' | 'activo' | 'pausado' | 'completado' | 'cancelado'",
-      },
-    },
-    required: ["name"],
-  },
-  requiresPermission: { module: "projects", action: "create" },
-  execute: async (input, ctx) => {
-    const [project] = await db
-      .insert(projects)
-      .values({
-        organizationId: ctx.orgId,
-        name: input.name as string,
-        description: (input.description as string | undefined) ?? null,
-        vfp: (input.vfp as Record<string, string> | undefined) ?? null,
-        ownerEmployeeId: (input.ownerEmployeeId as string | undefined) ?? null,
-        status: (input.status as string | undefined) ?? "activo",
-      })
-      .returning();
-    return { project };
-  },
-};
-
-const createMilestone: ToolDef = {
-  name: "create_milestone",
-  description: "Crea un hito dentro de un proyecto. Devuelve el hito creado.",
-  input_schema: {
-    type: "object",
-    properties: {
-      projectId: { type: "string" },
-      title: { type: "string" },
-      description: { type: "string" },
-      acceptanceCriteria: { type: "string", description: "Qué define que está terminado" },
-      ownerEmployeeId: { type: "string", description: "Responsable del hito (opcional)" },
-      dueDate: { type: "string", description: "Fecha límite ISO 8601 (opcional)" },
-      orderIndex: { type: "number", description: "Orden visual (default 0)" },
-    },
-    required: ["projectId", "title"],
-  },
-  requiresPermission: { module: "projects", action: "edit" },
-  execute: async (input, ctx) => {
-    // Verifico que el proyecto sea de esta org
-    const [p] = await db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(and(eq(projects.id, input.projectId as string), eq(projects.organizationId, ctx.orgId)))
-      .limit(1);
-    if (!p) return errorResult("Proyecto no encontrado o de otra org");
-
-    const [milestone] = await db
-      .insert(projectMilestones)
-      .values({
-        projectId: input.projectId as string,
-        organizationId: ctx.orgId,
-        title: input.title as string,
-        description: (input.description as string | undefined) ?? null,
-        acceptanceCriteria: (input.acceptanceCriteria as string | undefined) ?? null,
-        ownerEmployeeId: (input.ownerEmployeeId as string | undefined) ?? null,
-        dueDate: input.dueDate ? new Date(input.dueDate as string) : null,
-        orderIndex: Number(input.orderIndex ?? 0),
-        status: "pending",
-      })
-      .returning();
-    return { milestone };
-  },
-};
-
-const createTask: ToolDef = {
-  name: "create_task",
-  description: "Crea una tarea en un proyecto. Puede asignarse a un empleado y/o vincularse a un hito.",
-  input_schema: {
-    type: "object",
-    properties: {
-      projectId: { type: "string" },
-      title: { type: "string" },
-      description: { type: "string" },
-      assigneeEmployeeId: { type: "string", description: "Employee ID del responsable (opcional)" },
-      milestoneId: { type: "string", description: "Hito al que pertenece (opcional)" },
-      priority: {
-        type: "string",
-        description: "low | medium | high | urgent (default medium)",
-      },
-      dueDate: { type: "string", description: "ISO 8601 (opcional)" },
-    },
-    required: ["projectId", "title"],
-  },
-  requiresPermission: { module: "projects", action: "edit" },
-  execute: async (input, ctx) => {
-    const [p] = await db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(and(eq(projects.id, input.projectId as string), eq(projects.organizationId, ctx.orgId)))
-      .limit(1);
-    if (!p) return errorResult("Proyecto no encontrado o de otra org");
-
-    const [task] = await db
-      .insert(tasks)
-      .values({
-        projectId: input.projectId as string,
-        organizationId: ctx.orgId,
-        title: input.title as string,
-        description: (input.description as string | undefined) ?? undefined,
-        priority: (input.priority as "low" | "medium" | "high" | "urgent" | undefined) ?? "medium",
-        status: "todo",
-        assigneeEmployeeId: (input.assigneeEmployeeId as string | undefined) ?? null,
-        milestoneId: (input.milestoneId as string | undefined) ?? null,
-        dueDate: input.dueDate ? new Date(input.dueDate as string) : null,
-      })
-      .returning();
-    return { task };
-  },
-};
-
-// ─── Registry + filtering by permissions ─────────────────────────────────────
-
-export const ALL_TOOLS: ToolDef[] = [
-  getOrganizationStructure,
-  listEmployees,
-  listProjects,
-  getProjectDetails,
-  listProcesses,
-  createProject,
-  createMilestone,
-  createTask,
-];
-
-/** Devuelve solo los tools que el user actual tiene permiso de usar. */
-export function getAvailableTools(perms: PermissionsMap): ToolDef[] {
-  return ALL_TOOLS.filter((t) => {
-    if (!t.requiresPermission) return true;
-    return hasPermission(perms, t.requiresPermission.module, t.requiresPermission.action);
-  });
+function requirePerm(name: string, ctx: ToolContext, mod: Module, action: Action) {
+  if (!hasPermission(ctx.permissions, mod, action)) {
+    return errorResult(
+      `Sin permiso para ejecutar ${name} (requiere ${mod}.${action})`
+    );
+  }
+  return null;
 }
 
-/** Mapper para el formato que espera Anthropic SDK. */
-export function toAnthropicTools(tools: ToolDef[]) {
-  return tools.map((t) => ({
-    name: t.name,
-    description: t.description,
-    input_schema: t.input_schema as { type: "object"; properties?: Record<string, unknown>; required?: string[] },
-  }));
+// ─── Factory que crea las tools con context capturado ───────────────────────
+
+export function buildTools(ctx: ToolContext) {
+  const allTools = {
+    get_organization_structure: tool({
+      description:
+        "Devuelve la jerarquía organizacional: divisiones y sus departamentos. " +
+        "Usá esto cuando el user mencione 'división X' o 'departamento Y' para resolver IDs.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const block = requirePerm("get_organization_structure", ctx, "org_chart", "view");
+        if (block) return block;
+        const divs = await db
+          .select({ id: divisions.id, name: divisions.name })
+          .from(divisions)
+          .where(eq(divisions.organizationId, ctx.orgId));
+        const depts = await db
+          .select({
+            id: departments.id,
+            name: departments.name,
+            divisionId: departments.divisionId,
+          })
+          .from(departments)
+          .where(eq(departments.organizationId, ctx.orgId));
+        return {
+          divisions: divs.map((d) => ({
+            id: d.id,
+            name: d.name,
+            departments: depts.filter((dep) => dep.divisionId === d.id).map((dep) => ({ id: dep.id, name: dep.name })),
+          })),
+          orphanDepartments: depts.filter((d) => !d.divisionId).map((d) => ({ id: d.id, name: d.name })),
+        };
+      },
+    }),
+
+    list_employees: tool({
+      description:
+        "Lista empleados de la org (puestos ocupados y vacantes) con sus puestos, departamentos y divisiones. " +
+        "Soporta filtro opcional por departmentId o búsqueda por nombre.",
+      inputSchema: z.object({
+        departmentId: z.string().optional().describe("Filtrar a un depto específico"),
+        search: z.string().optional().describe("Buscar por nombre o jobTitle"),
+        limit: z.number().optional().describe("Máximo de resultados (default 50, max 200)"),
+      }),
+      execute: async ({ departmentId, search, limit }) => {
+        const block = requirePerm("list_employees", ctx, "employees", "view");
+        if (block) return block;
+        const cap = Math.min(Number(limit ?? 50), 200);
+        const conditions = [eq(employees.organizationId, ctx.orgId)];
+        if (departmentId) conditions.push(eq(employees.departmentId, departmentId));
+        if (search) {
+          const q = `%${search}%`;
+          conditions.push(or(ilike(employees.fullName, q), ilike(employees.jobTitle, q))!);
+        }
+        const rows = await db
+          .select({
+            id: employees.id,
+            fullName: employees.fullName,
+            jobTitle: employees.jobTitle,
+            departmentId: employees.departmentId,
+            divisionId: employees.divisionId,
+            status: employees.status,
+            email: employees.email,
+          })
+          .from(employees)
+          .where(and(...conditions))
+          .limit(cap);
+        return { employees: rows, total: rows.length };
+      },
+    }),
+
+    list_projects: tool({
+      description:
+        "Lista proyectos de la org con su VFP, owner y status. No incluye hitos ni tareas — usá get_project_details para detalle.",
+      inputSchema: z.object({
+        status: z.string().optional().describe("planning | activo | pausado | completado | cancelado"),
+        limit: z.number().optional().describe("Default 30, max 100"),
+      }),
+      execute: async ({ status, limit }) => {
+        const block = requirePerm("list_projects", ctx, "projects", "view");
+        if (block) return block;
+        const cap = Math.min(Number(limit ?? 30), 100);
+        const conditions = [eq(projects.organizationId, ctx.orgId)];
+        if (status) conditions.push(eq(projects.status, status));
+        const rows = await db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            status: projects.status,
+            vfp: projects.vfp,
+            ownerEmployeeId: projects.ownerEmployeeId,
+            processInstanceId: projects.processInstanceId,
+            createdAt: projects.createdAt,
+          })
+          .from(projects)
+          .where(and(...conditions))
+          .limit(cap);
+        return { projects: rows, total: rows.length };
+      },
+    }),
+
+    get_project_details: tool({
+      description: "Devuelve un proyecto completo: VFP + hitos + tareas + owner.",
+      inputSchema: z.object({
+        projectId: z.string().describe("UUID del proyecto"),
+      }),
+      execute: async ({ projectId }) => {
+        const block = requirePerm("get_project_details", ctx, "projects", "view");
+        if (block) return block;
+        const [project] = await db
+          .select()
+          .from(projects)
+          .where(and(eq(projects.id, projectId), eq(projects.organizationId, ctx.orgId)))
+          .limit(1);
+        if (!project) return errorResult("Proyecto no encontrado");
+        const milestones = await db
+          .select()
+          .from(projectMilestones)
+          .where(eq(projectMilestones.projectId, projectId));
+        const projectTasks = await db
+          .select({
+            id: tasks.id,
+            title: tasks.title,
+            status: tasks.status,
+            priority: tasks.priority,
+            assigneeEmployeeId: tasks.assigneeEmployeeId,
+            milestoneId: tasks.milestoneId,
+            dueDate: tasks.dueDate,
+          })
+          .from(tasks)
+          .where(eq(tasks.projectId, projectId));
+        return { project, milestones, tasks: projectTasks };
+      },
+    }),
+
+    list_processes: tool({
+      description:
+        "Lista las definiciones de proceso BPM de la org. Devuelve id, nombre, descripción y status.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const block = requirePerm("list_processes", ctx, "processes", "view");
+        if (block) return block;
+        const rows = await db
+          .select({
+            id: processDefinitions.id,
+            name: processDefinitions.name,
+            description: processDefinitions.description,
+            status: processDefinitions.status,
+            category: processDefinitions.category,
+          })
+          .from(processDefinitions)
+          .where(eq(processDefinitions.organizationId, ctx.orgId));
+        return { processes: rows };
+      },
+    }),
+
+    create_project: tool({
+      description:
+        "Crea un nuevo proyecto con VFP opcional. Si el user menciona división/depto, primero resolvé IDs con get_organization_structure y list_employees.",
+      inputSchema: z.object({
+        name: z.string().describe("Nombre del proyecto"),
+        description: z.string().optional(),
+        ownerEmployeeId: z.string().optional().describe("Employee ID del responsable"),
+        vfp: z
+          .object({
+            producto: z.string().optional(),
+            para: z.string().optional(),
+            quien: z.string().optional(),
+            aDiferenciaDe: z.string().optional(),
+            terminadoCuando: z.string().optional(),
+          })
+          .optional()
+          .describe("Valuable Final Product"),
+        status: z.string().optional().describe("Default 'activo'"),
+      }),
+      execute: async ({ name, description, ownerEmployeeId, vfp, status }) => {
+        const block = requirePerm("create_project", ctx, "projects", "create");
+        if (block) return block;
+        const [project] = await db
+          .insert(projects)
+          .values({
+            organizationId: ctx.orgId,
+            name,
+            description: description ?? null,
+            vfp: vfp ?? null,
+            ownerEmployeeId: ownerEmployeeId ?? null,
+            status: status ?? "activo",
+          })
+          .returning();
+        return { project };
+      },
+    }),
+
+    create_milestone: tool({
+      description: "Crea un hito dentro de un proyecto.",
+      inputSchema: z.object({
+        projectId: z.string(),
+        title: z.string(),
+        description: z.string().optional(),
+        acceptanceCriteria: z.string().optional().describe("Qué define que está terminado"),
+        ownerEmployeeId: z.string().optional(),
+        dueDate: z.string().optional().describe("ISO 8601"),
+        orderIndex: z.number().optional(),
+      }),
+      execute: async ({ projectId, title, description, acceptanceCriteria, ownerEmployeeId, dueDate, orderIndex }) => {
+        const block = requirePerm("create_milestone", ctx, "projects", "edit");
+        if (block) return block;
+        const [p] = await db
+          .select({ id: projects.id })
+          .from(projects)
+          .where(and(eq(projects.id, projectId), eq(projects.organizationId, ctx.orgId)))
+          .limit(1);
+        if (!p) return errorResult("Proyecto no encontrado o de otra org");
+        const [milestone] = await db
+          .insert(projectMilestones)
+          .values({
+            projectId,
+            organizationId: ctx.orgId,
+            title,
+            description: description ?? null,
+            acceptanceCriteria: acceptanceCriteria ?? null,
+            ownerEmployeeId: ownerEmployeeId ?? null,
+            dueDate: dueDate ? new Date(dueDate) : null,
+            orderIndex: Number(orderIndex ?? 0),
+            status: "pending",
+          })
+          .returning();
+        return { milestone };
+      },
+    }),
+
+    create_task: tool({
+      description: "Crea una tarea en un proyecto. Puede asignarse a un empleado y/o vincularse a un hito.",
+      inputSchema: z.object({
+        projectId: z.string(),
+        title: z.string(),
+        description: z.string().optional(),
+        assigneeEmployeeId: z.string().optional(),
+        milestoneId: z.string().optional(),
+        priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+        dueDate: z.string().optional().describe("ISO 8601"),
+      }),
+      execute: async ({ projectId, title, description, assigneeEmployeeId, milestoneId, priority, dueDate }) => {
+        const block = requirePerm("create_task", ctx, "projects", "edit");
+        if (block) return block;
+        const [p] = await db
+          .select({ id: projects.id })
+          .from(projects)
+          .where(and(eq(projects.id, projectId), eq(projects.organizationId, ctx.orgId)))
+          .limit(1);
+        if (!p) return errorResult("Proyecto no encontrado o de otra org");
+        const [task] = await db
+          .insert(tasks)
+          .values({
+            projectId,
+            organizationId: ctx.orgId,
+            title,
+            description: description ?? undefined,
+            priority: priority ?? "medium",
+            status: "todo",
+            assigneeEmployeeId: assigneeEmployeeId ?? null,
+            milestoneId: milestoneId ?? null,
+            dueDate: dueDate ? new Date(dueDate) : null,
+          })
+          .returning();
+        return { task };
+      },
+    }),
+  };
+
+  // Permission metadata para filtrar tools no permitidas ANTES de mandar al modelo
+  TOOL_META.set("get_organization_structure", { requires: { module: "org_chart", action: "view" } });
+  TOOL_META.set("list_employees", { requires: { module: "employees", action: "view" } });
+  TOOL_META.set("list_projects", { requires: { module: "projects", action: "view" } });
+  TOOL_META.set("get_project_details", { requires: { module: "projects", action: "view" } });
+  TOOL_META.set("list_processes", { requires: { module: "processes", action: "view" } });
+  TOOL_META.set("create_project", { requires: { module: "projects", action: "create" } });
+  TOOL_META.set("create_milestone", { requires: { module: "projects", action: "edit" } });
+  TOOL_META.set("create_task", { requires: { module: "projects", action: "edit" } });
+
+  return allTools;
 }
 
-/** Ejecutor centralizado: chequea permission, ejecuta, captura errores. */
-export async function executeTool(
-  toolName: string,
-  input: Record<string, unknown>,
-  ctx: ToolContext
-): Promise<unknown> {
-  const tool = ALL_TOOLS.find((t) => t.name === toolName);
-  if (!tool) return errorResult(`Tool desconocida: ${toolName}`);
-  if (tool.requiresPermission) {
-    const ok = hasPermission(ctx.permissions, tool.requiresPermission.module, tool.requiresPermission.action);
-    if (!ok) {
-      return errorResult(
-        `Sin permiso para ejecutar ${toolName} (requiere ${tool.requiresPermission.module}.${tool.requiresPermission.action})`
-      );
+/**
+ * Filtra el objeto de tools devuelto por buildTools() dejando solo las que el
+ * user tiene permiso de usar. Esto evita exponer tools al modelo que después
+ * van a fallar con "sin permiso".
+ */
+export function filterToolsByPermissions(
+  tools: ReturnType<typeof buildTools>,
+  perms: PermissionsMap
+): Partial<ReturnType<typeof buildTools>> {
+  const filtered: Record<string, unknown> = {};
+  for (const [name, toolDef] of Object.entries(tools)) {
+    const meta = TOOL_META.get(name);
+    if (!meta?.requires || hasPermission(perms, meta.requires.module, meta.requires.action)) {
+      filtered[name] = toolDef;
     }
   }
-  try {
-    return await tool.execute(input, ctx);
-  } catch (err) {
-    return errorResult(`Error al ejecutar ${toolName}: ${String(err)}`);
-  }
+  return filtered as Partial<ReturnType<typeof buildTools>>;
 }

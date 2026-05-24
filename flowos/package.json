@@ -11,6 +11,10 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.79",
+    "@ai-sdk/google": "^3.0.79",
+    "@ai-sdk/mistral": "^3.0.37",
+    "@ai-sdk/openai": "^3.0.65",
     "@anthropic-ai/sdk": "^0.98.0",
     "@clerk/localizations": "^4.6.7",
     "@clerk/nextjs": "^6.20.0",
@@ -27,6 +31,7 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@supabase/supabase-js": "^2.105.4",
     "@xyflow/react": "^12.4.4",
+    "ai": "^6.0.191",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -42,6 +47,7 @@
     "svix": "^1.45.1",
     "swr": "^2.4.1",
     "tailwind-merge": "^2.6.0",
+    "zod": "^4.4.3",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
