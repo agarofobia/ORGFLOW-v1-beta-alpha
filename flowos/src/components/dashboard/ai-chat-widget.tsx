@@ -77,9 +77,21 @@ export default function AiChatWidget() {
 
   // Cargar config + estado feature + provider
   useEffect(() => {
-    try {
-      setHiddenByUser(localStorage.getItem(HIDDEN_LS_KEY) === "true");
-    } catch {}
+    const readHidden = () => {
+      try {
+        setHiddenByUser(localStorage.getItem(HIDDEN_LS_KEY) === "true");
+      } catch {}
+    };
+    readHidden();
+
+    // Escuchar cambios en otras tabs O cuando el AiVisibilityToggle dispatch
+    // un storage event sintético en la misma tab.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === HIDDEN_LS_KEY || e.key === null) {
+        readHidden();
+      }
+    };
+    window.addEventListener("storage", onStorage);
 
     fetch("/api/ai/config")
       .then((r) => (r.ok ? r.json() : null))
@@ -90,6 +102,8 @@ export default function AiChatWidget() {
         }
       })
       .catch(() => setEnabledForOrg(false));
+
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   // Auto-scroll al final

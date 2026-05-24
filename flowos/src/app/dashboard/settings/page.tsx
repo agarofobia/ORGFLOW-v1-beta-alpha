@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import PermissionGroupsSection from "./PermissionGroupsSection";
 import AiConfigSection from "./AiConfigSection";
+import AiVisibilityToggle from "./AiVisibilityToggle";
 
 type Theme = "dark" | "light" | "system";
 type Lang = "es" | "en" | "pt";
@@ -418,8 +419,9 @@ export default function SettingsPage() {
       {/* ── Grupos de permisos DB ── */}
       <PermissionGroupsSection />
 
-      {/* ── Asistente IA (BYOK Claude) ── */}
+      {/* ── Asistente IA (BYOK) — config (admin) + visibilidad personal (todos) ── */}
       <AiConfigSection />
+      <AiVisibilityToggle />
 
       {/* ── Plan y facturación ── */}
       <section className="mt-10">
