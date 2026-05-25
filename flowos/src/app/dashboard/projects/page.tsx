@@ -720,12 +720,13 @@ export default function ProjectsPage() {
   };
 
   // Aplica filtros activos a una lista de tareas. Filtros vacíos = todo pasa.
+  // filterAssignee ahora matchea por assigneeEmployeeId (era por assigneeName legacy).
   const applyFilters = useCallback((arr: Task[]) => {
     const q = taskSearch.trim().toLowerCase();
     return arr.filter(t => {
       if (filterStatus.size > 0 && !filterStatus.has(t.status)) return false;
       if (filterPriority.size > 0 && (!t.priority || !filterPriority.has(t.priority))) return false;
-      if (filterAssignee && t.assigneeName !== filterAssignee) return false;
+      if (filterAssignee && t.assigneeEmployeeId !== filterAssignee) return false;
       if (q) {
         const inTitle = t.title.toLowerCase().includes(q);
         const inDesc = (t.description ?? "").toLowerCase().includes(q);
@@ -1373,327 +1374,6 @@ function BulkActionBar({ count, employees, onStatusChange, onPriorityChange, onA
 }
 
 /* ─── Summary view — la portada del proyecto ─── */
-function SummaryView({ project, employees, tasks, onProjectUpdate, onJumpToWork }: {
-  project: Project; employees: Employee[]; tasks: Task[];
-  onProjectUpdate: (u: Partial<Project>) => void;
-  onJumpToWork: () => void;
-}) {
-  const [editingVFP, setEditingVFP] = useState(false);
-  const [showOwnerPicker, setShowOwnerPicker] = useState(false);
-
-  const vfp = project.vfp ?? null;
-  const vfpComplete = vfp && vfp.producto && vfp.para && vfp.quien && vfp.terminadoCuando;
-  const owner = employees.find(e => e.id === project.ownerEmployeeId);
-
-  // Project health
-  const total = tasks.length;
-  const done = tasks.filter(t => t.status === "done").length;
-  const overdue = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "done").length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const health = overdue > 0 ? "atrasado" : pct === 100 ? "completo" : pct >= 50 ? "bien" : total === 0 ? "vacio" : "iniciando";
-  const healthColor = { atrasado: "var(--c-accent-red)", completo: "var(--c-accent-emerald)", bien: "var(--c-accent-emerald)", iniciando: "var(--c-accent-blue)", vacio: "var(--c-text-muted)" }[health];
-  const healthLabel = { atrasado: "Atrasado", completo: "Completo", bien: "En buen ritmo", iniciando: "Iniciando", vacio: "Sin trabajo" }[health];
-
-  // Próximas tareas (no completadas, ordenadas por fecha)
-  const upcoming = tasks
-    .filter(t => t.status !== "done")
-    .sort((a, b) => {
-      if (!a.dueDate && !b.dueDate) return 0;
-      if (!a.dueDate) return 1;
-      if (!b.dueDate) return -1;
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-    })
-    .slice(0, 5);
-
-  return (
-    <div style={{ flex: 1, overflow: "auto", padding: "24px 32px", display: "flex", flexDirection: "column", gap: 18 }}>
-      {/* VFP card — el corazón conceptual del proyecto.
-          Gradient multi-layer + glow + accent border. Es el elemento más
-          importante del modal — tiene que ser el primero que llame la atención. */}
-      <div
-        style={{
-          position: "relative",
-          background: vfpComplete
-            ? "radial-gradient(ellipse 600px 200px at 0% 0%, rgb(var(--c-accent-blue-rgb) / 0.16), transparent 60%), radial-gradient(ellipse 400px 200px at 100% 100%, rgb(var(--c-accent-violet-rgb) / 0.14), transparent 60%), linear-gradient(135deg, rgba(20,25,40,0.6), rgba(14,18,32,0.95))"
-            : "radial-gradient(ellipse 500px 200px at 50% 0%, rgb(var(--c-accent-amber-rgb) / 0.14), transparent 60%), linear-gradient(180deg, rgb(var(--c-accent-amber-rgb) / 0.04), rgba(14,18,32,0.95))",
-          border: `1px solid ${vfpComplete ? "rgb(var(--c-accent-blue-rgb) / 0.35)" : "rgb(var(--c-accent-amber-rgb) / 0.45)"}`,
-          borderRadius: 14,
-          padding: 24,
-          boxShadow: vfpComplete
-            ? "0 10px 40px rgb(var(--c-accent-blue-rgb) / 0.12), 0 0 0 1px rgb(var(--c-accent-violet-rgb) / 0.06) inset, 0 1px 0 rgba(255,255,255,0.04) inset"
-            : "0 10px 40px rgb(var(--c-accent-amber-rgb) / 0.1), 0 1px 0 rgba(255,255,255,0.03) inset",
-          overflow: "hidden",
-        }}
-      >
-        {/* Spotlight highlight en la esquina superior izquierda */}
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            top: -1,
-            left: -1,
-            right: -1,
-            height: 1,
-            background: vfpComplete
-              ? "linear-gradient(90deg, transparent, rgb(var(--c-accent-blue-rgb) / 0.5), rgb(var(--c-accent-violet-rgb) / 0.4), transparent)"
-              : "linear-gradient(90deg, transparent, rgb(var(--c-accent-amber-rgb) / 0.5), transparent)",
-            pointerEvents: "none",
-          }}
-        />
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
-                background: vfpComplete
-                  ? "linear-gradient(135deg, rgb(var(--c-accent-blue-rgb) / 0.25), rgb(var(--c-accent-violet-rgb) / 0.2))"
-                  : "rgb(var(--c-accent-amber-rgb) / 0.18)",
-                border: `1px solid ${vfpComplete ? "rgb(var(--c-accent-blue-rgb) / 0.3)" : "rgb(var(--c-accent-amber-rgb) / 0.3)"}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: vfpComplete
-                  ? "0 4px 14px rgb(var(--c-accent-blue-rgb) / 0.25)"
-                  : "0 4px 14px rgb(var(--c-accent-amber-rgb) / 0.2)",
-              }}
-            >
-              <Flag style={{ width: 17, height: 17, color: vfpComplete ? "#5A93FF" : "var(--c-accent-amber)" }} strokeWidth={2.25} />
-            </div>
-            <div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 10,
-                  fontFamily: "monospace",
-                  color: vfpComplete ? "#A0B4D8" : "#C4A672",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.14em",
-                  fontWeight: 600,
-                }}
-              >
-                Valuable Final Product
-              </p>
-              <p style={{ margin: "3px 0 0", fontSize: 16, fontWeight: 700, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
-                {vfpComplete ? "Estamos construyendo esto" : "Sin VFP definido"}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setEditingVFP(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "7px 14px",
-              background: vfpComplete
-                ? "rgb(var(--c-accent-blue-rgb) / 0.14)"
-                : "var(--c-accent-amber)",
-              color: vfpComplete ? "#7AABFF" : "#fff",
-              border: vfpComplete ? "1px solid rgb(var(--c-accent-blue-rgb) / 0.45)" : "none",
-              borderRadius: 7,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              boxShadow: vfpComplete
-                ? "0 2px 8px rgb(var(--c-accent-blue-rgb) / 0.18)"
-                : "0 4px 14px rgb(var(--c-accent-amber-rgb) / 0.35), 0 1px 0 rgba(255,255,255,0.1) inset",
-              transition: "transform 150ms ease, box-shadow 150ms ease, filter 150ms ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.filter = "brightness(1.08)";
-              if (vfpComplete) {
-                e.currentTarget.style.boxShadow = "0 6px 16px rgb(var(--c-accent-blue-rgb) / 0.3)";
-              } else {
-                e.currentTarget.style.boxShadow = "0 8px 22px rgb(var(--c-accent-amber-rgb) / 0.5), 0 1px 0 rgba(255,255,255,0.14) inset";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.filter = "brightness(1)";
-              e.currentTarget.style.boxShadow = vfpComplete
-                ? "0 2px 8px rgb(var(--c-accent-blue-rgb) / 0.18)"
-                : "0 4px 14px rgb(var(--c-accent-amber-rgb) / 0.35), 0 1px 0 rgba(255,255,255,0.1) inset";
-            }}
-          >
-            {vfpComplete ? "Editar VFP" : "Definir VFP"}
-          </button>
-        </div>
-
-        {vfpComplete ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 12,
-              position: "relative",
-            }}
-          >
-            {[
-              { k: "producto", label: "Producto", v: vfp!.producto, accent: "var(--c-accent-blue)" },
-              { k: "para", label: "Para", v: vfp!.para, accent: "var(--c-accent-blue)" },
-              { k: "quien", label: "Quién", v: vfp!.quien, accent: "var(--c-accent-violet)" },
-              { k: "aDiferenciaDe", label: "A diferencia de", v: vfp!.aDiferenciaDe, accent: "var(--c-accent-violet)" },
-              { k: "terminadoCuando", label: "Terminado cuando", v: vfp!.terminadoCuando, accent: "var(--c-accent-emerald)" },
-            ]
-              .filter((f) => f.v)
-              .map((f) => (
-                <div
-                  key={f.k}
-                  style={{
-                    padding: "12px 14px",
-                    background: "rgba(8,11,18,0.45)",
-                    border: "1px solid rgba(255,255,255,0.04)",
-                    borderLeft: `2px solid ${f.accent}`,
-                    borderRadius: 8,
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 9,
-                      fontFamily: "monospace",
-                      color: f.accent,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.12em",
-                      fontWeight: 600,
-                      opacity: 0.85,
-                    }}
-                  >
-                    {f.label}
-                  </p>
-                  <p style={{ margin: "5px 0 0", fontSize: 13, color: "var(--c-text-primary)", lineHeight: 1.55 }}>{f.v}</p>
-                </div>
-              ))}
-          </div>
-        ) : (
-          <p style={{ margin: 0, fontSize: 13.5, color: "var(--c-text-secondary)", lineHeight: 1.65, position: "relative" }}>
-            Antes de crear tareas, definí <strong style={{ color: "var(--c-accent-amber)" }}>qué es estar terminado</strong>. Sin VFP, este proyecto es
-            backlog basura. Forzar claridad al inicio es el único modo de evitar que se vuelva una lista infinita.
-          </p>
-        )}
-      </div>
-
-      {/* Owner + Health + Stats grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
-        {/* Owner */}
-        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 16 }}>
-          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            Owner del proyecto
-          </p>
-          <p style={{ margin: "2px 0 12px", fontSize: 10, color: "var(--c-text-muted)" }}>Posición del orgchart</p>
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setShowOwnerPicker(p => !p)} style={{
-              display: "flex", alignItems: "center", gap: 10, width: "100%",
-              padding: "8px 10px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)",
-              borderRadius: 6, cursor: "pointer", textAlign: "left",
-            }}>
-              {owner ? (
-                <>
-                  <EmployeeAvatar name={owner.fullName} employees={employees} size={28} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.fullName}</p>
-                    {owner.jobTitle && <p style={{ margin: 0, fontSize: 11, color: "var(--c-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.jobTitle}</p>}
-                  </div>
-                </>
-              ) : (
-                <span style={{ fontSize: 12, color: "var(--c-text-muted)" }}>+ Asignar owner</span>
-              )}
-            </button>
-            {showOwnerPicker && (
-              <EmployeePicker value={owner?.fullName} employees={employees}
-                onChange={(_n, id) => onProjectUpdate({ ownerEmployeeId: id })}
-                onClose={() => setShowOwnerPicker(false)} />
-            )}
-          </div>
-        </div>
-
-        {/* Health */}
-        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 16 }}>
-          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            Salud del proyecto
-          </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: healthColor, boxShadow: `0 0 8px ${healthColor}` }} />
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: healthColor }}>{healthLabel}</p>
-          </div>
-          <div style={{ marginTop: 12, height: 6, background: "var(--c-border)", borderRadius: 4, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "var(--c-accent-emerald)" : "var(--c-accent-blue)", transition: "width 0.4s" }} />
-          </div>
-          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
-            {done}/{total} tareas · {pct}%{overdue > 0 ? ` · ${overdue} atrasada${overdue !== 1 ? "s" : ""}` : ""}
-          </p>
-        </div>
-
-        {/* Quick stats */}
-        <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            Acciones
-          </p>
-          <button onClick={onJumpToWork} style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            background: "var(--c-accent-blue)", color: "#fff", border: "none", borderRadius: 6,
-            padding: "10px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer",
-            boxShadow: "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.3)",
-          }}>
-            Ver trabajo →
-          </button>
-        </div>
-      </div>
-
-      {/* Próximas tareas */}
-      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 18 }}>
-        <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-          Próximas tareas
-        </p>
-        {upcoming.length === 0 ? (
-          <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--c-text-muted)" }}>
-            Sin tareas pendientes. Pasá a la vista <strong>Lista</strong> para empezar a planear.
-          </p>
-        ) : (
-          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-            {upcoming.map(t => {
-              const due = formatDueDate(t.dueDate);
-              return (
-                <div key={t.id} style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "8px 12px", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6,
-                }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLORS[t.status], flexShrink: 0 }} />
-                  <p style={{ margin: 0, flex: 1, fontSize: 13, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.title}
-                  </p>
-                  {t.priority && (
-                    <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 3, background: `${PRIORITY_COLORS[t.priority]}1F`, color: PRIORITY_COLORS[t.priority], border: `1px solid ${PRIORITY_COLORS[t.priority]}40`, fontFamily: "monospace", textTransform: "uppercase" }}>
-                      {PRIORITY_LABELS[t.priority]}
-                    </span>
-                  )}
-                  {due && <span style={{ fontSize: 11, color: due.color, fontFamily: "monospace" }}>{due.label}</span>}
-                  {(t.assigneeEmployeeId || t.assigneeName) && (
-                    <EmployeeAvatar employeeId={t.assigneeEmployeeId} name={t.assigneeName} employees={employees} size={20} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {editingVFP && (
-        <VFPEditor
-          initialVFP={vfp ?? {}}
-          onSave={v => { onProjectUpdate({ vfp: v }); setEditingVFP(false); }}
-          onClose={() => setEditingVFP(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-/* ─── VFP editor modal ─── */
 function VFPEditor({ initialVFP, onSave, onClose }: {
   initialVFP: ProjectVFP; onSave: (v: ProjectVFP) => void; onClose: () => void;
 }) {
@@ -2719,7 +2399,7 @@ function ProjectModal(props: {
                 employees={employees}
                 onStatusChange={s => props.bulkUpdate({ status: s })}
                 onPriorityChange={p => props.bulkUpdate({ priority: p })}
-                onAssigneeChange={(n, id) => props.bulkUpdate({ assigneeName: n, assigneeEmployeeId: id })}
+                onAssigneeChange={(_n, id) => props.bulkUpdate({ assigneeEmployeeId: id })}
                 onDelete={props.bulkDelete}
                 onClear={() => props.setSelectedIds(new Set())}
               />
@@ -3524,149 +3204,6 @@ function QuickChip({ label, active, color, onClick, disabled }: {
 }
 
 /* ─── Board View — DnD + section rows + status columns ─── */
-function BoardView({
-  createTask, updateTask, deleteTask, openDetail,
-  getTasksByStatus, employees, sections, visibleTasks,
-}: {
-  newTaskTitle: string; setNewTaskTitle: (v: string) => void;
-  createTask: (status: Status, section?: string, titleOverride?: string) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
-  openDetail: (t: Task) => void;
-  getTasksByStatus: (status: Status) => Task[];
-  employees: Employee[]; sections: string[]; visibleTasks: Task[];
-}) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-  // Input "Nueva tarea" por celda (section + status)
-  const [quickInput, setQuickInput] = useState<{ section: string; status: Status; title: string } | null>(null);
-
-  const tasksByCell = (section: string, status: Status) =>
-    visibleTasks.filter(t => {
-      const matchesSection = section === "Sin sección"
-        ? (!t.sectionName || t.sectionName === "Sin sección")
-        : t.sectionName === section;
-      return matchesSection && t.status === status;
-    });
-
-  const onDragStart = (e: DragStartEvent) => {
-    const t = visibleTasks.find(x => x.id === e.active.id);
-    if (t) setActiveTask(t);
-  };
-  const onDragEnd = (e: DragEndEvent) => {
-    setActiveTask(null);
-    const overData = e.over?.data.current as { status?: Status; section?: string } | undefined;
-    if (!overData?.status) return;
-    const t = visibleTasks.find(x => x.id === e.active.id);
-    if (!t) return;
-    const updates: Partial<Task> = {};
-    if (t.status !== overData.status) updates.status = overData.status;
-    if (overData.section && t.sectionName !== overData.section) updates.sectionName = overData.section;
-    if (Object.keys(updates).length > 0) updateTask(t.id, updates);
-  };
-
-  return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
-        {/* Header: status columns */}
-        <div style={{ display: "grid", gridTemplateColumns: `180px repeat(${STATUSES.length}, 1fr)`, gap: 10, minWidth: 1000, position: "sticky", top: 0, zIndex: 5, background: "var(--c-bg-base)", paddingBottom: 8 }}>
-          <div />
-          {STATUSES.map(status => (
-            <div key={status} style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "9px 12px", background: "var(--c-bg-surface)",
-              border: "1px solid var(--c-border)", borderRadius: 6,
-            }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLORS[status] }} />
-              <h3 style={{ fontSize: 12, fontWeight: 600, color: "var(--c-text-primary)", margin: 0, flex: 1 }}>{STATUS_LABELS[status]}</h3>
-              <span style={{ borderRadius: 4, padding: "1px 6px", fontFamily: "monospace", fontSize: 10, background: "var(--c-bg-elevated)", color: "var(--c-text-muted)" }}>
-                {getTasksByStatus(status).length}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Filas: una por sección */}
-        {sections.map(section => (
-          <div key={section} style={{ display: "grid", gridTemplateColumns: `180px repeat(${STATUSES.length}, 1fr)`, gap: 10, minWidth: 1000, marginTop: 10, alignItems: "stretch" }}>
-            {/* Section header (left) */}
-            <div style={{
-              padding: "10px 12px", background: "var(--c-bg-surface)",
-              border: "1px solid var(--c-border)", borderRadius: 6,
-              display: "flex", flexDirection: "column", justifyContent: "center",
-            }}>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {(section === "Sin sección" && sections.length === 1) ? "Todas las tareas" : section}
-              </p>
-              <p style={{ margin: "2px 0 0", fontSize: 10, color: "var(--c-text-muted)", fontFamily: "monospace" }}>
-                {sections.length > 1 ? visibleTasks.filter(t => (section === "Sin sección" ? (!t.sectionName || t.sectionName === "Sin sección") : t.sectionName === section)).length : visibleTasks.length} tareas
-              </p>
-            </div>
-
-            {STATUSES.map(status => {
-              const cellTasks = tasksByCell(section, status);
-              const isAddingHere = quickInput?.section === section && quickInput.status === status;
-              return (
-                <div key={status} style={{ background: "var(--c-bg-darkest)", border: "1px solid var(--c-border)", borderRadius: 6, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                  <DroppableColumn status={status} section={section}>
-                    {cellTasks.map(task => (
-                      <DraggableBoardCard key={task.id} task={task} employees={employees}
-                        onOpenDetail={() => openDetail(task)} onDelete={() => deleteTask(task.id)} />
-                    ))}
-                    {cellTasks.length === 0 && !isAddingHere && (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 8px", fontSize: 11, color: "var(--c-text-placeholder)", border: "1px dashed var(--c-border)", borderRadius: 4 }}>
-                        Sin tareas
-                      </div>
-                    )}
-                  </DroppableColumn>
-                  {/* Quick add input */}
-                  <div style={{ padding: 6, borderTop: "1px solid var(--c-border)" }}>
-                    {isAddingHere ? (
-                      <form onSubmit={e => {
-                        e.preventDefault();
-                        if (!quickInput!.title.trim()) return;
-                        createTask(status, section, quickInput!.title);
-                        setQuickInput(null);
-                      }}
-                      style={{ display: "flex", gap: 5 }}>
-                        <input autoFocus value={quickInput!.title}
-                          onChange={e => setQuickInput({ ...quickInput!, title: e.target.value })}
-                          onBlur={() => { if (!quickInput!.title.trim()) setQuickInput(null); }}
-                          onKeyDown={e => { if (e.key === "Escape") setQuickInput(null); }}
-                          placeholder="Título…"
-                          style={{ flex: 1, fontSize: 12, padding: "5px 8px", borderRadius: 4, background: "var(--c-bg-elevated)", border: "1px solid var(--c-accent-blue)", color: "var(--c-text-primary)", outline: "none" }} />
-                        <button type="submit" disabled={!quickInput!.title.trim()}
-                          style={{ width: 24, height: 24, borderRadius: 4, background: "var(--c-accent-blue)", color: "#fff", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: quickInput!.title.trim() ? 1 : 0.5 }}>
-                          <Plus style={{ width: 12, height: 12 }} strokeWidth={2.5} />
-                        </button>
-                      </form>
-                    ) : (
-                      <button onClick={() => setQuickInput({ section, status, title: "" })}
-                        style={{
-                          width: "100%", padding: "4px 8px", display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                          background: "transparent", border: "1px dashed var(--c-border)", borderRadius: 4,
-                          color: "var(--c-text-muted)", fontSize: 11, cursor: "pointer",
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.color = "var(--c-accent-blue)"; e.currentTarget.style.borderColor = "rgb(var(--c-accent-blue-rgb) / 0.4)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = "var(--c-text-muted)"; e.currentTarget.style.borderColor = "var(--c-border)"; }}>
-                        <Plus style={{ width: 10, height: 10 }} /> Nueva tarea
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <DragOverlay>
-        {activeTask && <BoardCard task={activeTask} employees={employees} onOpenDetail={() => {}} onDelete={() => {}} isDragging={true} />}
-      </DragOverlay>
-    </DndContext>
-  );
-}
-
-/* ─── List View ─── */
 function ListView({
   sections, collapsedSections, toggleSection,
   expandedTask, setExpandedTask, detailTask, openDetail, setDetailTask,
@@ -3988,8 +3525,10 @@ function TaskRow({ task, grid, isExpanded, onToggleExpand, onOpenDetail, onUpdat
             })()}
           </button>
           {openPicker === "assignee" && (
-            <EmployeePicker value={task.assigneeName} employees={employees}
-              onChange={(n, id) => onUpdate({ assigneeName: n, assigneeEmployeeId: id })}
+            <EmployeePicker
+              value={employees.find(e => e.id === task.assigneeEmployeeId)?.fullName ?? task.assigneeName}
+              employees={employees}
+              onChange={(_n, id) => onUpdate({ assigneeEmployeeId: id })}
               onClose={() => setOpenPicker(null)} />
           )}
         </div>
@@ -4226,20 +3765,28 @@ function DetailPanel({ task, editingTask, setEditingTask, onSave, onClose, onDel
                     <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedAssignee.fullName}</span>
                   </>
                 ) : selectedAssigneeName ? (
+                  // Legacy fallback: data vieja con assigneeName (string libre) sin employee link.
+                  // No editable desde acá — solo display. Para reasignar usar el picker.
                   <>
                     <EmployeeAvatar name={selectedAssigneeName} employees={employees} size={18} />
-                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedAssigneeName}</span>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--c-text-muted)", fontStyle: "italic" }}>
+                      {selectedAssigneeName} (legacy)
+                    </span>
                   </>
                 ) : <span style={{ color: "var(--c-text-muted)" }}>Sin asignar</span>}
               </button>
               {showAssigneePicker && (
-                <EmployeePicker value={selectedAssigneeName ?? undefined} employees={employees}
-                  onChange={(n, id) => setEditingTask({ ...editingTask, assigneeName: n, assigneeEmployeeId: id })}
+                <EmployeePicker
+                  value={selectedAssignee?.fullName ?? selectedAssigneeName ?? undefined}
+                  employees={employees}
+                  onChange={(_n, id) => setEditingTask({ ...editingTask, assigneeEmployeeId: id })}
                   onClose={() => setShowAssigneePicker(false)} />
               )}
             </>
           ) : (
-            <input type="text" value={selectedAssigneeName ?? ""} onChange={e => setEditingTask({ ...editingTask, assigneeName: e.target.value })} placeholder="Nombre" style={inp} />
+            <span style={{ ...inp, color: "var(--c-text-muted)", fontStyle: "italic", display: "block" }}>
+              Sin empleados cargados — creá puestos en el orgchart primero
+            </span>
           )}
         </div>
         <div>

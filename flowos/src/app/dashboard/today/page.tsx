@@ -17,8 +17,8 @@ type Priority = "low" | "medium" | "high" | "urgent";
 interface MyTask {
   id: string; projectId: string; title: string; description?: string | null;
   status: Status; priority: Priority; dueDate?: string | null;
-  sectionName?: string | null; milestoneId?: string | null;
-  assigneeEmployeeId?: string | null; assigneeName?: string | null;
+  milestoneId?: string | null;
+  assigneeEmployeeId?: string | null;
   createdAt?: string; projectName?: string | null;
 }
 interface MyEmployee { id: string; fullName: string; jobTitle?: string | null; color?: string | null }
