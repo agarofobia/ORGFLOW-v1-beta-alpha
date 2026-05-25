@@ -6,7 +6,7 @@
 //  3. El user no lo desactivó manualmente (localStorage "flowos-ai-hidden")
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Sparkles, X, Send, Loader2, EyeOff, RotateCcw, ChevronDown, ChevronUp, Eye, Plus, Ban } from "lucide-react";
+import { Sparkles, X, Send, EyeOff, RotateCcw, ChevronDown, ChevronUp, Eye, Plus, Ban } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { usePermissions } from "@/hooks/usePermissions";

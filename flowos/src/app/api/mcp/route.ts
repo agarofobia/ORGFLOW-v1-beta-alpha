@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateApiToken } from "@/lib/api-token-auth";
 import { db } from "@/db";
-import { projects, tasks, employees, projectMilestones, processDefinitions, divisions, departments } from "@/db/schema";
+import { projects, tasks, employees, processDefinitions, divisions, departments } from "@/db/schema";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { startInstance } from "@/lib/bpm";
 

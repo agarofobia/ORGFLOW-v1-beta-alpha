@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Plus, Trash2, LayoutGrid, List, ChevronDown, ChevronRight,
-  X, Calendar, User, Flag, AlignLeft, Settings2, Loader2,
+  X, Calendar, User, Flag, AlignLeft, Loader2,
   CheckCircle2, Circle, Clock, ArrowLeft, Folder, Users as UsersIcon,
-  TrendingUp, Search, Filter, GripVertical, Upload, FileText,
+  TrendingUp, Search, Filter, Upload, FileText,
 } from "lucide-react";
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,

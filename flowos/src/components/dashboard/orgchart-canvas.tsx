@@ -23,8 +23,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  UserPlus, X, Loader2, Save, Layers, FolderPlus, Users, Briefcase,
-  Trash2, Edit3, Sparkles, Search, ChevronDown, ChevronRight, Download,
+  UserPlus, X, Loader2, Layers, FolderPlus, Users, Briefcase,
+  Sparkles, Search, Download,
 } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee, type Unit } from "@/db/schema";
@@ -33,15 +33,13 @@ import { useOrganization } from "@clerk/nextjs";
 // Tipos, nodos, modales y ColorPicker viven en src/components/dashboard/orgchart/
 import type {
   Division, Department,
-  EmployeeNode, DivisionNode, DepartmentNode, AnyNode,
+  EmployeeNode, DepartmentNode, AnyNode,
 } from "./orgchart/types";
-import { COLORS } from "./orgchart/constants";
 import { nodeTypes, edgeTypes } from "./orgchart/nodes";
-import { ColorPicker } from "./orgchart/ColorPicker";
 import {
   NewPositionModal, type NewPositionParent,
   DivisionEditModal, DepartmentEditModal,
-  QuickPromptModal, RenameModal, PersonPickerModal,
+  QuickPromptModal, RenameModal,
 } from "./orgchart/modals";
 import {
   AddPositionPanel, AddGroupPanel, SearchPanel,

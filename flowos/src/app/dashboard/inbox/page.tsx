@@ -15,7 +15,6 @@ import {
   ExternalLink,
   Eye,
   Trash2,
-  XCircle,
 } from "lucide-react";
 import type { InboxTask, ProcessDefinition, ProcessInstance } from "@/db/schema";
 import TaskRunnerModal from "./TaskRunnerModal";
