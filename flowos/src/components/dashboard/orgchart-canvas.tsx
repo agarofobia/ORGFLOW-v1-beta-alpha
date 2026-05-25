@@ -49,6 +49,7 @@ import {
 } from "./orgchart/panels";
 import { NodeInfoPanel, UnitEditPanel, type EmployeeWithSection } from "./orgchart/NodeInfoPanel";
 import { getEffectiveRole } from "./orgchart/roles";
+import BulkActionToolbar from "./orgchart/BulkActionToolbar";
 
 
 // ─── Debounce helper ─────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ function useDebounce<T extends unknown[]>(fn: (...args: T) => void, delay: numbe
 // ─── Main Canvas ─────────────────────────────────────────────────────────────
 
 function OrgChartFlow() {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, error } = useEmployees();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, error, refetch: refetchEmployees } = useEmployees();
   const { membership } = useOrganization();
   const isAdmin = membership?.role === "org:admin";
   const { screenToFlowPosition, getViewport, setViewport, fitView } = useReactFlow();
@@ -1067,6 +1068,23 @@ function OrgChartFlow() {
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
   const [nodes, setNodes] = useState<AnyNode[]>(computedNodes);
+
+  // Bulk operations — selectedEmployeeIds para el toolbar.
+  // Se actualiza con onSelectionChange de ReactFlow (shift+click o drag-select).
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const handleSelectionChange = useCallback(({ nodes: selNodes }: { nodes: AnyNode[]; edges: Edge[] }) => {
+    const empIds = selNodes.filter((n) => n.type === "employee").map((n) => n.id);
+    setSelectedEmployeeIds(empIds);
+  }, []);
+  const clearSelection = useCallback(() => {
+    setNodes((curr) => curr.map((n) => ({ ...n, selected: false })));
+    setSelectedEmployeeIds([]);
+  }, []);
+  const onBulkApplied = useCallback(() => {
+    refetchEmployees();
+    clearSelection();
+  }, [clearSelection, refetchEmployees]);
+
   useEffect(() => {
     suppressEdgeRemove.current = true;
     setNodes(computedNodes);
@@ -2130,6 +2148,7 @@ function OrgChartFlow() {
         panOnScroll={false}
         minZoom={0.2}
         maxZoom={2}
+        onSelectionChange={handleSelectionChange}
         className={locked ? "flowos-locked" : ""}
         style={{ background: "var(--c-bg-base)" }}
       >
@@ -2570,6 +2589,24 @@ function OrgChartFlow() {
           </div>
         </div>
       )}
+
+      {/* Bulk actions toolbar — solo aparece con 2+ employee nodes seleccionados */}
+      <BulkActionToolbar
+        selectedIds={selectedEmployeeIds}
+        selectedEmployees={employees.filter((e) => selectedEmployeeIds.includes(e.id)).map((e) => ({
+          id: e.id, fullName: e.fullName,
+          departmentId: e.departmentId, divisionId: e.divisionId,
+        }))}
+        allEmployees={employees.map((e) => ({
+          id: e.id, fullName: e.fullName,
+          departmentId: e.departmentId, divisionId: e.divisionId,
+        }))}
+        departments={departments.map((d) => ({ id: d.id, name: d.name }))}
+        divisions={divisions.map((d) => ({ id: d.id, name: d.name }))}
+        units={units.map((u) => ({ id: u.id, name: u.name, departmentId: u.departmentId }))}
+        onApplied={onBulkApplied}
+        onClear={clearSelection}
+      />
     </>
   );
 }

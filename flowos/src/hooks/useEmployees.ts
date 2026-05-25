@@ -67,5 +67,6 @@ export function useEmployees() {
     addEmployee,
     updateEmployee,
     deleteEmployee,
+    refetch: () => mutate(),
   };
 }
