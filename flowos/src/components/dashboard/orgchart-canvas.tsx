@@ -882,9 +882,13 @@ function OrgChartFlow() {
     const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
     const deptNeededHeight = new Map<string, number>();
     for (const dp of departments) {
-      // El director/head vive DENTRO del depto, se incluye en el conteo de altura
+      // El director/head se excluye del cálculo de altura mínima para no forzar
+      // un mínimo mayor que el sizeHeight guardado (lo que bloquearía el resize).
+      // El director se renderiza dentro del depto independientemente.
+      const isHeadPromoted = (dp.promoteHead ?? false) && !!dp.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
         e.departmentId === dp.id &&
+        (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
         !absorption.absorbedIds.has(e.id)
       ).length;
       const mode = dp.layoutMode ?? "vertical";
@@ -903,8 +907,10 @@ function OrgChartFlow() {
     // Departments — child of division if has divisionId; skip if parent division is collapsed
     departments.forEach(dp => {
       if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
+      const isHeadPromoted = (dp.promoteHead ?? false) && !!dp.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
         e.departmentId === dp.id &&
+        (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
         !absorption.absorbedIds.has(e.id)
       ).length;
       const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
