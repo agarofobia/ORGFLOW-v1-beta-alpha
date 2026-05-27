@@ -559,13 +559,11 @@ function OrgChartFlow() {
     return map;
   }, [divisions]);
 
-  // Set de empleados que son "head" de un departamento Y cuyo depto tiene
-  // `promoteHead` activado. Solo esos se renderizan promovidos arriba del depto.
-  // Si el depto tiene promoteHead=false, el head queda como un puesto más adentro.
-  const directorEmployeeIds = useMemo(() => {
+  // Set de IDs de todos los heads de departamento — usado para generar edges correctas.
+  const deptHeadIds = useMemo(() => {
     const s = new Set<string>();
     for (const dp of departments) {
-      if (dp.headEmployeeId && (dp.promoteHead ?? false)) s.add(dp.headEmployeeId);
+      if (dp.headEmployeeId) s.add(dp.headEmployeeId);
     }
     return s;
   }, [departments]);
@@ -617,35 +615,46 @@ function OrgChartFlow() {
   }, [employees, departments, units]);
 
   // Edges sintéticas — generadas automáticamente, no se persisten ni son editables:
-  //   1. director → su departamento (__sync_dir_<deptId>)
+  //   1. Secretario divisional → Departamento (__sync_dir_<deptId>)
+  //      El secretario es el seniorEmployee de la división contenedora del depto.
   //   2. manager → subordinado para cada empleado con managerId (__sync_mgr_<empId>)
+  //      Se omite el edge hacia los directores (heads de depto) ya que su conexión
+  //      está cubierta por la regla 1 (secretario → depto que los contiene).
   // El usuario ve la jerarquía completa sin tener que dibujar líneas a mano.
   const directorSyntheticEdges = useMemo<Edge[]>(() => {
     const out: Edge[] = [];
     const empIds = new Set((employees ?? []).map(e => e.id));
 
-    // 1. Director → Departamento
+    // 1. Secretario → Departamento
+    // Cada depto se conecta desde el seniorEmployee de su división (el secretario),
+    // no desde el director, porque el director ahora vive DENTRO del depto.
     for (const dp of departments) {
-      if (!dp.headEmployeeId || !empIds.has(dp.headEmployeeId)) continue;
-      out.push({
-        id: `__sync_dir_${dp.id}`,
-        source: dp.headEmployeeId,
-        target: dp.id,
-        type: "bicolor",
-        selectable: false,
-        deletable: false,
-        focusable: false,
-      });
+      if (!dp.divisionId) continue;
+      const div = divisions.find(d => d.id === dp.divisionId);
+      const secId = div?.seniorEmployeeId;
+      if (secId && empIds.has(secId)) {
+        out.push({
+          id: `__sync_dir_${dp.id}`,
+          source: secId,
+          target: dp.id,
+          type: "bicolor",
+          selectable: false,
+          deletable: false,
+          focusable: false,
+        });
+      }
     }
 
     // 2. Manager → Subordinado (managerId chain)
-    // EXCEPTO si el subordinado fue absorbido inline en el card del manager.
+    // EXCEPTO si el subordinado fue absorbido inline en el card del manager, o
+    // si el subordinado es head de un departamento (su conexión es secretario→depto).
     // targetHandle='left' → la línea sale por debajo del manager y entra al
     // subordinado por su lateral izquierdo. Esto da un routing en L más limpio
     // que entrar siempre por arriba (que cruzaría visualmente con otros nodos).
     for (const e of employees ?? []) {
       if (!e.managerId || !empIds.has(e.managerId)) continue;
       if (absorption.absorbedIds.has(e.id)) continue;
+      if (deptHeadIds.has(e.id)) continue; // edge cubierto por secretario→depto
       out.push({
         id: `__sync_mgr_${e.id}`,
         source: e.managerId,
@@ -659,14 +668,13 @@ function OrgChartFlow() {
     }
 
     return out;
-  }, [departments, employees, absorption]);
+  }, [departments, employees, absorption, divisions, deptHeadIds]);
 
   // Motor de layout interno por departamento — respeta el layoutMode del depto:
   //   - "vertical": stack vertical con indent por nivel (modo default, clásico)
   //   - "compact": stack vertical SIN indent, gap menor, cards más chicas (mostradas vía empCompact)
   //   - "manual": no auto-posiciona nada, respeta lo que el usuario dragueó
-  // Si promoteHead=true, el head queda excluido del layout interno (va promovido arriba).
-  // Si promoteHead=false, el head se incluye normal en el layout.
+  // El head/director siempre se incluye dentro del depto (arriba del todo), ya NO se promueve afuera.
   const deptInternalLayout = useMemo(() => {
     const positions = new Map<string, { x: number; y: number }>();
     const COL_X = 16;
@@ -676,10 +684,9 @@ function OrgChartFlow() {
       const mode = dept.layoutMode ?? "vertical";
       if (mode === "manual") return; // no auto-posiciona — drag manual rules
 
-      const isPromoted = (dept.promoteHead ?? false) && !!dept.headEmployeeId;
+      // El director/head siempre se incluye en el layout interno del depto
       const empsInDept = (employees ?? []).filter(e =>
         e.departmentId === dept.id &&
-        (!isPromoted || e.id !== dept.headEmployeeId) &&
         !absorption.absorbedIds.has(e.id) &&
         e.manualPosition !== true
       );
@@ -703,19 +710,13 @@ function OrgChartFlow() {
           .forEach(sub => place(sub.id, depth + 1));
       };
 
-      // Top-level: si el head NO está promovido, arrancar con él
-      if (!isPromoted && dept.headEmployeeId && empsInDept.some(e => e.id === dept.headEmployeeId)) {
+      // El director/head siempre es el primero (arriba del todo en el depto)
+      if (dept.headEmployeeId && empsInDept.some(e => e.id === dept.headEmployeeId)) {
         place(dept.headEmployeeId, 0);
       }
-      // Si el head SÍ está promovido, top-level = sus subordinados directos
-      if (isPromoted && dept.headEmployeeId) {
-        empsInDept
-          .filter(e => e.managerId === dept.headEmployeeId)
-          .forEach(e => place(e.id, 0));
-      }
-      // Empleados sin manager top-level
+      // Empleados sin manager en este depto (top-level)
       empsInDept
-        .filter(e => !e.managerId && !visited.has(e.id))
+        .filter(e => (!e.managerId || !empsInDept.some(m => m.id === e.managerId)) && !visited.has(e.id))
         .forEach(e => place(e.id, 0));
       // Huérfanos
       empsInDept.forEach(e => { if (!visited.has(e.id)) place(e.id, 0); });
@@ -881,10 +882,9 @@ function OrgChartFlow() {
     const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
     const deptNeededHeight = new Map<string, number>();
     for (const dp of departments) {
-      const isHeadPromoted = (dp.promoteHead ?? false) && !!dp.headEmployeeId;
+      // El director/head vive DENTRO del depto, se incluye en el conteo de altura
       const empCount = (employees ?? []).filter(e =>
         e.departmentId === dp.id &&
-        (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
         !absorption.absorbedIds.has(e.id)
       ).length;
       const mode = dp.layoutMode ?? "vertical";
@@ -903,10 +903,8 @@ function OrgChartFlow() {
     // Departments — child of division if has divisionId; skip if parent division is collapsed
     departments.forEach(dp => {
       if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
-      const isHeadPromoted = (dp.promoteHead ?? false) && !!dp.headEmployeeId;
       const empCount = (employees ?? []).filter(e =>
         e.departmentId === dp.id &&
-        (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
         !absorption.absorbedIds.has(e.id)
       ).length;
       const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
@@ -961,60 +959,8 @@ function OrgChartFlow() {
         return;
       }
 
-      // ── DIRECTOR PROMOVIDO ───────────────────────────────────────────────
-      // Si el empleado es head de un departamento, NO va adentro del depto.
-      // Se renderiza arriba del depto como tarjeta independiente, parent =
-      // la división del depto (o sin parent si el depto es standalone).
-      // Posición: centrado horizontalmente respecto al depto, 90px arriba.
-      const isDirector = directorEmployeeIds.has(emp.id);
-      const dpForDirector = isDirector && emp.departmentId
-        ? departments.find(d => d.id === emp.departmentId)
-        : undefined;
-
+      // ── EMPLEADO (director o normal — todos viven dentro de su depto/división) ──
       const effectiveRole = getEffectiveRole(emp, employees ?? [], departments, units);
-
-      if (dpForDirector) {
-        const deptX = dpForDirector.positionX ?? 30;
-        const deptY = dpForDirector.positionY ?? 80;
-        const deptW = Math.max(dpForDirector.sizeWidth ?? DEPT_W, 290);
-        const EMP_W_CARD = 200;
-        const DIRECTOR_GAP_Y = 110; // separación vertical entre director y depto
-        const pos = !emp.manualPosition
-          ? { x: deptX + (deptW / 2) - (EMP_W_CARD / 2), y: deptY - DIRECTOR_GAP_Y }
-          : { x: emp.positionX ?? 0, y: emp.positionY ?? 0 };
-
-        const node: EmployeeNode = {
-          id: emp.id,
-          type: "employee",
-          position: pos,
-          data: {
-            fullName: emp.fullName,
-            jobTitle: emp.jobTitle || "Sin asignar",
-            color: emp.color || "var(--c-accent-blue)",
-            status: emp.status,
-            imageUrl: (emp as Employee & { imageUrl?: string | null }).imageUrl ?? null,
-            role: effectiveRole,
-            departmentId: emp.departmentId,
-            showRoleBadge: showRoleBadges,
-            // Director promovido NO se renderiza compact (es la figura principal del depto)
-            compact: false,
-            unit: (() => {
-              const u = emp.unitId ? units.find(x => x.id === emp.unitId) : null;
-              return u ? { id: u.id, name: u.name, color: u.color, isHead: u.headEmployeeId === emp.id } : null;
-            })(),
-            onUnitClick: handleUnitClick,
-          },
-        };
-        // Parent = división del depto si existe; si no, queda standalone.
-        if (dpForDirector.divisionId && divisions.some(d => d.id === dpForDirector.divisionId)) {
-          node.parentId = dpForDirector.divisionId;
-          node.extent = "parent";
-        }
-        push(node);
-        return;
-      }
-
-      // ── EMPLEADO NORMAL (no director) ────────────────────────────────────
       // Posición: si manualPosition=false y hay layout calculado → usar layout jerárquico.
       // Si manualPosition=true o no hay layout → usar positionX/Y del DB (drag manual).
       const autoPos = !emp.manualPosition ? deptInternalLayout.get(emp.id) : undefined;
@@ -1061,7 +1007,7 @@ function OrgChartFlow() {
 
     return result;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, directorEmployeeIds, absorption, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive, handleUnitClick, handleSubClick]);
+  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, deptHeadIds, absorption, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive, handleUnitClick, handleSubClick]);
 
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
