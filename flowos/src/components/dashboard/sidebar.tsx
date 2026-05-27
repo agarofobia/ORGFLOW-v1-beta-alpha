@@ -245,7 +245,7 @@ export function DashboardSidebar() {
           className="flex items-center gap-2.5 px-3 pb-4"
           style={{ borderTop: "1px solid var(--c-border)", paddingTop: "10px" }}
         >
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
           <div className="min-w-0">
             <p className="truncate text-xs font-medium leading-none" style={{ color: "var(--c-text-primary)" }}>
               {user?.firstName} {user?.lastName}
