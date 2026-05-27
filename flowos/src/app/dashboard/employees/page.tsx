@@ -869,6 +869,7 @@ export default function EmployeesPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "on_leave">("all");
   const [divFilter, setDivFilter] = useState<string>("");
   const [deptFilter, setDeptFilter] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"personas" | "puestos">("personas");
   const [selected, setSelected] = useState<Employee | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<Employee | null>(null);
@@ -935,8 +936,10 @@ export default function EmployeesPage() {
     return { active, onLeave, vacant, deptsWithStaff };
   })();
 
-  // Filtros aplicados: search (libre) + status set + divisionId + departmentId
+  // Filtros aplicados: search (libre) + status set + divisionId + departmentId + viewMode
   const filtered = employees.filter(e => {
+    // En vista Personas, ocultar puestos vacantes (son estructura, no gente)
+    if (viewMode === "personas" && isVacant(e)) return false;
     // Búsqueda textual
     const q = search.toLowerCase();
     if (q) {
@@ -994,7 +997,22 @@ export default function EmployeesPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
               <div>
                 <p style={{ fontSize: 10, letterSpacing: "0.1em", color: "var(--c-text-muted)", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "monospace" }}>Equipo</p>
-                <h1 style={{ color: "var(--c-text-primary)", fontSize: 20, fontWeight: 700, margin: 0 }}>Empleados</h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <h1 style={{ color: "var(--c-text-primary)", fontSize: 20, fontWeight: 700, margin: 0 }}>Empleados</h1>
+                  {/* Toggle Personas / Puestos */}
+                  <div style={{ display: "flex", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 6, padding: 2 }}>
+                    {(["personas", "puestos"] as const).map(v => (
+                      <button key={v} onClick={() => setViewMode(v)} style={{
+                        padding: "3px 12px", borderRadius: 4, fontSize: 11, fontWeight: 600,
+                        border: "none", cursor: "pointer", transition: "all 120ms",
+                        background: viewMode === v ? "var(--c-accent-blue)" : "transparent",
+                        color: viewMode === v ? "#fff" : "var(--c-text-muted)",
+                      }}>
+                        {v === "personas" ? "Personas" : "Puestos"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               {/* Métricas inline */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1074,7 +1092,7 @@ export default function EmployeesPage() {
           {loading ? (
             <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-muted)", fontSize: 14 }}>Cargando...</div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-muted)", fontSize: 14 }}>{search ? "Sin resultados." : "Sin empleados aún."}</div>
+            <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-muted)", fontSize: 14 }}>{search ? "Sin resultados." : viewMode === "puestos" ? "Sin puestos aún." : "Sin empleados aún."}</div>
           ) : groups.map(group => (
             <div key={group.label}>
               {/* Group header */}
@@ -1090,8 +1108,12 @@ export default function EmployeesPage() {
                 const vacant = isVacant(emp);
                 // En puesto vacante mostramos el jobTitle como título (la posición es lo importante)
                 // y omitimos el "[Puesto vacante]" duplicado.
-                const primary = vacant ? (emp.jobTitle || "Puesto sin definir") : emp.fullName;
-                const secondary = vacant ? "Vacante — buscar candidato" : (emp.jobTitle || "Sin puesto definido");
+                const primary = viewMode === "puestos"
+                  ? (emp.jobTitle || "Sin puesto definido")
+                  : (vacant ? (emp.jobTitle || "Puesto sin definir") : emp.fullName);
+                const secondary = viewMode === "puestos"
+                  ? (vacant ? "Vacante" : emp.fullName)
+                  : (vacant ? "Vacante — buscar candidato" : (emp.jobTitle || "Sin puesto definido"));
                 return (
                   <div key={emp.id} onClick={() => setSelected(isSelected ? null : emp)}
                     style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px clamp(16px, 4vw, 32px)", cursor: "pointer", backgroundColor: isSelected ? "var(--c-bg-elevated)" : "transparent", borderLeft: isSelected ? "3px solid var(--c-accent-blue)" : "3px solid transparent", borderBottom: "1px solid rgb(var(--c-border-rgb) / 0.25)", transition: "background 0.15s", opacity: vacant ? 0.78 : 1 }}>
@@ -1118,7 +1140,7 @@ export default function EmployeesPage() {
         {/* Footer */}
         <div style={{ padding: "10px clamp(16px, 4vw, 32px)", borderTop: "1px solid var(--c-border)" }}>
           <p style={{ color: "var(--c-text-muted)", fontSize: 12, margin: 0 }}>
-            {loading ? "—" : `${filtered.length} empleado${filtered.length !== 1 ? "s" : ""}`}
+            {loading ? "—" : `${filtered.length} ${viewMode === "puestos" ? "puesto" : "empleado"}${filtered.length !== 1 ? "s" : ""}`}
           </p>
         </div>
       </div>
