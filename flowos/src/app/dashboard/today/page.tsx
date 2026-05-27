@@ -158,7 +158,7 @@ export default function MyDayPage() {
   const totalOverdue = grouped.overdue.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--c-bg-base)", overflow: "auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "auto" }}>
       <div style={{ padding: "24px clamp(16px, 4vw, 32px) 18px", borderBottom: "1px solid var(--c-border)" }}>
         <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
           Workspace · {new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}

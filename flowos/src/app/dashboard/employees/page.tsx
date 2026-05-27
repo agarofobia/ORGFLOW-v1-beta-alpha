@@ -986,7 +986,7 @@ export default function EmployeesPage() {
   const groups = getGroups();
 
   return (
-    <div style={{ height: "100%", minHeight: "calc(100vh - 56px)", backgroundColor: "var(--c-bg-base)", overflow: "hidden", position: "relative" }}>
+    <div style={{ height: "100%", minHeight: "calc(100vh - 56px)", overflow: "hidden", position: "relative" }}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         {/* Header */}
         <div style={{ padding: "24px clamp(16px, 4vw, 32px) 16px", borderBottom: "1px solid var(--c-border)" }}>

@@ -968,7 +968,7 @@ function ProjectsHub({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--c-bg-base)", overflow: "auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "auto" }}>
       {/* Header */}
       <div style={{ padding: "28px 32px 20px", borderBottom: "1px solid var(--c-border)" }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 18, gap: 16 }}>

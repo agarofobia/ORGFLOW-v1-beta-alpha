@@ -134,7 +134,7 @@ export default function WorkloadPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--c-bg-base)", overflow: "auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "auto" }}>
       {/* Header */}
       <div style={{ padding: "28px clamp(16px, 4vw, 32px) 18px", borderBottom: "1px solid var(--c-border)" }}>
         <p style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: "var(--c-text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>

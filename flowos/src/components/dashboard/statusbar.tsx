@@ -39,6 +39,8 @@ export function DashboardStatusbar() {
         letterSpacing: "0.02em",
         flexShrink: 0,
         userSelect: "none",
+        position: "relative",
+        zIndex: 50,
       }}
     >
       <span style={{ opacity: 0.85, fontWeight: 600 }}>⌬ FlowOS</span>

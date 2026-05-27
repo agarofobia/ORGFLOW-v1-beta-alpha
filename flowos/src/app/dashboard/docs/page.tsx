@@ -333,7 +333,7 @@ export default function DocsPage() {
   return (
     <div
       className="flex h-full"
-      style={{ background: "var(--c-bg-base)" }}
+      style={{}}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}

@@ -11,7 +11,7 @@ import {
   CheckSquare,
   UserCircle2,
   ChevronRight,
-  Zap,
+  Building2,
   Workflow,
   Inbox,
   Activity,
@@ -88,7 +88,7 @@ export function DashboardSidebar() {
           className="flex h-7 w-7 items-center justify-center rounded-lg flex-shrink-0"
           style={{ background: "var(--c-accent-blue)" }}
         >
-          <Zap className="h-4 w-4 text-white" strokeWidth={2.5} fill="white" />
+          <Building2 className="h-4 w-4 text-white" strokeWidth={2} />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-none" style={{ color: "var(--c-text-primary)" }}>
