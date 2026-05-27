@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { DM_Sans, DM_Mono } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { esES } from "@clerk/localizations";
 import { ThemeBridge } from "@/components/theme-bridge";
 import "../styles/globals.css";
 
-const dmSans = DM_Sans({
+const dmSans = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-dm-sans",
   display: "swap",
 });
 
-const dmMono = DM_Mono({
+const dmMono = JetBrains_Mono({
   weight: ["300", "400", "500"],
   subsets: ["latin"],
   variable: "--font-dm-mono",

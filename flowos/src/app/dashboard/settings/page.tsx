@@ -25,14 +25,14 @@ type Theme = "dark" | "light" | "system";
 type Lang = "es" | "en" | "pt";
 
 const ACCENT_PRESETS = [
-  { name: "Azul", hex: "var(--c-accent-blue)" },
-  { name: "Esmeralda", hex: "var(--c-accent-emerald)" },
-  { name: "Ámbar", hex: "var(--c-accent-amber)" },
-  { name: "Rosa", hex: "var(--c-accent-red)" },
-  { name: "Violeta", hex: "var(--c-accent-violet)" },
-  { name: "Cian", hex: "var(--c-accent-cyan)" },
-  { name: "Lima", hex: "var(--c-accent-lime)" },
-  { name: "Naranja", hex: "var(--c-accent-orange)" },
+  { name: "Teal", hex: "#5eead4" },
+  { name: "Azul", hex: "#3D7EFF" },
+  { name: "Esmeralda", hex: "#10D9A0" },
+  { name: "Ámbar", hex: "#F59E0B" },
+  { name: "Rosa", hex: "#F43F5E" },
+  { name: "Violeta", hex: "#A855F7" },
+  { name: "Lima", hex: "#84CC16" },
+  { name: "Naranja", hex: "#F97316" },
 ];
 
 function applyTheme(theme: Theme) {
@@ -154,7 +154,7 @@ const ROLES: PermRole[] = [
 export default function SettingsPage() {
   const [theme, setTheme] = useState<Theme>("dark");
   const [lang, setLang] = useState<Lang>("es");
-  const [accent, setAccent] = useState<string>("var(--c-accent-blue)");
+  const [accent, setAccent] = useState<string>("#5eead4");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -163,7 +163,7 @@ export default function SettingsPage() {
     const a = localStorage.getItem("flowos-accent");
     if (t) setTheme(t);
     if (l) setLang(l);
-    if (a) setAccent(a);
+    if (a && /^#[0-9A-Fa-f]{6}$/.test(a)) setAccent(a);
   }, []);
 
   const handleThemeClick = (t: Theme) => {
@@ -197,7 +197,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-8">
 
       {/* ── Apariencia ── */}
       <section className="mb-10">
@@ -209,12 +209,12 @@ export default function SettingsPage() {
           <p className="mb-3 font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
             Tema
           </p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {THEMES.map(({ value, label, icon }) => (
               <button
                 key={value}
                 onClick={() => handleThemeClick(value)}
-                className="flex flex-col items-center gap-2 rounded-lg p-4 text-sm font-medium transition-all"
+                className="flex flex-col items-center gap-1.5 rounded-lg p-3 sm:p-4 text-sm font-medium transition-all"
                 style={
                   theme === value
                     ? { background: "rgb(var(--c-accent-blue-rgb) / 0.12)", border: "2px solid var(--c-accent-blue)", color: "var(--c-text-primary)" }
@@ -299,12 +299,12 @@ export default function SettingsPage() {
               Cambia el idioma de toda la interfaz.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {LANGS.map(({ value, label, flag }) => (
               <button
                 key={value}
                 onClick={() => setLang(value)}
-                className="flex items-center gap-3 rounded-lg p-3 text-sm font-medium transition-all"
+                className="flex items-center gap-2 sm:gap-3 rounded-lg p-2.5 sm:p-3 text-sm font-medium transition-all"
                 style={
                   lang === value
                     ? { background: "rgb(var(--c-accent-blue-rgb) / 0.12)", border: "2px solid var(--c-accent-blue)", color: "var(--c-text-primary)" }

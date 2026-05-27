@@ -11,7 +11,10 @@ export function ThemeBridge() {
   useEffect(() => {
     const apply = () => {
       const theme = (localStorage.getItem("flowos-theme") || "dark") as "dark" | "light" | "system";
-      const accent = localStorage.getItem("flowos-accent") || "var(--c-accent-blue)";
+      const stored = localStorage.getItem("flowos-accent") || "";
+      const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(stored);
+      const accent = isValidHex ? stored : "#5eead4";
+      if (!isValidHex && stored) localStorage.setItem("flowos-accent", accent);
       const root = document.documentElement;
 
       // Theme class

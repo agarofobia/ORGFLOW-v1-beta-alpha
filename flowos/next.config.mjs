@@ -15,6 +15,14 @@ const nextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
   },
+  webpack: (config, { nextRuntime }) => {
+    // Next.js 15.5 + Node 22: el edge runtime bloquea eval() con V8 --disallow-code-generation-from-strings,
+    // pero webpack usa eval() para HMR/source maps en dev. Forzar source-map en lugar de eval.
+    if (nextRuntime === "edge") {
+      config.devtool = "source-map";
+    }
+    return config;
+  },
   // No bloquear deploys por ESLint (hay warnings/escapes pendientes de limpiar).
   // ESLint sigue corriendo en dev/CI manual; sólo se ignora durante `next build`.
   eslint: { ignoreDuringBuilds: true },

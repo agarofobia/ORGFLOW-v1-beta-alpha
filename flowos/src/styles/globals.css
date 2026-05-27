@@ -78,7 +78,7 @@
     --border-strong: 225 34% 25%;
     --text-primary:  220 60% 94%;
     --text-secondary: 218 22% 57%;
-    --accent-blue:   220 100% 62%;
+    --accent-blue:   171 78% 64%;
     --accent-emerald: 161 86% 45%;
     --accent-amber:  38 92% 50%;
     --accent-red:    350 90% 60%;
@@ -133,7 +133,7 @@
     --c-text-placeholder: #94A3B8;
 
     /* Accents — más oscuros en light para mantener contraste sobre fondo claro */
-    --c-accent-blue:    var(--app-accent, #2563EB);
+    --c-accent-blue:    var(--app-accent, #0d9488);
     --c-accent-emerald: #059669;
     --c-accent-amber:   #D97706;
     --c-accent-red:     #DC2626;
@@ -146,7 +146,7 @@
     /* RGB triples — ajustados para light */
     --c-bg-surface-rgb:     255 255 255;
     --c-border-rgb:         226 232 240;
-    --c-accent-blue-rgb:    var(--app-accent-rgb, 37 99 235);
+    --c-accent-blue-rgb:    var(--app-accent-rgb, 13 148 136);
     --c-accent-emerald-rgb: 5 150 105;
     --c-accent-amber-rgb:   217 119 6;
     --c-accent-red-rgb:     220 38 38;
@@ -169,7 +169,7 @@
     --border-strong: 220 12% 76%;
     --text-primary:  222 30% 12%;
     --text-secondary: 220 12% 46%;
-    --accent-blue:   220 100% 55%;
+    --accent-blue:   171 66% 41%;
     --accent-emerald: 161 80% 35%;
     --accent-amber:  38 92% 42%;
     --accent-red:    350 85% 52%;
@@ -206,7 +206,12 @@
   }
 
   /* ── Accent color dinámico — fallback si ThemeBridge no corrió todavía ── */
-  :root { --app-accent: #3D7EFF; --app-accent-rgb: 61 126 255; }
+  :root {
+    --app-accent: #5eead4;
+    --app-accent-rgb: 94 234 212;
+    --c-accent-fg: #063a30;
+    --c-accent-glow: rgba(94, 234, 212, 0.22);
+  }
   /* Note: ThemeBridge component lo actualiza con la preferencia del user */
 
   html {
@@ -282,7 +287,7 @@
     transition: box-shadow 0.2s ease, background 0.2s ease, transform 0.15s ease;
   }
   .btn-primary:hover {
-    background: hsl(220 100% 68%);
+    background: hsl(171 80% 70%);
     box-shadow: 0 0 28px hsl(var(--accent-blue) / 0.55);
     transform: translateY(-1px);
   }
@@ -362,11 +367,11 @@
    on the select changes the highlight color in modern Chrome/Edge/Firefox to
    match our app accent. The option background overrides apply where supported. */
 :root {
-  accent-color: #3D7EFF;
+  accent-color: #5eead4;
 }
 select {
   color-scheme: dark;
-  accent-color: var(--app-accent, #3D7EFF);
+  accent-color: var(--app-accent, #5eead4);
 }
 select option {
   background-color: #141928 !important;
@@ -414,8 +419,8 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
 .react-flow__controls-button:last-child { border-bottom: none !important; }
 .react-flow__controls-button:hover {
   background: #1E2540 !important;
-  color: #3D7EFF !important;
-  fill: #3D7EFF !important;
+  color: var(--c-accent-blue) !important;
+  fill: var(--c-accent-blue) !important;
 }
 .react-flow__controls-button svg { width: 12px; height: 12px; }
 .react-flow__minimap {
@@ -483,12 +488,12 @@ div[style*="inset: 0"][style*="rgba(0, 0, 0, 0.7"] {
 
 /* CTAs primarios — glow azul + lift sutil al hover */
 .flo-btn-primary-glow {
-  box-shadow: 0 4px 14px rgba(61,126,255,0.28), 0 1px 0 rgba(255,255,255,0.08) inset;
+  box-shadow: 0 4px 14px rgba(94,234,212,0.28), 0 1px 0 rgba(255,255,255,0.08) inset;
   transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
 }
 .flo-btn-primary-glow:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(61,126,255,0.42), 0 1px 0 rgba(255,255,255,0.12) inset;
+  box-shadow: 0 8px 22px rgba(94,234,212,0.42), 0 1px 0 rgba(255,255,255,0.12) inset;
   filter: brightness(1.05);
 }
 .flo-btn-primary-glow:active:not(:disabled) {
@@ -527,8 +532,8 @@ div[style*="inset: 0"][style*="rgba(0, 0, 0, 0.7"] {
 }
 .flo-card-hoverable:hover {
   transform: translateY(-2px);
-  border-color: rgba(61,126,255,0.45) !important;
-  box-shadow: 0 10px 28px rgba(61,126,255,0.12), 0 0 0 1px rgba(61,126,255,0.06) inset;
+  border-color: rgba(94,234,212,0.45) !important;
+  box-shadow: 0 10px 28px rgba(94,234,212,0.12), 0 0 0 1px rgba(94,234,212,0.06) inset;
 }
 
 /* Animación de entrada para listas — apply via inline style con animationDelay
@@ -543,9 +548,9 @@ div[style*="inset: 0"][style*="rgba(0, 0, 0, 0.7"] {
 
 /* Pulse de "actualizado recién" — flash sutil para chips de status */
 @keyframes flo-pulse-accent {
-  0%   { box-shadow: 0 0 0 0   rgba(61,126,255,0.5); }
-  70%  { box-shadow: 0 0 0 8px rgba(61,126,255,0);   }
-  100% { box-shadow: 0 0 0 0   rgba(61,126,255,0);   }
+  0%   { box-shadow: 0 0 0 0   rgba(94,234,212,0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(94,234,212,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(94,234,212,0);   }
 }
 .flo-pulse {
   animation: flo-pulse-accent 1.2s ease-out 1;
@@ -858,20 +863,20 @@ select:focus-visible {
  * rgba transparente como bg).
  */
 
-/* Azul primario */
-button[style*="background:#3D7EFF"]:not(:disabled),
-button[style*="background: #3D7EFF"]:not(:disabled) {
-  box-shadow: 0 4px 14px rgba(61,126,255,0.32), 0 1px 0 rgba(255,255,255,0.1) inset;
+/* Accent primario (teal) */
+button[style*="background:#5eead4"]:not(:disabled),
+button[style*="background: #5eead4"]:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(94,234,212,0.32), 0 1px 0 rgba(255,255,255,0.1) inset;
   transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
 }
-button[style*="background:#3D7EFF"]:hover:not(:disabled),
-button[style*="background: #3D7EFF"]:hover:not(:disabled) {
+button[style*="background:#5eead4"]:hover:not(:disabled),
+button[style*="background: #5eead4"]:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(61,126,255,0.48), 0 1px 0 rgba(255,255,255,0.14) inset;
+  box-shadow: 0 10px 24px rgba(94,234,212,0.48), 0 1px 0 rgba(255,255,255,0.14) inset;
   filter: brightness(1.06);
 }
-button[style*="background:#3D7EFF"]:active:not(:disabled),
-button[style*="background: #3D7EFF"]:active:not(:disabled) {
+button[style*="background:#5eead4"]:active:not(:disabled),
+button[style*="background: #5eead4"]:active:not(:disabled) {
   transform: translateY(0);
   filter: brightness(0.95);
 }
@@ -932,7 +937,80 @@ button[style*="rgba(16,217,160,0.15"]:hover:not(:disabled) {
 [style*="background:#0E1220"][style*="border:1px solid #1E2540"][style*="cursor:pointer"]:hover,
 [style*="background: #0E1220"][style*="cursor: pointer"][style*="#1E2540"]:hover {
   transform: translateY(-2px);
-  border-color: rgba(61,126,255,0.45) !important;
-  box-shadow: 0 10px 28px rgba(61,126,255,0.14), 0 0 0 1px rgba(61,126,255,0.08) inset;
+  border-color: rgba(94,234,212,0.45) !important;
+  box-shadow: 0 10px 28px rgba(94,234,212,0.14), 0 0 0 1px rgba(94,234,212,0.08) inset;
 }
 .react-flow__attribution { display: none !important; }
+
+/* ─── Grid background — estética Escala Administrativa ───────────────────────
+ * Aplicar al wrapper raíz del dashboard. El patrón solo se ve donde no hay
+ * superficie opaca encima (sidebar, topbar siguen teniendo sus propios fondos). */
+.flo-grid-bg {
+  background:
+    linear-gradient(to right, rgb(var(--c-border-rgb) / 0.45) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(to bottom, rgb(var(--c-border-rgb) / 0.45) 1px, transparent 1px) 0 0 / 32px 32px,
+    radial-gradient(ellipse at 30% 40%, rgb(var(--c-accent-blue-rgb) / 0.05), transparent 60%),
+    var(--c-bg-base);
+}
+html.light .flo-grid-bg {
+  background:
+    linear-gradient(to right, rgb(var(--c-border-rgb) / 0.6) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(to bottom, rgb(var(--c-border-rgb) / 0.6) 1px, transparent 1px) 0 0 / 32px 32px,
+    radial-gradient(ellipse at 30% 40%, rgb(var(--c-accent-blue-rgb) / 0.04), transparent 60%),
+    var(--c-bg-base);
+}
+
+/* ─── Density modes — base para componentes que usan estas vars ──────────────
+ * Usar --density-gap, --density-node-w, --density-node-h en componentes nuevos.
+ * El toggle se setea en <html class="density-compact|density-comfy"> via Settings. */
+:root {
+  --density-node-w: 264px;
+  --density-node-h: 168px;
+  --density-gap: 96px;
+}
+.density-compact {
+  --density-node-w: 224px;
+  --density-node-h: 140px;
+  --density-gap: 64px;
+}
+.density-comfy {
+  --density-node-w: 304px;
+  --density-node-h: 196px;
+  --density-gap: 128px;
+}
+
+/* ─── VFP node glow — para milestones / nodos VFP en proyectos ──────────────
+ * Aplicar a elementos que representan el objetivo final del proyecto. */
+.flo-vfp-glow {
+  background:
+    radial-gradient(ellipse at 30% 0%, var(--c-accent-glow, rgba(94,234,212,0.22)), transparent 60%),
+    var(--c-bg-surface);
+  border-color: var(--c-accent-blue) !important;
+}
+.flo-vfp-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 32px var(--c-accent-glow, rgba(94,234,212,0.22));
+  opacity: 0.6;
+}
+
+/* ─── Progress bar 3px inferior — para cards de milestones/proyectos ─────── */
+.flo-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--c-bg-elevated);
+  border-radius: 0 0 inherit inherit;
+  overflow: hidden;
+}
+.flo-progress-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--c-accent-blue);
+  transition: width 0.3s ease;
+}
