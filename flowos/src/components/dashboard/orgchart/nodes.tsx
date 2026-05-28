@@ -185,11 +185,11 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
 
 export function DepartmentNodeView({ id, data, selected }: NodeProps<DepartmentNode>) {
   const fineBorder = `1px solid ${selected ? data.color : data.color + "44"}`;
-  // Frontera entre depts adyacentes: en vez de invisible, dejamos una línea
-  // del propio color del depto. Combinado con el borde del vecino → divider
-  // bicolor (1px de cada lado) que muestra los dos colores.
-  const borderLeftStyle = fineBorder;
-  const borderRightStyle = fineBorder;
+  // Depts adyacentes: esconder el border del lado compartido para evitar el
+  // solapamiento visual de 2px. El dept derecho oculta su borde izquierdo;
+  // el dept izquierdo oculta su borde derecho. Resultado: 0px seam limpio.
+  const borderLeftStyle = data.adjLeft ? "none" : fineBorder;
+  const borderRightStyle = data.adjRight ? "none" : fineBorder;
   const radius = {
     topLeft: data.adjLeft ? 0 : 8,
     topRight: data.adjRight ? 0 : 8,

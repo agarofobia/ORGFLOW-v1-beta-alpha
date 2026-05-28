@@ -876,9 +876,10 @@ function OrgChartFlow() {
       });
     });
 
-    // Pre-cálculo: altura needed de cada depto, y max por división.
-    // Esto permite que todos los depts hermanos en una división compartan el mismo
-    // alto → la división se llena prolijo sin huecos.
+    // Pre-cálculo: altura necesaria por cada depto individualmente.
+    // Cada dept crece para contener su contenido. Los depts adyacentes sincronizan
+    // su height SOLO vía handleDepartmentResize (BFS del grupo fusionado), no aquí.
+    // Eliminar el "siblingsMaxH" evita que resizear un dept afecte a otros no pegados.
     const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
     const deptNeededHeight = new Map<string, number>();
     for (const dp of departments) {
@@ -896,13 +897,6 @@ function OrgChartFlow() {
       const needed = DEPT_HDR + DEPT_TOP_PAD + empCount * step + DEPT_BOT_PAD;
       deptNeededHeight.set(dp.id, Math.max(dp.sizeHeight ?? DEPT_H, needed));
     }
-    const divisionMaxDeptHeight = new Map<string, number>();
-    for (const dp of departments) {
-      if (!dp.divisionId) continue;
-      const cur = divisionMaxDeptHeight.get(dp.divisionId) ?? 0;
-      const h = deptNeededHeight.get(dp.id) ?? DEPT_H;
-      if (h > cur) divisionMaxDeptHeight.set(dp.divisionId, h);
-    }
 
     // Departments — child of division if has divisionId; skip if parent division is collapsed
     departments.forEach(dp => {
@@ -917,11 +911,9 @@ function OrgChartFlow() {
       const dAdj = deptAdjacency.get(dp.id) ?? { left: false, right: false };
       const isSyncingDept = syncingNodeIds.has(dp.id);
       const dpLayoutMode = dp.layoutMode ?? "vertical";
-      // Altura: el depto crece para contener sus empleados, Y se iguala al hermano
-      // más alto de su división para que no queden huecos vacíos visualmente.
-      const ownH = deptNeededHeight.get(dp.id) ?? DEPT_H;
-      const siblingsMaxH = dp.divisionId ? (divisionMaxDeptHeight.get(dp.divisionId) ?? ownH) : ownH;
-      const deptH = Math.max(ownH, siblingsMaxH);
+      // Altura independiente por dept — crece para contener su contenido.
+      // La sincronización entre depts adyacentes ocurre en handleDepartmentResize (BFS).
+      const deptH = deptNeededHeight.get(dp.id) ?? DEPT_H;
       // Ancho mínimo = COL_X(16) + maxIndent(3 niveles×20=60) + cardWidth(200) + rightPad(14) = 290
       const neededW = 290;
       const deptW = Math.max(dp.sizeWidth ?? DEPT_W, neededW);
@@ -1095,6 +1087,10 @@ function OrgChartFlow() {
     // 150px es generoso — el user no necesita precisión milimétrica.
     const SNAP_PX = 150;
     const Y_TOL = 60;
+
+    let bestSnap: { x: number; y: number } | null = null;
+    let bestDist = Infinity;
+
     for (const other of departments) {
       if (other.id === draggedId) continue;
       if (other.divisionId !== dragged.divisionId) continue; // sólo dentro de la misma división
@@ -1110,20 +1106,23 @@ function OrgChartFlow() {
       if (overlapsX) {
         const dragCenter = dragX + dragW / 2;
         const otherCenter = oX + oW / 2;
-        return dragCenter > otherCenter
-          ? { x: oX + oW, y: oY }  // dragged queda a la derecha
-          : { x: oX - dragW, y: oY }; // dragged queda a la izquierda
+        const snapX = dragCenter > otherCenter ? oX + oW : oX - dragW;
+        const dist = Math.abs(dragX - snapX);
+        if (dist < bestDist) { bestDist = dist; bestSnap = { x: snapX, y: oY }; }
+        continue;
       }
 
-      // Caso 2: CERCA pero sin solapar — snap si el borde opuesto está dentro de SNAP_PX
-      if (Math.abs(dragX - (oX + oW)) < SNAP_PX) {
-        return { x: oX + oW, y: oY };
+      // Caso 2: CERCA pero sin solapar — snap al candidato más cercano dentro de SNAP_PX
+      const distRight = Math.abs(dragX - (oX + oW));       // dragged a la derecha de other
+      const distLeft  = Math.abs((dragX + dragW) - oX);    // dragged a la izquierda de other
+      if (distRight < SNAP_PX && distRight < bestDist) {
+        bestDist = distRight; bestSnap = { x: oX + oW, y: oY };
       }
-      if (Math.abs((dragX + dragW) - oX) < SNAP_PX) {
-        return { x: oX - dragW, y: oY };
+      if (distLeft < SNAP_PX && distLeft < bestDist) {
+        bestDist = distLeft; bestSnap = { x: oX - dragW, y: oY };
       }
     }
-    return null;
+    return bestSnap;
   }, [departments]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
