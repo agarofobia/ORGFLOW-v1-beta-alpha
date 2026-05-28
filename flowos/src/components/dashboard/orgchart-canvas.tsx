@@ -368,23 +368,42 @@ function OrgChartFlow() {
       .sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
     const resizedIdx = groupSorted.findIndex(d => d.id === id);
 
-    // Build sibling updates: height syncs to h; right-side depts shift X by deltaW
-    const liveUpdates = new Map<string, { x: number; h: number }>();
+    // Build sibling updates:
+    //   • Height always syncs across the whole group.
+    //   • Right siblings also sync width and cascade their X position
+    //     using the resized dept's stored X as the anchor (right-border drag keeps
+    //     the left edge fixed, so positionX is still the pre-resize value here).
+    //   • Left siblings: only height — making them wider would push them outside the div.
+    const resizedX = dept.positionX ?? 0;
+    const liveUpdates = new Map<string, { x: number; w: number; h: number }>();
     groupSorted.forEach((d, i) => {
       if (d.id === id) return;
-      const liveX = i > resizedIdx ? (d.positionX ?? 0) + deltaW : (d.positionX ?? 0);
-      liveUpdates.set(d.id, { x: liveX, h });
+      if (i > resizedIdx) {
+        // Right sibling — same width, X anchored to resized dept's left edge
+        liveUpdates.set(d.id, {
+          x: resizedX + (i - resizedIdx) * w,
+          w,
+          h,
+        });
+      } else {
+        // Left sibling — only height syncs, position and width unchanged
+        liveUpdates.set(d.id, {
+          x: d.positionX ?? 0,
+          w: d.sizeWidth ?? 280,
+          h,
+        });
+      }
     });
     if (liveUpdates.size === 0) return;
 
-    // Apply sibling updates directly — the resized node is already handled by React Flow
+    // Apply sibling updates — the resized node is already handled by React Flow
     setNodes(prev => prev.map(n => {
       const u = liveUpdates.get(n.id);
       if (!u || n.type !== "department") return n;
       return {
         ...n,
         position: { x: u.x, y: n.position.y },
-        style: { ...n.style, height: u.h },
+        style: { ...n.style, width: u.w, height: u.h },
       };
     }));
   }, []);
@@ -442,14 +461,21 @@ function OrgChartFlow() {
         .sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
       const resizedIdx = groupSorted.findIndex(d => d.id === id);
 
+      const resizedX = dept?.positionX ?? 0;
       groupSorted.forEach((d, i) => {
         if (d.id === id) return;
-        const upd: DeptUpdate = { id: d.id, sizeHeight: newH };
-        // Cascade shift: depts a la derecha del resizeado se mueven por deltaW
-        if (i > resizedIdx && deltaW !== 0) {
-          upd.positionX = (d.positionX ?? 0) + deltaW;
+        if (i > resizedIdx) {
+          // Right sibling: sync width + cascade X from resized dept's anchor
+          updates.push({
+            id: d.id,
+            sizeWidth: newW,
+            sizeHeight: newH,
+            positionX: resizedX + (i - resizedIdx) * newW,
+          });
+        } else {
+          // Left sibling: only sync height
+          updates.push({ id: d.id, sizeHeight: newH });
         }
-        updates.push(upd);
       });
     }
 
