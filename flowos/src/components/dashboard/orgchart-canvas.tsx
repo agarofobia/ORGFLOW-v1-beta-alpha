@@ -1925,15 +1925,52 @@ function OrgChartFlow() {
         });
       });
 
-      // Re-layout departments within each division: single horizontal row.
-      // Acumulamos X usando el ancho real de cada dept para que queden bien fusionados.
+      // Re-layout departments within each division:
+      //   • Equal width — each dept gets (divWidth - 2*PAD) / numDepts
+      //   • Fused (0 gap) — depts touch each other, snapped
+      //   • Centered horizontally within the division
+      //   • Y starts BELOW the secretary card (if the division has a senior employee)
+      // Also: the secretary employee is centered at the top of the content area.
+      const HDR_Y = 80; const PAD = 16;
+      const SEC_CARD_H = 70; const SEC_GAP = 16;
       const newDeptPositions = new Map<string, { x: number; y: number }>();
-      const HDR = 80; const PAD = 16; const DG = 20;
+      const newDeptSizes    = new Map<string, number>();           // sizeWidth per dept
+      const newSecPositions = new Map<string, { x: number; y: number }>(); // secretary employees
+
       divisions.forEach(div => {
-        let cumX = PAD;
-        departments.filter(dp => dp.divisionId === div.id).forEach(dept => {
-          newDeptPositions.set(dept.id, { x: cumX, y: HDR + PAD });
-          cumX += (dept.sizeWidth ?? 280) + DG;
+        // Width to use: manual size takes precedence over auto-computed
+        const divW = manualSizeDivs.has(div.id)
+          ? (div.sizeWidth ?? 720)
+          : (coupledSizes.get(div.id)?.w ?? div.sizeWidth ?? 720);
+
+        // Secretary: center it at top of content area
+        if (div.seniorEmployeeId) {
+          const EMP_CARD_W = 200;
+          newSecPositions.set(div.seniorEmployeeId, {
+            x: Math.max(PAD, Math.round((divW - EMP_CARD_W) / 2)),
+            y: HDR_Y,
+          });
+        }
+
+        const divDepts = departments.filter(dp => dp.divisionId === div.id);
+        if (divDepts.length === 0) return;
+
+        // Equal width: fill available width, fused (no gap between adjacent depts)
+        const availW = divW - 2 * PAD;
+        const equalW = Math.max(180, Math.floor(availW / divDepts.length));
+        const totalGroupW = equalW * divDepts.length;
+        const startX = Math.max(PAD, Math.round((divW - totalGroupW) / 2));
+
+        // Y: leave room for secretary if present
+        const deptY = div.seniorEmployeeId
+          ? HDR_Y + SEC_CARD_H + SEC_GAP
+          : HDR_Y;
+
+        let cumX = startX;
+        divDepts.forEach(dept => {
+          newDeptPositions.set(dept.id, { x: cumX, y: deptY });
+          newDeptSizes.set(dept.id, equalW);
+          cumX += equalW; // 0 gap → adjacent depts fuse automatically
         });
       });
 
@@ -1945,10 +1982,19 @@ function OrgChartFlow() {
             body: JSON.stringify({ positionX: pos.x, positionY: pos.y }),
           })
         ),
-        ...Array.from(newDeptPositions.entries()).map(([id, pos]) =>
-          fetch(`/api/departments/${id}`, {
+        ...Array.from(newDeptPositions.entries()).map(([id, pos]) => {
+          const body: Record<string, number> = { positionX: pos.x, positionY: pos.y };
+          const w = newDeptSizes.get(id);
+          if (w !== undefined) body.sizeWidth = w;
+          return fetch(`/api/departments/${id}`, {
             method: "PUT", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ positionX: pos.x, positionY: pos.y }),
+            body: JSON.stringify(body),
+          });
+        }),
+        ...Array.from(newSecPositions.entries()).map(([id, pos]) =>
+          fetch(`/api/employees/${id}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ positionX: pos.x, positionY: pos.y, manualPosition: true }),
           })
         ),
       ]);
@@ -1960,13 +2006,21 @@ function OrgChartFlow() {
       }));
       setDepartments(prev => prev.map(dp => {
         const pos = newDeptPositions.get(dp.id);
-        return pos ? { ...dp, positionX: pos.x, positionY: pos.y } : dp;
+        const w = newDeptSizes.get(dp.id);
+        if (!pos && w === undefined) return dp;
+        return {
+          ...dp,
+          ...(pos && { positionX: pos.x, positionY: pos.y }),
+          ...(w !== undefined && { sizeWidth: w }),
+        };
       }));
+      // Secretary positions update — trigger SWR revalidation
+      if (newSecPositions.size > 0) refetchEmployees();
     } finally {
       setAutoLayoutPending(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, edges, coupledSizes]);
+  }, [divisions, departments, edges, coupledSizes, manualSizeDivs, refetchEmployees]);
 
   const handleExportPng = useCallback(async () => {
     setExportingPng(true);
