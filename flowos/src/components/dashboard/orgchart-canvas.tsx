@@ -224,6 +224,8 @@ function OrgChartFlow() {
   const departmentsRef = useRef<Department[]>([]);
   const unitsRef = useRef<Unit[]>([]);
   const linkedResizeRef = useRef<boolean>(true);
+  // deptAdjacency snapshot for use inside resize callbacks (updated by useEffect)
+  const deptAdjacencyRef = useRef<Map<string, { left: boolean; right: boolean }>>(new Map());
   // Right-click drag tracking
   const rightDragRef = useRef<{ x: number; y: number } | null>(null);
   const suppressCtxMenuRef = useRef(false);
@@ -321,11 +323,17 @@ function OrgChartFlow() {
   }, []);
 
   const handleDepartmentResizeLive = useCallback((id: string, w: number, h: number) => {
+    // Guard 1: standalone dept (no adjacent neighbors) → nothing to propagate
+    const adj = deptAdjacencyRef.current.get(id);
+    if (!adj?.left && !adj?.right) return;
+    // Guard 2: linked resize toggle
     if (!linkedResizeRef.current) return;
+
     const depts = departmentsRef.current;
     const dept = depts.find(d => d.id === id);
     if (!dept?.divisionId) return;
-    // BFS de adyacencia → grupo visualmente fusionado
+
+    // BFS through adjacency map — only depts the snap mechanism fused together
     const visited = new Set<string>([id]);
     const queue = [id];
     while (queue.length) {
@@ -338,6 +346,9 @@ function OrgChartFlow() {
       for (const other of depts) {
         if (other.id === cur || visited.has(other.id)) continue;
         if (other.divisionId !== cd.divisionId) continue;
+        // Only consider depts that deptAdjacency already considers adjacent to something
+        const otherAdj = deptAdjacencyRef.current.get(other.id);
+        if (!otherAdj?.left && !otherAdj?.right) continue;
         const oX = other.positionX ?? 0;
         const oY = other.positionY ?? 0;
         const oW = other.sizeWidth ?? 280;
@@ -349,22 +360,32 @@ function OrgChartFlow() {
       }
     }
     if (visited.size <= 1) return;
+
     const oldW = dept.sizeWidth ?? 280;
     const deltaW = w - oldW;
     const groupSorted = Array.from(visited)
       .map(gid => depts.find(d => d.id === gid)!)
       .sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
     const resizedIdx = groupSorted.findIndex(d => d.id === id);
+
+    // Build sibling updates: height syncs to h; right-side depts shift X by deltaW
     const liveUpdates = new Map<string, { x: number; h: number }>();
     groupSorted.forEach((d, i) => {
       if (d.id === id) return;
       const liveX = i > resizedIdx ? (d.positionX ?? 0) + deltaW : (d.positionX ?? 0);
       liveUpdates.set(d.id, { x: liveX, h });
     });
+    if (liveUpdates.size === 0) return;
+
+    // Apply sibling updates directly — the resized node is already handled by React Flow
     setNodes(prev => prev.map(n => {
       const u = liveUpdates.get(n.id);
       if (!u || n.type !== "department") return n;
-      return { ...n, position: { x: u.x, y: n.position.y }, style: { ...n.style, height: u.h } };
+      return {
+        ...n,
+        position: { x: u.x, y: n.position.y },
+        style: { ...n.style, height: u.h },
+      };
     }));
   }, []);
 
@@ -379,8 +400,15 @@ function OrgChartFlow() {
     type DeptUpdate = { id: string; sizeWidth?: number; sizeHeight?: number; positionX?: number };
     const updates: DeptUpdate[] = [{ id, sizeWidth: newW, sizeHeight: newH }];
 
-    if (linkedResizeRef.current && dept?.divisionId) {
-      // BFS por adyacencia para encontrar el grupo fusionado completo
+    // Only propagate to siblings when:
+    // 1. linkedResize toggle is ON
+    // 2. This dept actually has adjacent neighbors (per deptAdjacency ref)
+    const adj = deptAdjacencyRef.current.get(id);
+    const hasNeighbors = adj?.left || adj?.right;
+
+    if (linkedResizeRef.current && hasNeighbors && dept?.divisionId) {
+      // BFS por adyacencia para encontrar el grupo fusionado completo.
+      // Sólo incluye depts que el sistema de snap ha fusionado (deptAdjacency ≠ vacío).
       const visited = new Set<string>([id]);
       const queue = [id];
       while (queue.length) {
@@ -393,6 +421,9 @@ function OrgChartFlow() {
         for (const other of depts) {
           if (other.id === cur || visited.has(other.id)) continue;
           if (other.divisionId !== curDept.divisionId) continue;
+          // Skip depts with no adjacency at all (standalone depts in the same division)
+          const otherAdj = deptAdjacencyRef.current.get(other.id);
+          if (!otherAdj?.left && !otherAdj?.right) continue;
           const oX = other.positionX ?? 0;
           const oY = other.positionY ?? 0;
           const oW = other.sizeWidth ?? 280;
@@ -764,6 +795,8 @@ function OrgChartFlow() {
     });
     return map;
   }, [departments]);
+  // Keep ref in sync so resize callbacks can read it without adding it as a dep
+  useEffect(() => { deptAdjacencyRef.current = deptAdjacency; }, [deptAdjacency]);
 
   // Dynamic positions for coupled groups: when a division grows/shrinks, right-side
   // siblings shift automatically so the group stays flush — no DB write needed.
