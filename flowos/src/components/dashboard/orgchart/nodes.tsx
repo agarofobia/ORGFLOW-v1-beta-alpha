@@ -142,14 +142,6 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
               }}>
                 {data.senior.fullName}
               </span>
-              {data.senior.jobTitle && (
-                <span style={{
-                  fontSize: 9, color: "var(--c-text-muted)",
-                  maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>
-                  {data.senior.jobTitle}
-                </span>
-              )}
             </div>
           </div>
         )}
