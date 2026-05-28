@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardTopbar } from "@/components/dashboard/topbar";
-import { DashboardStatusbar } from "@/components/dashboard/statusbar";
 import { ToastProvider } from "@/components/ui/toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { CommandPalette } from "@/components/ui/command-palette";
@@ -34,7 +33,6 @@ export default async function DashboardLayout({
                 </main>
               </div>
             </div>
-            <DashboardStatusbar />
           </div>
           {/* Command palette global — Ctrl+K / Cmd+K en cualquier lado del dashboard */}
           <CommandPalette />
