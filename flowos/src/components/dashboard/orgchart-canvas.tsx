@@ -1090,20 +1090,36 @@ function OrgChartFlow() {
   const computeDepartmentSnap = useCallback((draggedId: string, dragX: number, dragY: number): { x: number; y: number } | null => {
     const dragged = departments.find(d => d.id === draggedId);
     if (!dragged || !dragged.divisionId) return null;
-    const dragW = dragged.sizeWidth ?? 360;
-    const SNAP_PX = 60;
-    const Y_TOL = 40;
+    const dragW = dragged.sizeWidth ?? 280;
+    // SNAP_PX: distancia de borde a borde para activar el snap lateral.
+    // 150px es generoso — el user no necesita precisión milimétrica.
+    const SNAP_PX = 150;
+    const Y_TOL = 60;
     for (const other of departments) {
       if (other.id === draggedId) continue;
       if (other.divisionId !== dragged.divisionId) continue; // sólo dentro de la misma división
       const oX = other.positionX ?? 0;
       const oY = other.positionY ?? 0;
-      const oW = other.sizeWidth ?? 360;
+      const oW = other.sizeWidth ?? 280;
       const yClose = Math.abs(dragY - oY) < Y_TOL;
-      if (yClose && Math.abs(dragX - (oX + oW)) < SNAP_PX) {
+      if (!yClose) continue;
+
+      // Caso 1: SOLAPAMIENTO — el dragged está encima del other.
+      // Resolver por centro relativo: el dept cae al lado donde está su centro.
+      const overlapsX = dragX < oX + oW && dragX + dragW > oX;
+      if (overlapsX) {
+        const dragCenter = dragX + dragW / 2;
+        const otherCenter = oX + oW / 2;
+        return dragCenter > otherCenter
+          ? { x: oX + oW, y: oY }  // dragged queda a la derecha
+          : { x: oX - dragW, y: oY }; // dragged queda a la izquierda
+      }
+
+      // Caso 2: CERCA pero sin solapar — snap si el borde opuesto está dentro de SNAP_PX
+      if (Math.abs(dragX - (oX + oW)) < SNAP_PX) {
         return { x: oX + oW, y: oY };
       }
-      if (yClose && Math.abs((dragX + dragW) - oX) < SNAP_PX) {
+      if (Math.abs((dragX + dragW) - oX) < SNAP_PX) {
         return { x: oX - dragW, y: oY };
       }
     }
