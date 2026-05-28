@@ -226,6 +226,9 @@ function OrgChartFlow() {
   const linkedResizeRef = useRef<boolean>(true);
   // deptAdjacency snapshot for use inside resize callbacks (updated by useEffect)
   const deptAdjacencyRef = useRef<Map<string, { left: boolean; right: boolean }>>(new Map());
+  // Synchronous re-entry guard for auto-layout — `autoLayoutPending` (React state)
+  // updates async, so two fast clicks both pass the check. A ref is synchronous.
+  const autoLayoutRunningRef = useRef(false);
   // Right-click drag tracking
   const rightDragRef = useRef<{ x: number; y: number } | null>(null);
   const suppressCtxMenuRef = useRef(false);
@@ -1869,6 +1872,9 @@ function OrgChartFlow() {
   };
 
   const handleAutoLayout = useCallback(async () => {
+    // Re-entry guard (synchronous): block concurrent runs from double-clicks.
+    if (autoLayoutRunningRef.current) return;
+    autoLayoutRunningRef.current = true;
     setAutoLayoutPending(true);
     try {
       const g = new dagre.graphlib.Graph();
@@ -1993,15 +1999,17 @@ function OrgChartFlow() {
         });
       });
 
-      // Batch save to API
-      await Promise.all([
-        ...Array.from(newDivPositions.entries()).map(([id, pos]) =>
+      // Save to API in chunks to avoid saturating the Supabase pool (max 5 conns).
+      // Con 27 depts + 10 divs + secretarios eran ~45 requests concurrentes →
+      // saturaban el pooler y devolvían 500s. Lotes de 5 lo mantienen estable.
+      const saveTasks: Array<() => Promise<unknown>> = [
+        ...Array.from(newDivPositions.entries()).map(([id, pos]) => () =>
           fetch(`/api/divisions/${id}`, {
             method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ positionX: pos.x, positionY: pos.y }),
           })
         ),
-        ...Array.from(newDeptPositions.entries()).map(([id, pos]) => {
+        ...Array.from(newDeptPositions.entries()).map(([id, pos]) => () => {
           const body: Record<string, number> = { positionX: pos.x, positionY: pos.y };
           const w = newDeptSizes.get(id);
           if (w !== undefined) body.sizeWidth = w;
@@ -2010,13 +2018,17 @@ function OrgChartFlow() {
             body: JSON.stringify(body),
           });
         }),
-        ...Array.from(newSecPositions.entries()).map(([id, pos]) =>
+        ...Array.from(newSecPositions.entries()).map(([id, pos]) => () =>
           fetch(`/api/employees/${id}`, {
             method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ positionX: pos.x, positionY: pos.y, manualPosition: true }),
           })
         ),
-      ]);
+      ];
+      const CHUNK = 5;
+      for (let i = 0; i < saveTasks.length; i += CHUNK) {
+        await Promise.all(saveTasks.slice(i, i + CHUNK).map(fn => fn()));
+      }
 
       // Update local state — computedNodes effect will re-sync ReactFlow
       setDivisions(prev => prev.map(d => {
@@ -2037,6 +2049,7 @@ function OrgChartFlow() {
       if (newSecPositions.size > 0) refetchEmployees();
     } finally {
       setAutoLayoutPending(false);
+      autoLayoutRunningRef.current = false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [divisions, departments, edges, coupledSizes, manualSizeDivs, refetchEmployees]);
