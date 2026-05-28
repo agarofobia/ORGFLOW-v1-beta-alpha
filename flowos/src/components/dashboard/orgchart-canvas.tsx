@@ -1143,9 +1143,11 @@ function OrgChartFlow() {
     if (!dragged || !dragged.divisionId) return null;
     const dragW = dragged.sizeWidth ?? 280;
     // SNAP_PX: distancia de borde a borde para activar el snap lateral.
-    // 150px es generoso — el user no necesita precisión milimétrica.
-    const SNAP_PX = 150;
-    const Y_TOL = 60;
+    // 40px — snap solo cuando el borde está muy cerca, no desde cualquier distancia.
+    const SNAP_PX = 40;
+    // Y_TOL: tolerancia vertical. 22px ≈ un header de dept.
+    // Evita que depts en filas distintas se fusionen al estar "a la misma altura".
+    const Y_TOL = 22;
 
     let bestSnap: { x: number; y: number } | null = null;
     let bestDist = Infinity;
