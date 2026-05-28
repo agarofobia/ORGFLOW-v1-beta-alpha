@@ -238,17 +238,34 @@ function OrgChartFlow() {
   const suppressEdgeRemove = useRef(false);
 
   // ── Load divisions, departments, units, edges ────────────────────────────
+  // RESILIENCIA: si un fetch falla (500 cold-start, red, etc.) devolvemos `null`
+  // (NO `[]`). Un `null` significa "no pude cargar" → preservamos el estado previo.
+  // Sin esto, un 500 transitorio en /api/departments dejaba `departments = []` y
+  // los empleados se apilaban en la división sin su contenedor → orgchart roto.
   const reloadGroups = useCallback(async () => {
-    const [d, dp, u, edges] = await Promise.all([
-      fetch("/api/divisions").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch("/api/departments").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch("/api/units").then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch("/api/orgchart/state").then(r => r.ok ? r.json() : { edges: [] }).catch(() => ({ edges: [] })),
+    const safeFetch = async <T,>(url: string): Promise<T | null> => {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        return (await r.json()) as T;
+      } catch {
+        return null;
+      }
+    };
+    const [d, dp, u, edgesRes] = await Promise.all([
+      safeFetch<Division[]>("/api/divisions"),
+      safeFetch<Department[]>("/api/departments"),
+      safeFetch<Unit[]>("/api/units"),
+      safeFetch<{ edges: Edge[] }>("/api/orgchart/state"),
     ]);
-    setDivisions(Array.isArray(d) ? d : []);
-    setDepartments(Array.isArray(dp) ? dp : []);
-    setUnits(Array.isArray(u) ? u : []);
-    setEdges(Array.isArray(edges?.edges) ? edges.edges.map((e: Edge) => ({ ...e, type: "bicolor" })) : []);
+    // Solo actualizamos cada slice si su fetch tuvo éxito (Array válido).
+    // Si falló (null), mantenemos lo que ya había en pantalla.
+    if (Array.isArray(d)) setDivisions(d);
+    if (Array.isArray(dp)) setDepartments(dp);
+    if (Array.isArray(u)) setUnits(u);
+    if (edgesRes && Array.isArray(edgesRes.edges)) {
+      setEdges(edgesRes.edges.map((e: Edge) => ({ ...e, type: "bicolor" })));
+    }
   }, []);
 
   useEffect(() => { reloadGroups(); }, [reloadGroups]);
