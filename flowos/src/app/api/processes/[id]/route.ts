@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { processDefinitions } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { logProcessEvent } from "@/lib/process-events";
 
 export async function GET(
@@ -27,7 +28,7 @@ export async function GET(
     if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -91,7 +92,7 @@ export async function PUT(
 
     return NextResponse.json(result);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -114,6 +115,6 @@ export async function DELETE(
       );
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

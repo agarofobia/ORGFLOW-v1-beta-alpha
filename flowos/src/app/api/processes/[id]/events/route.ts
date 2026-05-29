@@ -11,6 +11,7 @@ import { db } from "@/db";
 import { processEvents, users } from "@/db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { getUserPermissions } from "@/lib/get-user-permissions";
 import { hasPermission } from "@/lib/permissions";
 
@@ -154,6 +155,6 @@ export async function GET(
 
     return NextResponse.json({ events: rows, metrics });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

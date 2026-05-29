@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { documents, projectFiles } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 // GET /api/projects/[id]/files — list files linked to project
 export async function GET(
@@ -34,7 +35,7 @@ export async function GET(
       );
     return NextResponse.json(rows);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -86,7 +87,7 @@ export async function POST(
 
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -120,6 +121,6 @@ export async function DELETE(
     });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

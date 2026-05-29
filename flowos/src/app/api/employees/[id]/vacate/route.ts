@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { employees } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 // PUT /api/employees/:id/vacate
 // Vacía el puesto: marca al empleado como inactivo y "[Puesto vacante]",
@@ -34,6 +35,6 @@ export async function PUT(
     if (!result.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(result[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

@@ -12,6 +12,7 @@ import { db } from "@/db";
 import { projects, tasks, employees, projectMilestones, processDefinitions, documents } from "@/db/schema";
 import { and, eq, ilike, or, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 const LIMIT_PER_TYPE = 5;
 
@@ -128,6 +129,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ hits });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

@@ -17,6 +17,7 @@ import {
 } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -149,6 +150,6 @@ export async function GET(req: NextRequest) {
       snapshotsWritten: inserted.length,
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

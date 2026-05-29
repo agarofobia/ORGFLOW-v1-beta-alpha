@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { processInstances } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 // GET /api/instances — lista todas las instancias de la org (para seguimiento)
 export async function GET() {
@@ -17,6 +18,6 @@ export async function GET() {
       .orderBy(desc(processInstances.startedAt));
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

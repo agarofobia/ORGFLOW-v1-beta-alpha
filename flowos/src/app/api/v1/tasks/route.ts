@@ -2,6 +2,7 @@
 // POST /api/v1/tasks                  — create (write)
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
     const rows = await db.select().from(tasks).where(and(...conditions));
     return NextResponse.json({ tasks: rows });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -58,6 +59,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ task: created }, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

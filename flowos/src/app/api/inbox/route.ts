@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { inboxTasks } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   const { orgId } = await auth();
@@ -27,6 +28,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

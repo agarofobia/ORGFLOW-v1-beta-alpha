@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { divisions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { orgId } = await auth();
@@ -34,7 +35,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!result.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(result[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -49,6 +50,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
       .where(and(eq(divisions.id, id), eq(divisions.organizationId, orgId)));
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

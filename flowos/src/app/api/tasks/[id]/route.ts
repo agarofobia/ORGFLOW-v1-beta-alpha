@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { logActivity } from "@/lib/project-activity";
 import { notify } from "@/lib/notifications";
 import { dispatchWebhook } from "@/lib/webhooks";
@@ -92,7 +93,7 @@ export async function PUT(
 
     return NextResponse.json(after);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -110,6 +111,6 @@ export async function DELETE(
       .where(and(eq(tasks.id, id), eq(tasks.organizationId, orgId)));
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

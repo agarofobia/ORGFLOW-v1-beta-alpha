@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { apiTokens } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { requirePermission } from "@/lib/require-permission";
 
 export async function DELETE(
@@ -24,6 +25,6 @@ export async function DELETE(
       .where(and(eq(apiTokens.id, id), eq(apiTokens.organizationId, orgId)));
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { uploadToStorage } from "@/lib/supabase-storage";
 
 export async function POST(req: NextRequest) {
@@ -26,6 +27,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

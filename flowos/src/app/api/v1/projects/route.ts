@@ -2,6 +2,7 @@
 // POST /api/v1/projects   — create (requires write scope)
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
       .where(eq(projects.organizationId, ctx.organizationId));
     return NextResponse.json({ projects: rows });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -54,6 +55,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ project: created }, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

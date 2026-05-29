@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { processInstances } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { logProcessEvent } from "@/lib/process-events";
 
 export async function GET(
@@ -22,7 +23,7 @@ export async function GET(
     if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -41,7 +42,7 @@ export async function DELETE(
       .where(and(eq(processInstances.id, id), eq(processInstances.organizationId, orgId)));
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -95,6 +96,6 @@ export async function PATCH(
 
     return NextResponse.json(result);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

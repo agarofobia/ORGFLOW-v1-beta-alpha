@@ -9,6 +9,7 @@ import { db } from "@/db";
 import { aiConfig, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { requirePermission } from "@/lib/require-permission";
 import { encrypt, previewSecret, decrypt } from "@/lib/encryption";
 import { isValidProvider, validateApiKey, getDefaultModelFor, type AiProvider } from "@/lib/ai/providers";
@@ -55,7 +56,7 @@ export async function GET() {
       updatedAt: cfg.updatedAt,
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -126,7 +127,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ ok: true, id: created.id }, { status: 201 });
     }
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -140,6 +141,6 @@ export async function DELETE() {
     await db.delete(aiConfig).where(eq(aiConfig.organizationId, orgId));
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

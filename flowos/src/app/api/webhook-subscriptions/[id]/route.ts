@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { webhookSubscriptions, webhookDeliveries } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { requirePermission } from "@/lib/require-permission";
 import { ALL_WEBHOOK_EVENTS, type WebhookEventType } from "@/lib/webhooks";
 
@@ -44,7 +45,7 @@ export async function GET(
 
     return NextResponse.json({ subscription: sub, recentDeliveries: recent });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -77,7 +78,7 @@ export async function PATCH(
     if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ subscription: updated });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -97,6 +98,6 @@ export async function DELETE(
       .where(and(eq(webhookSubscriptions.id, id), eq(webhookSubscriptions.organizationId, orgId)));
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

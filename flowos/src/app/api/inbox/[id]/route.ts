@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { advanceInstance } from "@/lib/bpm";
 import { logProcessEvent } from "@/lib/process-events";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import type { ProcessNode } from "@/lib/bpm";
 import type { FormField } from "@/app/dashboard/processes/[id]/page";
 
@@ -47,7 +48,7 @@ export async function GET(
 
     return NextResponse.json({ ...task, formFields });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -192,6 +193,6 @@ export async function PATCH(
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

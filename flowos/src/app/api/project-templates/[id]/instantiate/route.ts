@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { logActivity } from "@/lib/project-activity";
 
 interface TemplateMilestone {
@@ -130,6 +131,6 @@ export async function POST(
 
     return NextResponse.json(newProject, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

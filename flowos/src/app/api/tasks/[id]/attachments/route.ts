@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { taskAttachments, tasks, users } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function GET(
   _req: NextRequest,
@@ -23,7 +24,7 @@ export async function GET(
       .orderBy(desc(taskAttachments.uploadedAt));
     return NextResponse.json(rows);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -61,6 +62,6 @@ export async function POST(
 
     return NextResponse.json(result[0], { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

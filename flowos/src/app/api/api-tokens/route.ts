@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { apiTokens, users } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { requirePermission } from "@/lib/require-permission";
 import { generateApiToken } from "@/lib/api-token-auth";
 
@@ -34,7 +35,7 @@ export async function GET() {
       .orderBy(desc(apiTokens.createdAt));
     return NextResponse.json({ tokens: rows });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -83,6 +84,6 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

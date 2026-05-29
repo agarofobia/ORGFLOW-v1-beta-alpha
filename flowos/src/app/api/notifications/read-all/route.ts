@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { notifications, users } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function POST() {
   const { orgId, userId: clerkUserId } = await auth();
@@ -23,6 +24,6 @@ export async function POST() {
       ));
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

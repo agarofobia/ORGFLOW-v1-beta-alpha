@@ -1,6 +1,7 @@
 // POST /api/v1/processes/:id/start — inicia una instancia (write)
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { requireApiToken } from "@/lib/api-token-auth";
 import { startInstance } from "@/lib/bpm";
 
@@ -26,6 +27,6 @@ export async function POST(
     }
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

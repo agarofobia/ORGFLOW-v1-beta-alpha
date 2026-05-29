@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { users, employees, tasks, projects } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function GET() {
   const { orgId, userId: clerkUserId } = await auth();
@@ -49,6 +50,6 @@ export async function GET() {
 
     return NextResponse.json({ tasks: rows, employee: empRow });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

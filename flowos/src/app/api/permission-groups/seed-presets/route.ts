@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { permissionGroups } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { PRESETS, PresetKey } from "@/lib/permissions";
 
 export async function POST() {
@@ -44,6 +45,6 @@ export async function POST() {
 
     return NextResponse.json({ created: created.length, groups: created });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

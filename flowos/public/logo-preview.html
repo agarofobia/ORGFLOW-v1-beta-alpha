@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>FlowOS — Logo preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Space Grotesk',system-ui,sans-serif; background:#0a0a0f; color:#e5e5e5; padding:40px; }
+  h1 { font-size:14px; letter-spacing:.1em; text-transform:uppercase; opacity:.5; margin-bottom:24px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:20px; }
+  .card { border:1px solid #ffffff14; border-radius:16px; padding:28px; display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .label { font-size:11px; letter-spacing:.08em; text-transform:uppercase; opacity:.45; }
+  .dark { background:#0d0d12; }
+  .light { background:#fafafa; }
+  .grad-bg { background:radial-gradient(circle at 30% 20%, #1a2e2a, #0a0a0f); }
+  .lockup { display:flex; align-items:center; gap:14px; }
+  .word { font-weight:700; font-size:30px; letter-spacing:-.02em;
+          background:linear-gradient(105deg,#5eead4,#22d3ee 55%,#a78bfa);
+          -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .sizes { display:flex; align-items:flex-end; gap:18px; }
+  svg.mark { display:block; }
+  .favgrid { display:flex; gap:10px; align-items:center; }
+  .favgrid span { width:16px;height:16px; }
+</style>
+</head>
+<body>
+  <h1>FlowOS — Logo (⌬ benzene mark)</h1>
+  <div class="grid">
+    <div class="card dark">
+      <div class="label">Mark · dark</div>
+      <img src="logo.svg" width="96" height="96" class="mark" alt="">
+    </div>
+    <div class="card light">
+      <div class="label" style="color:#666">Mark · light</div>
+      <img src="logo.svg" width="96" height="96" class="mark" alt="">
+    </div>
+    <div class="card grad-bg">
+      <div class="label">Mark · ambient</div>
+      <img src="logo.svg" width="96" height="96" class="mark" alt="">
+    </div>
+    <div class="card dark">
+      <div class="label">Lockup horizontal</div>
+      <div class="lockup">
+        <img src="logo.svg" width="48" height="48" alt="">
+        <span class="word">FlowOS</span>
+      </div>
+    </div>
+    <div class="card dark">
+      <div class="label">Escalas</div>
+      <div class="sizes">
+        <img src="logo.svg" width="64" height="64" alt="">
+        <img src="logo.svg" width="40" height="40" alt="">
+        <img src="logo.svg" width="24" height="24" alt="">
+        <img src="logo.svg" width="16" height="16" alt="">
+      </div>
+    </div>
+    <div class="card dark">
+      <div class="label">Test favicon (16px)</div>
+      <div class="favgrid">
+        <img src="logo.svg" width="16" height="16" alt="">
+        <span style="opacity:.4;font-size:13px;">flowos-delta.vercel.app</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

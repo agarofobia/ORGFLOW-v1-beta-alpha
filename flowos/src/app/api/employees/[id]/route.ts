@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { employees, departments, divisions, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function GET(
   _req: NextRequest,
@@ -21,7 +22,7 @@ export async function GET(
     if (!rows[0]) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(rows[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -83,7 +84,7 @@ export async function PUT(
       .returning();
     return NextResponse.json(result[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -118,6 +119,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

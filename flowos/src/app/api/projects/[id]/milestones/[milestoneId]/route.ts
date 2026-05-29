@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projectMilestones, projects, processInstances } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { logActivity } from "@/lib/project-activity";
 import { advanceInstance } from "@/lib/bpm";
 import { logProcessEvent } from "@/lib/process-events";
@@ -112,7 +113,7 @@ export async function PUT(
 
     return NextResponse.json({ ...after, bpmAdvanced });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -135,6 +136,6 @@ export async function DELETE(
       );
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

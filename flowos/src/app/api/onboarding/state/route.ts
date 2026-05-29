@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { divisions, departments, employees, projects } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function GET() {
   const { orgId } = await auth();
@@ -44,6 +45,6 @@ export async function GET() {
         "tour",
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { projectTemplates } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function GET(
   _req: NextRequest,
@@ -22,7 +23,7 @@ export async function GET(
     if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(row);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -48,7 +49,7 @@ export async function PUT(
     if (!result.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(result[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -65,6 +66,6 @@ export async function DELETE(
       .where(and(eq(projectTemplates.id, id), eq(projectTemplates.organizationId, orgId)));
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

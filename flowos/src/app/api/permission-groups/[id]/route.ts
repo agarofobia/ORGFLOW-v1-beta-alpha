@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { permissionGroups } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { requirePermission } from "@/lib/require-permission";
 
 export async function GET(
@@ -22,7 +23,7 @@ export async function GET(
     if (!rows[0]) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(rows[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -51,7 +52,7 @@ export async function PUT(
     if (!result.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(result[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -71,6 +72,6 @@ export async function DELETE(
       .where(and(eq(permissionGroups.id, id), eq(permissionGroups.organizationId, orgId)));
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

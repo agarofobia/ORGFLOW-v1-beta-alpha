@@ -19,6 +19,7 @@ import { db } from "@/db";
 import { employees } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { requirePermission } from "@/lib/require-permission";
 
 export async function PATCH(req: NextRequest) {
@@ -65,6 +66,6 @@ export async function PATCH(req: NextRequest) {
       ids: result.map((r) => r.id),
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

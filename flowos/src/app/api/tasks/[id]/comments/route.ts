@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { taskComments, tasks, users } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { logActivity } from "@/lib/project-activity";
 import { notify } from "@/lib/notifications";
 
@@ -37,7 +38,7 @@ export async function GET(
       .orderBy(desc(taskComments.createdAt));
     return NextResponse.json(rows);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -105,6 +106,6 @@ export async function POST(
 
     return NextResponse.json(result[0], { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

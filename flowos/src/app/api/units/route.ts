@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { units } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function GET() {
   const { orgId } = await auth();
@@ -16,7 +17,7 @@ export async function GET() {
       .orderBy(units.name);
     return NextResponse.json(rows);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -48,6 +49,6 @@ export async function POST(req: NextRequest) {
       .returning();
     return NextResponse.json(result[0], { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

@@ -2,6 +2,7 @@
 // POST /api/v1/employees  — create (write)
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { db } from "@/db";
 import { employees } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
     const rows = await db.select().from(employees).where(eq(employees.organizationId, ctx.organizationId));
     return NextResponse.json({ employees: rows });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -41,6 +42,6 @@ export async function POST(req: NextRequest) {
       .returning();
     return NextResponse.json({ employee: created }, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

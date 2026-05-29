@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { projects, processInstances, processDefinitions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 export async function GET(
   _req: NextRequest,
@@ -53,6 +54,6 @@ export async function GET(
       status: instance.status,
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

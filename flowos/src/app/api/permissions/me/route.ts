@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { getUserPermissions } from "@/lib/get-user-permissions";
 
 export async function GET() {
@@ -10,6 +11,6 @@ export async function GET() {
     const permissions = await getUserPermissions(orgId, userId, orgRole);
     return NextResponse.json(permissions);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

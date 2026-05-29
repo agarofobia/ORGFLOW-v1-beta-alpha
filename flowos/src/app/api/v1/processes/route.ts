@@ -1,6 +1,7 @@
 // GET /api/v1/processes  — list process definitions (read)
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { db } from "@/db";
 import { processDefinitions } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -23,6 +24,6 @@ export async function GET(req: NextRequest) {
       .where(eq(processDefinitions.organizationId, ctx.organizationId));
     return NextResponse.json({ processes: rows });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { logActivity } from "@/lib/project-activity";
 
 export async function GET(
@@ -22,7 +23,7 @@ export async function GET(
     if (!rows[0]) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(rows[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -60,7 +61,7 @@ export async function PUT(
 
     return NextResponse.json(result[0]);
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
 
@@ -78,6 +79,6 @@ export async function DELETE(
       .where(and(eq(projects.id, id), eq(projects.organizationId, orgId)));
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }

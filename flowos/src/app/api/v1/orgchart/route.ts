@@ -1,6 +1,7 @@
 // GET /api/v1/orgchart — devuelve estructura completa (divisiones + deptos)
 
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { db } from "@/db";
 import { divisions, departments } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -25,6 +26,6 @@ export async function GET(req: NextRequest) {
       orphanDepartments: depts.filter((d) => !d.divisionId).map((d) => ({ id: d.id, name: d.name })),
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return apiError(err);
   }
 }
