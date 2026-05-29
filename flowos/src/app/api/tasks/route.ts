@@ -5,8 +5,15 @@ import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
+import { validateBody } from "@/lib/validate";
 import { logActivity } from "@/lib/project-activity";
 import { dispatchWebhook } from "@/lib/webhooks";
+import { z } from "zod";
+
+const taskCreateSchema = z.object({
+  projectId: z.string().trim().min(1, "projectId es requerido"),
+  title: z.string().trim().min(1, "title es requerido"),
+});
 
 export async function GET(req: NextRequest) {
   const { orgId } = await auth();
@@ -38,6 +45,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const v = validateBody(taskCreateSchema, body);
+    if ("response" in v) return v.response;
     const result = await db
       .insert(tasks)
       .values({

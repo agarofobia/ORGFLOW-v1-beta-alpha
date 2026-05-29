@@ -5,6 +5,12 @@ import { eq, and, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
+import { validateBody } from "@/lib/validate";
+import { z } from "zod";
+
+const employeeCreateSchema = z.object({
+  fullName: z.string().trim().min(1, "fullName es requerido"),
+});
 
 export async function GET(req: NextRequest) {
   const { orgId } = await auth();
@@ -36,6 +42,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const v = validateBody(employeeCreateSchema, body);
+    if ("response" in v) return v.response;
     const result = await db
       .insert(employees)
       .values({

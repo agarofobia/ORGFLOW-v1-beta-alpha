@@ -5,7 +5,14 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
+import { validateBody } from "@/lib/validate";
 import { dispatchWebhook } from "@/lib/webhooks";
+import { z } from "zod";
+
+const projectCreateSchema = z.object({
+  name: z.string().trim().min(1, "name es requerido"),
+  description: z.string().optional().nullable(),
+});
 
 export async function GET() {
   const { orgId, userId } = await auth();
@@ -30,12 +37,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const v = validateBody(projectCreateSchema, body);
+    if ("response" in v) return v.response;
     const result = await db
       .insert(projects)
       .values({
         organizationId: orgId,
-        name: body.name,
-        description: body.description,
+        name: v.data.name,
+        description: v.data.description ?? undefined,
         // ownerId es UUID que apunta a users.id (tabla interna), no el Clerk user ID
         // Se omite para evitar error de tipo uuid
       })
