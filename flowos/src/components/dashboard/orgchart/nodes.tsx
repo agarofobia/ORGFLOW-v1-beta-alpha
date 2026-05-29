@@ -110,42 +110,6 @@ export function DivisionNodeView({ id, data, selected }: NodeProps<DivisionNode>
           )}
         </div>
 
-        {/* Senior slot (esquina top-right) */}
-        {data.senior && (
-          <div
-            style={{
-              position: "absolute", top: 8, right: 12,
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "4px 10px 4px 4px",
-              background: "rgb(var(--c-bg-surface-rgb) / 0.93)",
-              border: `1px solid ${(data.senior.color ?? data.color) + "55"}`,
-              borderRadius: 22,
-              zIndex: 7,
-              maxWidth: "40%",
-              pointerEvents: "none",
-            }}
-          >
-            <div style={{
-              width: 26, height: 26, borderRadius: "50%",
-              background: (data.senior.color ?? data.color) + "33",
-              border: `2px solid ${data.senior.color ?? data.color}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 700, color: data.senior.color ?? data.color,
-              flexShrink: 0,
-            }}>
-              {data.senior.fullName.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
-            </div>
-            <div style={{ minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
-              <span style={{
-                fontSize: 11, fontWeight: 600, color: "var(--c-text-primary)",
-                maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>
-                {data.senior.fullName}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Footer opcional */}
         {showFooter && (
           <div
