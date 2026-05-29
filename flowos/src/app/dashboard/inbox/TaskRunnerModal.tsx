@@ -5,7 +5,7 @@ import { X, CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
 import type { InboxTask } from "@/db/schema";
 import type { FormField, FormFieldType } from "@/app/dashboard/processes/[id]/page";
 import type { LayoutElement } from "@/lib/bpm";
-import { evalShowWhen } from "@/lib/form-conditions";
+import { evalShowWhen, interpolate } from "@/lib/form-conditions";
 
 const CANVAS_W = 680; // mismo ancho que el lienzo del builder (WYSIWYG)
 
@@ -141,6 +141,59 @@ function FieldInput({
       />
     );
   }
+  if (field.type === "currency") {
+    if (readOnly) {
+      const n = Number(value);
+      return <div className={base} style={style}>{value != null && value !== "" ? `$ ${isNaN(n) ? value : n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}</div>;
+    }
+    return (
+      <div className="flex items-center rounded" style={{ ...style, padding: 0 }}>
+        <span className="px-2 text-sm" style={{ color: "var(--c-text-muted)" }}>$</span>
+        <input
+          type="number" step="0.01" inputMode="decimal"
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder ?? "0,00"}
+          required={field.required}
+          className="w-full bg-transparent py-2 pr-3 text-sm outline-none"
+          style={{ color: "var(--c-text-primary)" }}
+        />
+      </div>
+    );
+  }
+  if (field.type === "radio") {
+    const opts = field.source ? dynamicOptions : (field.options ?? []).map((o) => ({ value: o, label: o }));
+    return (
+      <div className="flex flex-col gap-1.5">
+        {opts.map((opt) => (
+          <label key={opt.value} className="flex items-center gap-2 text-sm" style={{ color: "var(--c-text-secondary)", cursor: readOnly ? "default" : "pointer" }}>
+            <input type="radio" name={field.id} value={opt.value} checked={value === opt.value} disabled={readOnly}
+              onChange={(e) => onChange(e.target.value)} className="h-4 w-4" />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    );
+  }
+  if (field.type === "multiselect") {
+    const opts = field.source ? dynamicOptions : (field.options ?? []).map((o) => ({ value: o, label: o }));
+    const arr = Array.isArray(value) ? (value as string[]) : [];
+    const toggle = (v: string) => {
+      if (readOnly) return;
+      onChange(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+    };
+    return (
+      <div className="flex flex-col gap-1.5">
+        {opts.map((opt) => (
+          <label key={opt.value} className="flex items-center gap-2 text-sm" style={{ color: "var(--c-text-secondary)", cursor: readOnly ? "default" : "pointer" }}>
+            <input type="checkbox" checked={arr.includes(opt.value)} disabled={readOnly}
+              onChange={() => toggle(opt.value)} className="h-4 w-4" />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    );
+  }
   // text | number | date
   return (
     <input
@@ -218,6 +271,8 @@ export default function TaskRunnerModal({
   // El paso define su ventana con un layout visual (builder estilo Canva).
   const layout = task?.layout ?? [];
   const fieldById = new Map((task?.formFields ?? []).map((f) => [f.id, f]));
+  // Para texto dinámico {label}: lista id+label de los campos del proceso.
+  const interpFields = (task?.formFields ?? []).map((f) => ({ id: f.id, label: f.label }));
   // Alto del lienzo = el necesario para contener todos los elementos.
   const canvasHeight = layout.reduce((max, el) => Math.max(max, el.y + el.h), 0) + 24;
   const hasLayout = layout.length > 0;
@@ -284,14 +339,28 @@ export default function TaskRunnerModal({
                     // Lógica condicional: si tiene showWhen y no se cumple → no se muestra.
                     // Se re-evalúa en vivo porque formData está en estado.
                     if (!evalShowWhen(el.showWhen, formData)) return null;
-                    const common = { position: "absolute" as const, left: el.x, top: el.y, width: el.w, height: el.h };
+                    // Secciones detrás (z-index bajo); el resto encima.
+                    const common = { position: "absolute" as const, left: el.x, top: el.y, width: el.w, height: el.h, zIndex: el.kind === "section" ? 1 : 2 };
                     if (el.kind === "divider") {
                       return <div key={el.id} style={{ ...common, background: "var(--c-border)" }} />;
+                    }
+                    if (el.kind === "section") {
+                      return (
+                        <div key={el.id} style={{ ...common, borderRadius: 10, border: "1px solid var(--c-border)", background: "rgb(var(--c-border-rgb) / 0.05)" }}>
+                          {el.text && <span className="absolute -top-2 left-3 px-1.5 font-mono text-[9px] uppercase" style={{ background: "var(--c-bg-surface)", color: "var(--c-text-muted)" }}>{el.text}</span>}
+                        </div>
+                      );
+                    }
+                    if (el.kind === "image") {
+                      return el.src
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img key={el.id} src={el.src} alt="" style={{ ...common, objectFit: "contain" }} />
+                        : null;
                     }
                     if (el.kind === "title" || el.kind === "text") {
                       return (
                         <div key={el.id} style={{ ...common, display: "flex", alignItems: "center", fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start" }}>
-                          {el.text}
+                          {interpolate(el.text ?? "", interpFields, formData)}
                         </div>
                       );
                     }

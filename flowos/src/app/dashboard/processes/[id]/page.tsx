@@ -49,7 +49,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 // ─── Node data type ───────────────────────────────────────────────────────────
 
-export type FormFieldType = "text" | "textarea" | "number" | "date" | "select" | "checkbox" | "file";
+export type FormFieldType = "text" | "textarea" | "number" | "date" | "select" | "checkbox" | "file" | "currency" | "radio" | "multiselect";
 
 export type FormField = {
   id: string;
@@ -318,11 +318,17 @@ const FIELD_TYPES: { value: FormFieldType; label: string }[] = [
   { value: "text", label: "Texto" },
   { value: "textarea", label: "Texto largo" },
   { value: "number", label: "Número" },
+  { value: "currency", label: "Moneda ($)" },
   { value: "date", label: "Fecha" },
   { value: "select", label: "Selección" },
+  { value: "radio", label: "Opción única" },
+  { value: "multiselect", label: "Selección múltiple" },
   { value: "checkbox", label: "Checkbox" },
   { value: "file", label: "Archivo" },
 ];
+
+// Tipos de campo que usan lista de opciones (options / source dinámico).
+const OPTION_FIELD_TYPES: FormFieldType[] = ["select", "radio", "multiselect"];
 
 function FormFieldsEditor({
   fields,
@@ -403,7 +409,7 @@ function FormFieldsEditor({
                 Req.
               </label>
             </div>
-            {field.type === "select" && (
+            {OPTION_FIELD_TYPES.includes(field.type) && (
               <div className="mt-1.5 flex flex-col gap-1">
                 {/* Toggle: manual vs dynamic */}
                 <div className="flex gap-1">
@@ -497,11 +503,13 @@ function StepLayoutBuilder({
     update([...layout, el]);
     setSelectedId(el.id);
   };
-  const addPresentation = (kind: "title" | "text" | "divider") => {
+  const addPresentation = (kind: "title" | "text" | "divider" | "section" | "image") => {
     const base = { id: nid(), kind, x: 24, y: nextY } as LayoutElement;
     if (kind === "title") Object.assign(base, { text: "Título", w: 360, h: 44, fontSize: 22, align: "left" });
     if (kind === "text") Object.assign(base, { text: "Texto de ayuda", w: 360, h: 30, fontSize: 13, align: "left" });
     if (kind === "divider") Object.assign(base, { w: 460, h: 2 });
+    if (kind === "section") Object.assign(base, { text: "Sección", w: 480, h: 160 });
+    if (kind === "image") Object.assign(base, { src: "", w: 200, h: 120 });
     update([...layout, base]);
     setSelectedId(base.id);
   };
@@ -549,7 +557,7 @@ function StepLayoutBuilder({
             )}
             <p className="mb-1.5 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Elementos</p>
             <div className="flex flex-col gap-1">
-              {([["title", "Título"], ["text", "Texto"], ["divider", "Divisor"]] as const).map(([k, label]) => (
+              {([["title", "Título"], ["text", "Texto"], ["divider", "Divisor"], ["section", "Sección"], ["image", "Imagen"]] as const).map(([k, label]) => (
                 <button key={k} type="button" onClick={() => addPresentation(k)}
                   className="flex items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11px]"
                   style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}>
@@ -598,6 +606,8 @@ function StepLayoutBuilder({
                     outline: selectedId === el.id ? "2px solid var(--c-accent-blue)" : "1px dashed rgb(var(--c-border-rgb) / 0.8)",
                     boxShadow: selectedId === el.id ? "0 0 16px rgb(var(--c-accent-blue-rgb) / 0.3)" : undefined,
                     borderRadius: el.kind === "divider" ? 0 : 6,
+                    // Las secciones van detrás (fondo); el resto encima.
+                    zIndex: el.kind === "section" ? 1 : 2,
                     cursor: "move", boxSizing: "border-box", overflow: "hidden",
                   }}
                 >
@@ -631,7 +641,7 @@ function StepLayoutBuilder({
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <p className="font-mono text-[10px] uppercase" style={{ color: "var(--c-text-muted)" }}>
-                    {selected.kind === "field" ? "Campo" : selected.kind === "title" ? "Título" : selected.kind === "text" ? "Texto" : "Divisor"}
+                    {selected.kind === "field" ? "Campo" : selected.kind === "title" ? "Título" : selected.kind === "text" ? "Texto" : selected.kind === "section" ? "Sección" : selected.kind === "image" ? "Imagen" : "Divisor"}
                   </p>
                   <button type="button" onClick={() => removeEl(selected.id)} title="Eliminar" style={{ color: "var(--c-accent-red)" }}>
                     <Trash2 className="h-3.5 w-3.5" />
@@ -672,6 +682,37 @@ function StepLayoutBuilder({
                         </button>
                       ))}
                     </div>
+                  </>
+                )}
+
+                {selected.kind === "image" && (
+                  <>
+                    <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>URL de la imagen</label>
+                    <input
+                      value={selected.src ?? ""}
+                      onChange={(e) => patchEl(selected.id, { src: e.target.value })}
+                      placeholder="https://…"
+                      className="w-full rounded px-2 py-1 text-xs outline-none"
+                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+                    />
+                    {selected.src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={selected.src} alt="" className="max-h-24 w-full rounded object-contain" style={{ background: "var(--c-bg-elevated)" }} />
+                    ) : null}
+                  </>
+                )}
+
+                {selected.kind === "section" && (
+                  <>
+                    <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Título de la sección</label>
+                    <input
+                      value={selected.text ?? ""}
+                      onChange={(e) => patchEl(selected.id, { text: e.target.value })}
+                      placeholder="Sección"
+                      className="w-full rounded px-2 py-1 text-xs outline-none"
+                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+                    />
+                    <p className="text-[10px]" style={{ color: "var(--c-text-muted)" }}>Caja de fondo para agrupar campos. Posicioná los campos encima.</p>
                   </>
                 )}
 
@@ -802,6 +843,19 @@ function ConditionEditor({
 function LayoutElementPreview({ el, field }: { el: LayoutElement; field?: FormField }) {
   if (el.kind === "divider") {
     return <div style={{ width: "100%", height: "100%", background: "var(--c-border)" }} />;
+  }
+  if (el.kind === "section") {
+    return (
+      <div style={{ width: "100%", height: "100%", borderRadius: 8, border: "1px solid rgb(var(--c-accent-violet-rgb) / 0.3)", background: "rgb(var(--c-accent-violet-rgb) / 0.04)", padding: "4px 8px" }}>
+        <span className="font-mono text-[10px] uppercase" style={{ color: "var(--c-accent-violet)" }}>{el.text || "Sección"}</span>
+      </div>
+    );
+  }
+  if (el.kind === "image") {
+    return el.src
+      // eslint-disable-next-line @next/next/no-img-element
+      ? <img src={el.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", fontSize: 10 }}>Imagen (URL)</div>;
   }
   if (el.kind === "title" || el.kind === "text") {
     return (

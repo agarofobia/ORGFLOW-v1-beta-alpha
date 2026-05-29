@@ -19,3 +19,22 @@ export function evalShowWhen(cond: ShowWhen | undefined, values: Record<string, 
     default: return true;
   }
 }
+
+// Texto dinámico: reemplaza {label} por el valor del campo cuyo label coincide.
+// Ej: "Hola {Nombre}, pedido #{Id}" → "Hola Ana, pedido #42".
+// Genérico (no importa FormField) para mantener el módulo puro.
+export function interpolate(
+  text: string,
+  fields: { id: string; label: string }[],
+  values: Record<string, unknown>,
+): string {
+  if (!text || !text.includes("{")) return text;
+  return text.replace(/\{([^}]+)\}/g, (_m, rawLabel) => {
+    const label = String(rawLabel).trim().toLowerCase();
+    const field = fields.find((f) => f.label.trim().toLowerCase() === label);
+    if (!field) return _m; // no matchea → deja el {texto} literal
+    const v = values[field.id];
+    if (v == null || v === "") return "";
+    return Array.isArray(v) ? v.join(", ") : String(v);
+  });
+}

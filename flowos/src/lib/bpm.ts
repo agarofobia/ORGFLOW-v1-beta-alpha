@@ -16,7 +16,7 @@ import { dispatchWebhook } from "@/lib/webhooks";
 //  - kind "text":    subtítulo / texto de ayuda.
 //  - kind "divider": separador visual.
 // Si un campo NO está en el layout de un paso → no se muestra en ese paso.
-export type LayoutElementKind = "field" | "title" | "text" | "divider";
+export type LayoutElementKind = "field" | "title" | "text" | "divider" | "image" | "section";
 
 // Lógica condicional (mostrar/ocultar por valor). Un elemento con `showWhen`
 // solo se renderiza en runtime si la condición se cumple contra los valores
@@ -39,6 +39,7 @@ export interface LayoutElement {
   readOnly?: boolean;         // kind "field": solo lectura en este paso
   fontSize?: number;          // kind "title" | "text"
   align?: "left" | "center" | "right";
+  src?: string;               // kind "image" → URL de la imagen
   showWhen?: ShowWhen;        // visibilidad condicional (si está, el elemento es condicional)
 }
 
