@@ -9,6 +9,13 @@ import { dispatchWebhook } from "@/lib/webhooks";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+// Visibilidad de un campo del formulario en un paso concreto (Fase 2 — tren de carga):
+//  - "hidden": no se muestra en este paso
+//  - "view":   se muestra read-only (ve lo cargado antes, no edita)
+//  - "edit":   editable
+// Si un fieldId NO está en el map → default "edit" (retrocompatible con Fase 1).
+export type FieldVisibility = "hidden" | "view" | "edit";
+
 export interface ProcessNode {
   id: string;
   type: string;
@@ -17,6 +24,8 @@ export interface ProcessNode {
   assigneeDeptId?: string;
   serviceAction?: string;
   position?: { x: number; y: number };
+  // Visibilidad por campo en este paso. Key = FormField.id.
+  fieldVisibility?: Record<string, FieldVisibility>;
   // SLA: tiempo esperado para completar este nodo en ms.
   // Si la instancia supera este tiempo, se considera "atrasada" (visible en audit).
   // Null = sin SLA definido (no se trackea).

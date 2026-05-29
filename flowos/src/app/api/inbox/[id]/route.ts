@@ -7,6 +7,7 @@ import { logProcessEvent } from "@/lib/process-events";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
+import type { ProcessNode } from "@/lib/bpm";
 import type { FormField } from "@/app/dashboard/processes/[id]/page";
 
 export async function GET(
@@ -40,17 +41,22 @@ export async function GET(
 
     let formFields: unknown[] = [];
     let fieldValues: Record<string, unknown> = {};
+    let fieldVisibility: Record<string, "hidden" | "view" | "edit"> = {};
     if (instance) {
       const [def] = await db
-        .select({ formFields: processDefinitions.formFields })
+        .select({ formFields: processDefinitions.formFields, nodes: processDefinitions.nodes })
         .from(processDefinitions)
         .where(eq(processDefinitions.id, instance.processDefinitionId))
         .limit(1);
       formFields = (def?.formFields as unknown[]) ?? [];
       fieldValues = (instance.context as Record<string, unknown>) ?? {};
+      // Visibilidad por paso: del nodo actual de la tarea (Fase 2).
+      const nodes = (def?.nodes as unknown as ProcessNode[]) ?? [];
+      const node = Array.isArray(nodes) ? nodes.find((n) => n.id === task.nodeId) : null;
+      fieldVisibility = node?.fieldVisibility ?? {};
     }
 
-    return NextResponse.json({ ...task, formFields, fieldValues });
+    return NextResponse.json({ ...task, formFields, fieldValues, fieldVisibility });
   } catch (err) {
     return apiError(err);
   }

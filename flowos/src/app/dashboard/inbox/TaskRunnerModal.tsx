@@ -38,13 +38,20 @@ function FieldInput({
   field,
   value,
   onChange,
+  readOnly = false,
 }: {
   field: FormField;
   value: unknown;
   onChange: (v: unknown) => void;
+  readOnly?: boolean;
 }) {
   const base = "w-full rounded px-3 py-2 text-sm outline-none";
-  const style = { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" };
+  const style = {
+    background: readOnly ? "var(--c-bg-base)" : "var(--c-bg-elevated)",
+    border: "1px solid var(--c-border)",
+    color: readOnly ? "var(--c-text-secondary)" : "var(--c-text-primary)",
+    cursor: readOnly ? "default" : undefined,
+  };
   const dynamicOptions = useDynamicOptions(field.source);
 
   if (field.type === "textarea") {
@@ -55,6 +62,7 @@ function FieldInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={field.placeholder}
         required={field.required}
+        disabled={readOnly}
         className={`${base} resize-none`}
         style={style}
       />
@@ -64,6 +72,16 @@ function FieldInput({
     const opts = field.source
       ? dynamicOptions
       : (field.options ?? []).map((o) => ({ value: o, label: o }));
+    // En read-only mostramos la etiqueta resuelta (no el <select>), para que un
+    // valor dinámico se vea con su label legible y no el id crudo.
+    if (readOnly) {
+      const current = opts.find((o) => o.value === value);
+      return (
+        <div className={base} style={style}>
+          {current?.label ?? (value as string) ?? "—"}
+        </div>
+      );
+    }
     return (
       <select
         value={(value as string) ?? ""}
@@ -81,11 +99,12 @@ function FieldInput({
   }
   if (field.type === "checkbox") {
     return (
-      <label className="flex items-center gap-2 text-sm" style={{ color: "var(--c-text-secondary)", cursor: "pointer" }}>
+      <label className="flex items-center gap-2 text-sm" style={{ color: "var(--c-text-secondary)", cursor: readOnly ? "default" : "pointer" }}>
         <input
           type="checkbox"
           checked={(value as boolean) ?? false}
           onChange={(e) => onChange(e.target.checked)}
+          disabled={readOnly}
           className="h-4 w-4"
         />
         {field.label}
@@ -93,6 +112,15 @@ function FieldInput({
     );
   }
   if (field.type === "file") {
+    // En read-only mostramos el nombre del archivo cargado, sin permitir reemplazo.
+    if (readOnly) {
+      const fileVal = value as { name?: string } | undefined;
+      return (
+        <div className={base} style={style}>
+          {fileVal?.name ?? "— Sin archivo —"}
+        </div>
+      );
+    }
     return (
       <input
         type="file"
@@ -117,6 +145,7 @@ function FieldInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={field.placeholder}
       required={field.required}
+      disabled={readOnly}
       className={base}
       style={style}
     />
@@ -128,6 +157,7 @@ function FieldInput({
 interface TaskWithForm extends InboxTask {
   formFields?: FormField[];
   fieldValues?: Record<string, unknown>; // valores acumulados de pasos anteriores (tren de carga)
+  fieldVisibility?: Record<string, "hidden" | "view" | "edit">; // visibilidad por paso (Fase 2)
 }
 
 export default function TaskRunnerModal({
@@ -181,7 +211,11 @@ export default function TaskRunnerModal({
     }
   };
 
-  const hasFields = (task?.formFields?.length ?? 0) > 0;
+  // Visibilidad por paso (Fase 2): un campo sin config explícita → "edit" (default).
+  const visOf = (fieldId: string): "hidden" | "view" | "edit" =>
+    task?.fieldVisibility?.[fieldId] ?? "edit";
+  const visibleFields = (task?.formFields ?? []).filter((f) => visOf(f.id) !== "hidden");
+  const hasFields = visibleFields.length > 0;
 
   return (
     <div
@@ -238,21 +272,30 @@ export default function TaskRunnerModal({
                 </div>
               ) : (
                 <div className="flex flex-col gap-5">
-                  {task.formFields!.map((field) => (
-                    <div key={field.id}>
-                      {field.type !== "checkbox" && (
-                        <label className="mb-1.5 block text-sm font-medium" style={{ color: "var(--c-text-secondary)" }}>
-                          {field.label}
-                          {field.required && <span className="ml-1" style={{ color: "var(--c-accent-red)" }}>*</span>}
-                        </label>
-                      )}
-                      <FieldInput
-                        field={field}
-                        value={formData[field.id]}
-                        onChange={(v) => setFormData((prev) => ({ ...prev, [field.id]: v }))}
-                      />
-                    </div>
-                  ))}
+                  {visibleFields.map((field) => {
+                    const readOnly = visOf(field.id) === "view";
+                    return (
+                      <div key={field.id}>
+                        {field.type !== "checkbox" && (
+                          <label className="mb-1.5 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--c-text-secondary)" }}>
+                            {field.label}
+                            {field.required && !readOnly && <span style={{ color: "var(--c-accent-red)" }}>*</span>}
+                            {readOnly && (
+                              <span className="rounded px-1 py-0.5 font-mono text-[8px] uppercase" style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.15)", color: "var(--c-accent-amber)" }}>
+                                solo lectura
+                              </span>
+                            )}
+                          </label>
+                        )}
+                        <FieldInput
+                          field={field}
+                          value={formData[field.id]}
+                          onChange={(v) => setFormData((prev) => ({ ...prev, [field.id]: v }))}
+                          readOnly={readOnly}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

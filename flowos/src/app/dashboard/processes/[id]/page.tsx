@@ -63,6 +63,8 @@ type BpmData = {
   description?: string;
   assigneeDeptId?: string;
   serviceAction?: string;
+  // Visibilidad de cada campo del proceso en este paso (Fase 2). Key = FormField.id.
+  fieldVisibility?: Record<string, "hidden" | "view" | "edit">;
   allowTracking?: boolean;
   // Heatmap overlay — cuando está activo en el editor, este campo se inyecta
   // con el color calculado del cycle time del nodo (verde rápido → rojo lento).
@@ -82,6 +84,7 @@ function nodesToDB(rfNodes: BpmNode[]): ProcessNode[] {
     description: n.data.description,
     assigneeDeptId: n.data.assigneeDeptId,
     serviceAction: n.data.serviceAction,
+    fieldVisibility: n.data.fieldVisibility,
     position: n.position,
   }));
 }
@@ -96,6 +99,7 @@ function nodesFromDB(dbNodes: ProcessNode[]): BpmNode[] {
       description: n.description,
       assigneeDeptId: n.assigneeDeptId,
       serviceAction: n.serviceAction,
+      fieldVisibility: n.fieldVisibility,
     },
   }));
 }
@@ -443,16 +447,87 @@ function FormFieldsEditor({
   );
 }
 
+// ─── Visibilidad de campos por paso (Fase 2 — tren de carga) ──────────────────
+// Para cada campo del proceso, este paso elige: Oculto / Ver (read-only) / Editar.
+// Default (sin config) = "edit" → un proceso nuevo funciona sin tocar cada paso.
+
+type StepVis = "hidden" | "view" | "edit";
+
+function StepFieldVisibility({
+  processFields,
+  visibility,
+  onChange,
+}: {
+  processFields: FormField[];
+  visibility: Record<string, StepVis>;
+  onChange: (v: Record<string, StepVis>) => void;
+}) {
+  const OPTS: { value: StepVis; label: string; color: string }[] = [
+    { value: "hidden", label: "Oculto", color: "var(--c-text-muted)" },
+    { value: "view", label: "Ver", color: "var(--c-accent-amber)" },
+    { value: "edit", label: "Editar", color: "var(--c-accent-emerald)" },
+  ];
+  const setField = (fieldId: string, v: StepVis) => {
+    onChange({ ...visibility, [fieldId]: v });
+  };
+
+  return (
+    <div>
+      <label className="mb-1.5 block font-mono text-[10px] uppercase" style={{ color: "var(--c-text-muted)" }}>
+        Campos en este paso
+      </label>
+      {processFields.length === 0 ? (
+        <p className="text-[10px]" style={{ color: "var(--c-text-placeholder)" }}>
+          El proceso no tiene campos. Definilos con el botón &quot;Campos&quot; (arriba a la derecha).
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {processFields.map((f) => {
+            const current = visibility[f.id] ?? "edit";
+            return (
+              <div key={f.id} className="rounded px-2 py-1.5" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
+                <p className="mb-1 truncate text-[11px]" style={{ color: "var(--c-text-secondary)" }} title={f.label}>{f.label}</p>
+                <div className="flex gap-1">
+                  {OPTS.map((o) => {
+                    const active = current === o.value;
+                    return (
+                      <button
+                        key={o.value}
+                        type="button"
+                        onClick={() => setField(f.id, o.value)}
+                        className="flex-1 rounded px-1 py-0.5 text-[9px] transition-colors"
+                        style={{
+                          background: active ? `${o.color}22` : "var(--c-bg-surface)",
+                          border: `1px solid ${active ? o.color : "var(--c-border)"}`,
+                          color: active ? o.color : "var(--c-text-muted)",
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Properties panel ─────────────────────────────────────────────────────────
 
 function PropertiesPanel({
   node,
   onUpdate,
   onClose,
+  processFields,
 }: {
   node: BpmNode;
   onUpdate: (id: string, data: Partial<BpmData>) => void;
   onClose: () => void;
+  processFields: FormField[];
 }) {
   const positions = useOrgPositions();
 
@@ -594,9 +669,11 @@ function PropertiesPanel({
 
       {node.type === "userTask" && (
         <>
-          <p className="rounded px-2 py-2 text-[10px] leading-relaxed" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-muted)" }}>
-            Los campos del formulario ahora se definen a nivel <strong style={{ color: "var(--c-text-secondary)" }}>proceso</strong> (botón &quot;Campos&quot;, arriba a la derecha). La visibilidad por paso llega en la próxima fase.
-          </p>
+          <StepFieldVisibility
+            processFields={processFields}
+            visibility={node.data.fieldVisibility ?? {}}
+            onChange={(v) => onUpdate(node.id, { fieldVisibility: v })}
+          />
           <label className="flex items-center gap-2 text-xs" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
             <input
               type="checkbox"
@@ -925,6 +1002,7 @@ function DesignerFlow({
             node={selectedNode}
             onUpdate={updateNodeData}
             onClose={() => setSelectedNode(null)}
+            processFields={formFields}
           />
         </div>
       )}
