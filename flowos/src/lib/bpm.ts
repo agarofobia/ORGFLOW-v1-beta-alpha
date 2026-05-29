@@ -31,6 +31,20 @@ export interface ProcessEdge {
   condition?: string;
 }
 
+// ─── Formularios dinámicos (modelo "tren de carga") ───────────────────────────
+// Campos compartidos a nivel proceso. Cada instancia acumula sus valores en
+// processInstances.context.fieldValues = { [fieldId]: value }.
+export type FormFieldType = "text" | "textarea" | "select" | "number" | "date" | "checkbox";
+
+export interface FormField {
+  id: string;                 // estable, generado al crear el campo
+  label: string;
+  type: FormFieldType;
+  options?: string[];         // solo para type "select"
+  required?: boolean;
+  placeholder?: string;
+}
+
 interface HistoryEntry {
   nodeId: string;
   nodeLabel: string;

@@ -52,6 +52,7 @@ export async function PUT(
     if (body.status !== undefined) updates.status = body.status;
     if (body.nodes !== undefined) updates.nodes = body.nodes;
     if (body.edges !== undefined) updates.edges = body.edges;
+    if (body.formFields !== undefined) updates.formFields = body.formFields;
     if ("parentId" in body) updates.parentId = body.parentId; // allow null to move to root
     if ("projectTemplateId" in body) updates.projectTemplateId = body.projectTemplateId; // null permitido para desvincular
 

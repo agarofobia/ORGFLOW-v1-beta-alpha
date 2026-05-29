@@ -537,6 +537,11 @@ export const processDefinitions = pgTable(
     parentId: uuid("parent_id"), // para carpetas de procesos
     nodes: jsonb("nodes").notNull().default([]),
     edges: jsonb("edges").notNull().default([]),
+    // Formularios dinámicos: campos compartidos del proceso (modelo "tren de carga").
+    // Array de FormField (ver src/lib/bpm.ts). Los valores cargados viven en
+    // processInstances.context.fieldValues. La visibilidad por paso y la lógica
+    // condicional (Fases 2-3) se guardan dentro de cada ProcessNode (jsonb nodes).
+    formFields: jsonb("form_fields").notNull().default([]),
     version: integer("version").notNull().default(1),
     environment: text("environment").notNull().default("production"), // "test" | "production"
     // Si está seteado, cada vez que se inicia una instancia de este proceso se crea
