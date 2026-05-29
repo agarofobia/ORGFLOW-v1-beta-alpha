@@ -27,11 +27,10 @@ declare global {
 function createClient() {
   return postgres(connectionString, {
     prepare: false,          // requerido por Supavisor transaction pooler
-    // max bajo: cada invocación serverless rara vez necesita >2-3 conexiones.
-    // Bajar de 5→3 reduce la huella por Lambda contra el límite del pooler de
-    // Supabase cuando muchas Lambdas arrancan a la vez (causa raíz del 500 en
-    // bursts; el lado cliente ya se mitigó con chunking + re-entry guard).
-    max: 3,
+    // max: el dashboard dispara ~7 GETs en paralelo al cargar. Bajarlo a 3 dejó
+    // sin headroom ese burst en cold start → queries encoladas fallaban ("Failed
+    // query") en TODOS los endpoints. 5 es el valor conocido-bueno; lo mantenemos.
+    max: 5,
     idle_timeout: 20,        // cerrar conexiones idle a los 20s
     max_lifetime: 60 * 5,    // reciclar conexiones cada 5 min (en lugar de 30 min)
     connect_timeout: 15,
