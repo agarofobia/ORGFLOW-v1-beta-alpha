@@ -18,6 +18,17 @@ import { dispatchWebhook } from "@/lib/webhooks";
 // Si un campo NO está en el layout de un paso → no se muestra en ese paso.
 export type LayoutElementKind = "field" | "title" | "text" | "divider";
 
+// Lógica condicional (mostrar/ocultar por valor). Un elemento con `showWhen`
+// solo se renderiza en runtime si la condición se cumple contra los valores
+// cargados. Ej: mostrar el campo "detalle" solo si "item" == "otro".
+export type ConditionOperator = "equals" | "notEquals" | "includes" | "isFilled" | "isEmpty";
+
+export interface ShowWhen {
+  fieldId: string;            // campo del proceso que dispara la condición
+  operator: ConditionOperator;
+  value?: string;             // valor a comparar (no aplica a isFilled/isEmpty)
+}
+
 export interface LayoutElement {
   id: string;                 // id del elemento de layout (no del campo)
   kind: LayoutElementKind;
@@ -28,7 +39,11 @@ export interface LayoutElement {
   readOnly?: boolean;         // kind "field": solo lectura en este paso
   fontSize?: number;          // kind "title" | "text"
   align?: "left" | "center" | "right";
+  showWhen?: ShowWhen;        // visibilidad condicional (si está, el elemento es condicional)
 }
+
+// La evaluación de condiciones vive en `./form-conditions` (módulo puro, sin deps
+// de DB) para que pueda importarse desde componentes cliente sin arrastrar postgres.
 
 export interface ProcessNode {
   id: string;

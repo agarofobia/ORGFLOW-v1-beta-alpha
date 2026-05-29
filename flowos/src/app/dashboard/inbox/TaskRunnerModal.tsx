@@ -5,6 +5,7 @@ import { X, CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
 import type { InboxTask } from "@/db/schema";
 import type { FormField, FormFieldType } from "@/app/dashboard/processes/[id]/page";
 import type { LayoutElement } from "@/lib/bpm";
+import { evalShowWhen } from "@/lib/form-conditions";
 
 const CANVAS_W = 680; // mismo ancho que el lienzo del builder (WYSIWYG)
 
@@ -280,6 +281,9 @@ export default function TaskRunnerModal({
                 // Render WYSIWYG: cada elemento en su posición del lienzo del paso.
                 <div className="relative mx-auto" style={{ width: CANVAS_W, height: canvasHeight }}>
                   {layout.map((el) => {
+                    // Lógica condicional: si tiene showWhen y no se cumple → no se muestra.
+                    // Se re-evalúa en vivo porque formData está en estado.
+                    if (!evalShowWhen(el.showWhen, formData)) return null;
                     const common = { position: "absolute" as const, left: el.x, top: el.y, width: el.w, height: el.h };
                     if (el.kind === "divider") {
                       return <div key={el.id} style={{ ...common, background: "var(--c-border)" }} />;

@@ -43,7 +43,7 @@ import {
 import Moveable from "react-moveable";
 import type { ProcessDefinition } from "@/db/schema";
 import { useToast } from "@/components/ui/toast";
-import type { ProcessNode, ProcessEdge, LayoutElement } from "@/lib/bpm";
+import type { ProcessNode, ProcessEdge, LayoutElement, ShowWhen, ConditionOperator } from "@/lib/bpm";
 import AuditPanel from "@/components/dashboard/processes/audit-panel";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -675,6 +675,15 @@ function StepLayoutBuilder({
                   </>
                 )}
 
+                {/* Visibilidad condicional — mostrar este elemento solo si... */}
+                <ConditionEditor
+                  selfId={selected.id}
+                  layout={layout}
+                  processFields={processFields}
+                  showWhen={selected.showWhen}
+                  onChange={(sw) => patchEl(selected.id, { showWhen: sw })}
+                />
+
                 <div className="grid grid-cols-2 gap-1.5 text-[10px]" style={{ color: "var(--c-text-muted)" }}>
                   {(["x", "y", "w", "h"] as const).map((k) => (
                     <label key={k} className="flex items-center justify-between gap-1">
@@ -690,6 +699,101 @@ function StepLayoutBuilder({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Editor de visibilidad condicional de un elemento ("mostrar solo si...").
+function ConditionEditor({
+  selfId,
+  layout,
+  processFields,
+  showWhen,
+  onChange,
+}: {
+  selfId: string;
+  layout: LayoutElement[];
+  processFields: FormField[];
+  showWhen?: ShowWhen;
+  onChange: (sw: ShowWhen | undefined) => void;
+}) {
+  // Campos disponibles como disparador: los campos del proceso presentes en el
+  // layout (excepto el propio elemento). Sin campos → no se puede condicionar.
+  const sourceFields = layout
+    .filter((e) => e.kind === "field" && e.id !== selfId && e.fieldId)
+    .map((e) => ({ fieldId: e.fieldId!, label: processFields.find((f) => f.id === e.fieldId)?.label ?? "(campo)" }));
+
+  const enabled = !!showWhen;
+  const needsValue = showWhen && showWhen.operator !== "isFilled" && showWhen.operator !== "isEmpty";
+  const srcField = showWhen ? processFields.find((f) => f.id === showWhen.fieldId) : undefined;
+
+  const OPS: { value: ConditionOperator; label: string }[] = [
+    { value: "equals", label: "es igual a" },
+    { value: "notEquals", label: "es distinto de" },
+    { value: "includes", label: "contiene" },
+    { value: "isFilled", label: "está completo" },
+    { value: "isEmpty", label: "está vacío" },
+  ];
+
+  return (
+    <div className="rounded px-2 py-2" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
+      <label className="flex items-center gap-2 text-[11px]" style={{ color: enabled ? "var(--c-accent-violet)" : "var(--c-text-muted)", cursor: "pointer" }}>
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => onChange(e.target.checked ? { fieldId: sourceFields[0]?.fieldId ?? "", operator: "equals", value: "" } : undefined)}
+        />
+        Mostrar solo si…
+      </label>
+      {enabled && (
+        sourceFields.length === 0 ? (
+          <p className="mt-1.5 text-[10px]" style={{ color: "var(--c-text-placeholder)" }}>
+            Agregá otro campo al lienzo para usarlo como condición.
+          </p>
+        ) : (
+          <div className="mt-2 flex flex-col gap-1.5">
+            <select
+              value={showWhen!.fieldId}
+              onChange={(e) => onChange({ ...showWhen!, fieldId: e.target.value })}
+              className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
+              style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+            >
+              {sourceFields.map((s) => <option key={s.fieldId} value={s.fieldId}>{s.label}</option>)}
+            </select>
+            <select
+              value={showWhen!.operator}
+              onChange={(e) => onChange({ ...showWhen!, operator: e.target.value as ConditionOperator })}
+              className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
+              style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+            >
+              {OPS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            {needsValue && (() => {
+              // Si el campo fuente es un select con opciones, ofrecemos un dropdown.
+              const opts = srcField?.type === "select" && !srcField.source ? (srcField.options ?? []) : null;
+              return opts ? (
+                <select
+                  value={showWhen!.value ?? ""}
+                  onChange={(e) => onChange({ ...showWhen!, value: e.target.value })}
+                  className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
+                  style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+                >
+                  <option value="">— Valor —</option>
+                  {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={showWhen!.value ?? ""}
+                  onChange={(e) => onChange({ ...showWhen!, value: e.target.value })}
+                  placeholder="Valor…"
+                  className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
+                  style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+                />
+              );
+            })()}
+          </div>
+        )
+      )}
     </div>
   );
 }
