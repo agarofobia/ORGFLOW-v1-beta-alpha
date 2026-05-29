@@ -7,7 +7,6 @@ import { logProcessEvent } from "@/lib/process-events";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
-import type { ProcessNode } from "@/lib/bpm";
 import type { FormField } from "@/app/dashboard/processes/[id]/page";
 
 export async function GET(
@@ -26,28 +25,32 @@ export async function GET(
       .limit(1);
     if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Get process definition to extract formFields for this node
+    // Modelo "tren de carga": los campos del formulario viven a nivel PROCESO
+    // (no por nodo). Los valores cargados se acumulan en processInstances.context,
+    // así que devolvemos ese context como `fieldValues` para pre-llenar el form con
+    // lo que cargaron los pasos anteriores.
     const [instance] = await db
-      .select({ processDefinitionId: processInstances.processDefinitionId })
+      .select({
+        processDefinitionId: processInstances.processDefinitionId,
+        context: processInstances.context,
+      })
       .from(processInstances)
       .where(eq(processInstances.id, task.instanceId))
       .limit(1);
 
     let formFields: unknown[] = [];
+    let fieldValues: Record<string, unknown> = {};
     if (instance) {
       const [def] = await db
-        .select({ nodes: processDefinitions.nodes })
+        .select({ formFields: processDefinitions.formFields })
         .from(processDefinitions)
         .where(eq(processDefinitions.id, instance.processDefinitionId))
         .limit(1);
-      if (def) {
-        const nodes = def.nodes as unknown as ProcessNode[];
-        const node = Array.isArray(nodes) ? nodes.find((n) => n.id === task.nodeId) : null;
-        formFields = (node as { formFields?: unknown[] } | null)?.formFields ?? [];
-      }
+      formFields = (def?.formFields as unknown[]) ?? [];
+      fieldValues = (instance.context as Record<string, unknown>) ?? {};
     }
 
-    return NextResponse.json({ ...task, formFields });
+    return NextResponse.json({ ...task, formFields, fieldValues });
   } catch (err) {
     return apiError(err);
   }
@@ -105,8 +108,8 @@ export async function PATCH(
     if (action === "complete") {
       const formData = body.formData ?? {};
 
-      // M8.5 — materializar campos tipo "file" como documentos en Docs
-      // Necesitamos los formFields del nodo para saber cuáles son file
+      // M8.5 — materializar campos tipo "file" como documentos en Docs.
+      // Los formFields ahora viven a nivel proceso (modelo "tren de carga").
       try {
         const [instance] = await db
           .select({ processDefinitionId: processInstances.processDefinitionId })
@@ -116,15 +119,13 @@ export async function PATCH(
 
         if (instance) {
           const [def] = await db
-            .select({ nodes: processDefinitions.nodes })
+            .select({ formFields: processDefinitions.formFields })
             .from(processDefinitions)
             .where(eq(processDefinitions.id, instance.processDefinitionId))
             .limit(1);
 
           if (def) {
-            const nodes = def.nodes as unknown as ProcessNode[];
-            const node = Array.isArray(nodes) ? nodes.find((n) => n.id === task.nodeId) : null;
-            const formFields: FormField[] = (node as { formFields?: FormField[] } | null)?.formFields ?? [];
+            const formFields: FormField[] = (def.formFields as unknown as FormField[]) ?? [];
 
             for (const field of formFields) {
               if (field.type !== "file") continue;

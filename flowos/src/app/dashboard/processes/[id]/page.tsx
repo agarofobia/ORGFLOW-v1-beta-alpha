@@ -35,6 +35,7 @@ import {
   Maximize2,
   Minimize2,
   Activity,
+  ListChecks,
 } from "lucide-react";
 import type { ProcessDefinition } from "@/db/schema";
 import { useToast } from "@/components/ui/toast";
@@ -62,7 +63,6 @@ type BpmData = {
   description?: string;
   assigneeDeptId?: string;
   serviceAction?: string;
-  formFields?: FormField[];
   allowTracking?: boolean;
   // Heatmap overlay — cuando está activo en el editor, este campo se inyecta
   // con el color calculado del cycle time del nodo (verde rápido → rojo lento).
@@ -594,10 +594,9 @@ function PropertiesPanel({
 
       {node.type === "userTask" && (
         <>
-          <FormFieldsEditor
-            fields={node.data.formFields ?? []}
-            onChange={(fields) => onUpdate(node.id, { formFields: fields })}
-          />
+          <p className="rounded px-2 py-2 text-[10px] leading-relaxed" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-muted)" }}>
+            Los campos del formulario ahora se definen a nivel <strong style={{ color: "var(--c-text-secondary)" }}>proceso</strong> (botón &quot;Campos&quot;, arriba a la derecha). La visibilidad por paso llega en la próxima fase.
+          </p>
           <label className="flex items-center gap-2 text-xs" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
             <input
               type="checkbox"
@@ -637,7 +636,7 @@ function DesignerFlow({
   heatmapData,
 }: {
   definition: ProcessDefinition;
-  onSave: (nodes: ProcessNode[], edges: ProcessEdge[]) => Promise<void>;
+  onSave: (nodes: ProcessNode[], edges: ProcessEdge[], formFields: FormField[]) => Promise<void>;
   saving: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   heatmapData?: Record<string, { color: string; label: string }>;
@@ -647,6 +646,11 @@ function DesignerFlow({
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNode, setSelectedNode] = useState<BpmNode | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  // Campos del formulario a nivel PROCESO (modelo "tren de carga"): se definen
+  // una vez para el proceso y cada instancia acumula sus valores. La visibilidad
+  // por paso (qué campos ve cada nodo) llega en Fase 2.
+  const [formFields, setFormFields] = useState<FormField[]>([]);
+  const [showFormBuilder, setShowFormBuilder] = useState(false);
   // Track cambios sin guardar — se setea true en cualquier mutación post-load.
   // Se resetea cuando definition cambia (load nuevo o post-save trae fresh).
   const [isDirty, setIsDirty] = useState(false);
@@ -658,9 +662,11 @@ function DesignerFlow({
     const dbEdges = definition.edges as unknown as ProcessEdge[];
     setNodes(nodesFromDB(Array.isArray(dbNodes) ? dbNodes : []));
     setEdges(edgesFromDB(Array.isArray(dbEdges) ? dbEdges : []));
+    const dbFields = definition.formFields as unknown as FormField[];
+    setFormFields(Array.isArray(dbFields) ? dbFields : []);
     // El load (inicial o post-save) limpia el dirty flag.
     setIsDirty(false);
-  }, [definition.id, definition.nodes, definition.edges, setNodes, setEdges]);
+  }, [definition.id, definition.nodes, definition.edges, definition.formFields, setNodes, setEdges]);
 
   // Aplicar/quitar heatmap: cuando cambia heatmapData, inyectamos heatBorder
   // en cada node.data sin alterar la posición ni otros campos. Esto NO marca dirty.
@@ -776,7 +782,7 @@ function DesignerFlow({
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
-        if (isDirty && !saving) onSave(nodesToDB(nodes), edgesToDB(edges));
+        if (isDirty && !saving) onSave(nodesToDB(nodes), edgesToDB(edges), formFields);
       }
       if (e.key === "Escape" && (selectedNode || selectedEdge)) {
         setSelectedNode(null);
@@ -785,7 +791,7 @@ function DesignerFlow({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isDirty, saving, nodes, edges, onSave, selectedNode, selectedEdge]);
+  }, [isDirty, saving, nodes, edges, formFields, onSave, selectedNode, selectedEdge]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: BpmNode) => {
     setSelectedNode(node);
@@ -801,7 +807,13 @@ function DesignerFlow({
     }
   }, [nodes]);
 
-  const handleSave = () => onSave(nodesToDB(nodes), edgesToDB(edges));
+  const handleSave = () => onSave(nodesToDB(nodes), edgesToDB(edges), formFields);
+
+  // Mutación de los campos del formulario del proceso → marca dirty.
+  const handleFormFieldsChange = (fields: FormField[]) => {
+    setFormFields(fields);
+    setIsDirty(true);
+  };
 
   return (
     <div className="relative flex h-full w-full">
@@ -870,23 +882,38 @@ function DesignerFlow({
           <Background color="var(--c-border)" gap={32} size={1} />
           <Controls style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)" }} />
           <Panel position="top-right" className="m-3">
-            <button
-              onClick={handleSave}
-              disabled={saving || !isDirty}
-              title={isDirty ? "Guardar cambios (Ctrl+S)" : "Sin cambios pendientes"}
-              className="flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{
-                background: isDirty ? "var(--c-accent-blue)" : "var(--c-border)",
-                boxShadow: isDirty ? "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.3)" : "none",
-              }}
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" strokeWidth={2} />
-              )}
-              {isDirty ? "Guardar" : "Guardado"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFormBuilder(true)}
+                title="Campos del formulario del proceso"
+                className="flex items-center gap-2 rounded px-3 py-2 text-sm font-medium transition-all hover:-translate-y-px"
+                style={{
+                  background: "var(--c-bg-surface)",
+                  border: "1px solid var(--c-border)",
+                  color: "var(--c-text-secondary)",
+                }}
+              >
+                <ListChecks className="h-4 w-4" strokeWidth={2} />
+                Campos{formFields.length > 0 ? ` (${formFields.length})` : ""}
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !isDirty}
+                title={isDirty ? "Guardar cambios (Ctrl+S)" : "Sin cambios pendientes"}
+                className="flex items-center gap-2 rounded px-4 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{
+                  background: isDirty ? "var(--c-accent-blue)" : "var(--c-border)",
+                  boxShadow: isDirty ? "0 0 12px rgb(var(--c-accent-blue-rgb) / 0.3)" : "none",
+                }}
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" strokeWidth={2} />
+                )}
+                {isDirty ? "Guardar" : "Guardado"}
+              </button>
+            </div>
           </Panel>
         </ReactFlow>
       </div>
@@ -899,6 +926,36 @@ function DesignerFlow({
             onUpdate={updateNodeData}
             onClose={() => setSelectedNode(null)}
           />
+        </div>
+      )}
+
+      {/* Form builder a nivel proceso (modelo "tren de carga") */}
+      {showFormBuilder && (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center"
+          style={{ background: "rgb(0 0 0 / 0.45)" }}
+          onClick={() => setShowFormBuilder(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex max-h-[80vh] w-[460px] flex-col rounded-lg"
+            style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", boxShadow: "0 12px 48px rgb(0 0 0 / 0.4)" }}
+          >
+            <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--c-border)" }}>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "var(--c-text-primary)" }}>Campos del formulario</p>
+                <p className="text-[11px]" style={{ color: "var(--c-text-muted)" }}>
+                  Compartidos por todo el proceso. Cada instancia acumula sus valores.
+                </p>
+              </div>
+              <button onClick={() => setShowFormBuilder(false)} className="rounded p-1 hover:bg-[var(--c-border)]" style={{ color: "var(--c-text-muted)" }}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4">
+              <FormFieldsEditor fields={formFields} onChange={handleFormFieldsChange} />
+            </div>
+          </div>
         </div>
       )}
 
@@ -1067,7 +1124,7 @@ export default function ProcessDesignerPage({
     if (editingName) nameInputRef.current?.focus();
   }, [editingName]);
 
-  const handleSave = async (nodes: ProcessNode[], edges: ProcessEdge[]) => {
+  const handleSave = async (nodes: ProcessNode[], edges: ProcessEdge[], formFields: FormField[]) => {
     setSaving(true);
     try {
       const res = await fetch(`/api/processes/${processId}`, {
@@ -1077,6 +1134,7 @@ export default function ProcessDesignerPage({
           name,
           nodes,
           edges,
+          formFields,
           status: definition?.status,
           category: definition?.category,
           environment,

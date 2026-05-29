@@ -127,6 +127,7 @@ function FieldInput({
 
 interface TaskWithForm extends InboxTask {
   formFields?: FormField[];
+  fieldValues?: Record<string, unknown>; // valores acumulados de pasos anteriores (tren de carga)
 }
 
 export default function TaskRunnerModal({
@@ -149,10 +150,12 @@ export default function TaskRunnerModal({
       .then((r) => r.json())
       .then((data) => {
         setTask(data);
-        // Pre-fill with existing formData if task was already partially filled
-        if (data.formData && typeof data.formData === "object") {
-          setFormData(data.formData as Record<string, unknown>);
-        }
+        // Pre-llenar con los valores acumulados del proceso (tren de carga) —
+        // así este paso ve lo que cargaron los anteriores — y encima el formData
+        // propio de la tarea si ya estaba parcialmente completada.
+        const accumulated = (data.fieldValues && typeof data.fieldValues === "object") ? data.fieldValues : {};
+        const own = (data.formData && typeof data.formData === "object") ? data.formData : {};
+        setFormData({ ...accumulated, ...own } as Record<string, unknown>);
       })
       .finally(() => setLoading(false));
   }, [taskId]);
