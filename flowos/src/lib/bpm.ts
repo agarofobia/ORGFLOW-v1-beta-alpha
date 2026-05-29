@@ -9,12 +9,26 @@ import { dispatchWebhook } from "@/lib/webhooks";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// Visibilidad de un campo del formulario en un paso concreto (Fase 2 — tren de carga):
-//  - "hidden": no se muestra en este paso
-//  - "view":   se muestra read-only (ve lo cargado antes, no edita)
-//  - "edit":   editable
-// Si un fieldId NO está en el map → default "edit" (retrocompatible con Fase 1).
-export type FieldVisibility = "hidden" | "view" | "edit";
+// Layout visual de la ventana de un paso (builder estilo Canva, por paso).
+// Cada elemento se posiciona libre (x,y,w,h) con guías de alineación en el editor.
+//  - kind "field":   referencia un campo del proceso (FormField.id). readOnly = solo lectura.
+//  - kind "title":   encabezado de texto grande.
+//  - kind "text":    subtítulo / texto de ayuda.
+//  - kind "divider": separador visual.
+// Si un campo NO está en el layout de un paso → no se muestra en ese paso.
+export type LayoutElementKind = "field" | "title" | "text" | "divider";
+
+export interface LayoutElement {
+  id: string;                 // id del elemento de layout (no del campo)
+  kind: LayoutElementKind;
+  fieldId?: string;           // solo kind "field" → apunta a un FormField del proceso
+  text?: string;              // kind "title" | "text"
+  x: number; y: number;       // posición en px dentro del lienzo
+  w: number; h: number;       // tamaño en px
+  readOnly?: boolean;         // kind "field": solo lectura en este paso
+  fontSize?: number;          // kind "title" | "text"
+  align?: "left" | "center" | "right";
+}
 
 export interface ProcessNode {
   id: string;
@@ -24,8 +38,8 @@ export interface ProcessNode {
   assigneeDeptId?: string;
   serviceAction?: string;
   position?: { x: number; y: number };
-  // Visibilidad por campo en este paso. Key = FormField.id.
-  fieldVisibility?: Record<string, FieldVisibility>;
+  // Layout visual de la ventana de este paso (Fase A — builder por paso).
+  layout?: LayoutElement[];
   // SLA: tiempo esperado para completar este nodo en ms.
   // Si la instancia supera este tiempo, se considera "atrasada" (visible en audit).
   // Null = sin SLA definido (no se trackea).

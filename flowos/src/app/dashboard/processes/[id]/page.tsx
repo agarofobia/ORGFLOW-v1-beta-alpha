@@ -36,10 +36,14 @@ import {
   Minimize2,
   Activity,
   ListChecks,
+  LayoutTemplate,
+  Plus,
+  Trash2,
 } from "lucide-react";
+import Moveable from "react-moveable";
 import type { ProcessDefinition } from "@/db/schema";
 import { useToast } from "@/components/ui/toast";
-import type { ProcessNode, ProcessEdge } from "@/lib/bpm";
+import type { ProcessNode, ProcessEdge, LayoutElement } from "@/lib/bpm";
 import AuditPanel from "@/components/dashboard/processes/audit-panel";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -63,8 +67,8 @@ type BpmData = {
   description?: string;
   assigneeDeptId?: string;
   serviceAction?: string;
-  // Visibilidad de cada campo del proceso en este paso (Fase 2). Key = FormField.id.
-  fieldVisibility?: Record<string, "hidden" | "view" | "edit">;
+  // Layout visual de la ventana de este paso (builder estilo Canva, por paso).
+  layout?: LayoutElement[];
   allowTracking?: boolean;
   // Heatmap overlay — cuando está activo en el editor, este campo se inyecta
   // con el color calculado del cycle time del nodo (verde rápido → rojo lento).
@@ -84,7 +88,7 @@ function nodesToDB(rfNodes: BpmNode[]): ProcessNode[] {
     description: n.data.description,
     assigneeDeptId: n.data.assigneeDeptId,
     serviceAction: n.data.serviceAction,
-    fieldVisibility: n.data.fieldVisibility,
+    layout: n.data.layout,
     position: n.position,
   }));
 }
@@ -99,7 +103,7 @@ function nodesFromDB(dbNodes: ProcessNode[]): BpmNode[] {
       description: n.description,
       assigneeDeptId: n.assigneeDeptId,
       serviceAction: n.serviceAction,
-      fieldVisibility: n.fieldVisibility,
+      layout: n.layout,
     },
   }));
 }
@@ -447,71 +451,237 @@ function FormFieldsEditor({
   );
 }
 
-// ─── Visibilidad de campos por paso (Fase 2 — tren de carga) ──────────────────
-// Para cada campo del proceso, este paso elige: Oculto / Ver (read-only) / Editar.
-// Default (sin config) = "edit" → un proceso nuevo funciona sin tocar cada paso.
+// ─── Step Layout Builder (lienzo visual estilo Canva, por paso) ───────────────
+// Diseñador WYSIWYG de la ventana de un paso. Arrastrás campos/títulos/textos al
+// lienzo, los posicionás y redimensionás con guías de alineación (react-moveable).
+// El ancho del lienzo = ancho de la ventana del runtime (WYSIWYG).
 
-type StepVis = "hidden" | "view" | "edit";
+const CANVAS_W = 560;
+const CANVAS_H = 640;
 
-function StepFieldVisibility({
+function nid() {
+  return `el-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+}
+
+function StepLayoutBuilder({
+  nodeLabel,
   processFields,
-  visibility,
+  layout,
   onChange,
+  onClose,
 }: {
+  nodeLabel: string;
   processFields: FormField[];
-  visibility: Record<string, StepVis>;
-  onChange: (v: Record<string, StepVis>) => void;
+  layout: LayoutElement[];
+  onChange: (layout: LayoutElement[]) => void;
+  onClose: () => void;
 }) {
-  const OPTS: { value: StepVis; label: string; color: string }[] = [
-    { value: "hidden", label: "Oculto", color: "var(--c-text-muted)" },
-    { value: "view", label: "Ver", color: "var(--c-accent-amber)" },
-    { value: "edit", label: "Editar", color: "var(--c-accent-emerald)" },
-  ];
-  const setField = (fieldId: string, v: StepVis) => {
-    onChange({ ...visibility, [fieldId]: v });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const usedFieldIds = new Set(layout.filter((e) => e.kind === "field").map((e) => e.fieldId));
+  const nextY = layout.length > 0 ? Math.min(CANVAS_H - 80, 20 + layout.length * 16) : 24;
+
+  const update = (next: LayoutElement[]) => onChange(next);
+  const patchEl = (id: string, patch: Partial<LayoutElement>) =>
+    update(layout.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  const removeEl = (id: string) => {
+    update(layout.filter((e) => e.id !== id));
+    if (selectedId === id) setSelectedId(null);
   };
 
+  const addField = (f: FormField) => {
+    if (usedFieldIds.has(f.id)) return;
+    const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24, y: nextY, w: 280, h: 66 };
+    update([...layout, el]);
+    setSelectedId(el.id);
+  };
+  const addPresentation = (kind: "title" | "text" | "divider") => {
+    const base = { id: nid(), kind, x: 24, y: nextY } as LayoutElement;
+    if (kind === "title") Object.assign(base, { text: "Título", w: 360, h: 44, fontSize: 22, align: "left" });
+    if (kind === "text") Object.assign(base, { text: "Texto de ayuda", w: 360, h: 30, fontSize: 13, align: "left" });
+    if (kind === "divider") Object.assign(base, { w: 460, h: 2 });
+    update([...layout, base]);
+    setSelectedId(base.id);
+  };
+
+  const selected = layout.find((e) => e.id === selectedId) ?? null;
+  const fieldOf = (fid?: string) => processFields.find((f) => f.id === fid);
+
   return (
-    <div>
-      <label className="mb-1.5 block font-mono text-[10px] uppercase" style={{ color: "var(--c-text-muted)" }}>
-        Campos en este paso
-      </label>
-      {processFields.length === 0 ? (
-        <p className="text-[10px]" style={{ color: "var(--c-text-placeholder)" }}>
-          El proceso no tiene campos. Definilos con el botón &quot;Campos&quot; (arriba a la derecha).
-        </p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {processFields.map((f) => {
-            const current = visibility[f.id] ?? "edit";
-            return (
-              <div key={f.id} className="rounded px-2 py-1.5" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
-                <p className="mb-1 truncate text-[11px]" style={{ color: "var(--c-text-secondary)" }} title={f.label}>{f.label}</p>
-                <div className="flex gap-1">
-                  {OPTS.map((o) => {
-                    const active = current === o.value;
-                    return (
-                      <button
-                        key={o.value}
-                        type="button"
-                        onClick={() => setField(f.id, o.value)}
-                        className="flex-1 rounded px-1 py-0.5 text-[9px] transition-colors"
-                        style={{
-                          background: active ? `${o.color}22` : "var(--c-bg-surface)",
-                          border: `1px solid ${active ? o.color : "var(--c-border)"}`,
-                          color: active ? o.color : "var(--c-text-muted)",
-                        }}
-                      >
-                        {o.label}
-                      </button>
-                    );
-                  })}
+    <div className="fixed inset-0 z-30 flex items-center justify-center" style={{ background: "rgb(0 0 0 / 0.55)" }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="flex flex-col rounded-lg" style={{ width: "min(1000px, 94vw)", height: "min(760px, 92vh)", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", boxShadow: "0 16px 64px rgb(0 0 0 / 0.5)" }}>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--c-border)" }}>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: "var(--c-text-primary)" }}>Diseñar ventana del paso</p>
+            <p className="text-[11px]" style={{ color: "var(--c-text-muted)" }}>{nodeLabel} · arrastrá y redimensioná; las guías te alinean solo</p>
+          </div>
+          <button onClick={onClose} className="rounded px-3 py-1.5 text-sm font-medium text-white" style={{ background: "var(--c-accent-blue)" }}>Listo</button>
+        </div>
+
+        <div className="flex min-h-0 flex-1">
+          {/* Paleta */}
+          <div className="w-48 shrink-0 overflow-y-auto border-r p-3" style={{ borderColor: "var(--c-border)" }}>
+            <p className="mb-1.5 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Campos del proceso</p>
+            {processFields.length === 0 ? (
+              <p className="mb-3 text-[10px]" style={{ color: "var(--c-text-placeholder)" }}>Sin campos. Crealos con el botón &quot;Campos&quot;.</p>
+            ) : (
+              <div className="mb-3 flex flex-col gap-1">
+                {processFields.map((f) => {
+                  const used = usedFieldIds.has(f.id);
+                  return (
+                    <button key={f.id} type="button" disabled={used} onClick={() => addField(f)}
+                      className="flex items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11px] transition-colors disabled:opacity-40"
+                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)", cursor: used ? "default" : "pointer" }}>
+                      <Plus className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-blue)" }} />
+                      <span className="truncate" title={f.label}>{f.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mb-1.5 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Elementos</p>
+            <div className="flex flex-col gap-1">
+              {([["title", "Título"], ["text", "Texto"], ["divider", "Divisor"]] as const).map(([k, label]) => (
+                <button key={k} type="button" onClick={() => addPresentation(k)}
+                  className="flex items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11px]"
+                  style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}>
+                  <Plus className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-violet)" }} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Lienzo */}
+          <div className="flex-1 overflow-auto p-6" style={{ background: "var(--c-bg-base)" }} onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}>
+            <div className="relative mx-auto" style={{ width: CANVAS_W, height: CANVAS_H, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, boxShadow: "0 2px 16px rgb(0 0 0 / 0.2)" }}>
+              {layout.map((el) => (
+                <div
+                  key={el.id}
+                  data-lid={el.id}
+                  onMouseDown={() => setSelectedId(el.id)}
+                  className="absolute"
+                  style={{
+                    left: el.x, top: el.y, width: el.w, height: el.h,
+                    outline: selectedId === el.id ? "1px solid var(--c-accent-blue)" : "1px dashed var(--c-border)",
+                    borderRadius: el.kind === "divider" ? 0 : 6,
+                    cursor: "move", boxSizing: "border-box", overflow: "hidden",
+                  }}
+                >
+                  <LayoutElementPreview el={el} field={fieldOf(el.fieldId)} />
+                </div>
+              ))}
+              {selected && (
+                <Moveable
+                  target={`[data-lid="${selected.id}"]`}
+                  draggable
+                  resizable
+                  origin={false}
+                  snappable
+                  snapThreshold={6}
+                  elementGuidelines={layout.filter((e) => e.id !== selected.id).map((e) => `[data-lid="${e.id}"]`)}
+                  snapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
+                  elementSnapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
+                  bounds={{ left: 0, top: 0, right: CANVAS_W, bottom: CANVAS_H }}
+                  onDrag={({ left, top }) => patchEl(selected.id, { x: Math.round(left), y: Math.round(top) })}
+                  onResize={({ width, height, drag }) => patchEl(selected.id, { w: Math.round(width), h: Math.round(height), x: Math.round(drag.left), y: Math.round(drag.top) })}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Propiedades del elemento */}
+          <div className="w-56 shrink-0 overflow-y-auto border-l p-3" style={{ borderColor: "var(--c-border)" }}>
+            {!selected ? (
+              <p className="text-[11px]" style={{ color: "var(--c-text-muted)" }}>Seleccioná un elemento del lienzo para editar sus propiedades.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-[10px] uppercase" style={{ color: "var(--c-text-muted)" }}>
+                    {selected.kind === "field" ? "Campo" : selected.kind === "title" ? "Título" : selected.kind === "text" ? "Texto" : "Divisor"}
+                  </p>
+                  <button type="button" onClick={() => removeEl(selected.id)} title="Eliminar" style={{ color: "var(--c-accent-red)" }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {selected.kind === "field" && (
+                  <>
+                    <p className="text-xs" style={{ color: "var(--c-text-secondary)" }}>{fieldOf(selected.fieldId)?.label ?? "Campo"}</p>
+                    <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
+                      <input type="checkbox" checked={selected.readOnly ?? false} onChange={(e) => patchEl(selected.id, { readOnly: e.target.checked })} />
+                      Solo lectura en este paso
+                    </label>
+                  </>
+                )}
+
+                {(selected.kind === "title" || selected.kind === "text") && (
+                  <>
+                    <textarea
+                      value={selected.text ?? ""}
+                      onChange={(e) => patchEl(selected.id, { text: e.target.value })}
+                      rows={2}
+                      className="w-full rounded px-2 py-1 text-xs outline-none"
+                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)", resize: "none" }}
+                    />
+                    <label className="flex items-center justify-between text-[11px]" style={{ color: "var(--c-text-muted)" }}>
+                      Tamaño
+                      <input type="number" value={selected.fontSize ?? 14} min={9} max={48}
+                        onChange={(e) => patchEl(selected.id, { fontSize: Number(e.target.value) })}
+                        className="w-16 rounded px-1.5 py-0.5 text-xs outline-none" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
+                    </label>
+                    <div className="flex gap-1">
+                      {(["left", "center", "right"] as const).map((a) => (
+                        <button key={a} type="button" onClick={() => patchEl(selected.id, { align: a })}
+                          className="flex-1 rounded px-1 py-0.5 text-[9px]"
+                          style={{ background: (selected.align ?? "left") === a ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "var(--c-bg-elevated)", border: `1px solid ${(selected.align ?? "left") === a ? "var(--c-accent-blue)" : "var(--c-border)"}`, color: (selected.align ?? "left") === a ? "var(--c-accent-blue)" : "var(--c-text-muted)" }}>
+                          {a === "left" ? "Izq" : a === "center" ? "Centro" : "Der"}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div className="grid grid-cols-2 gap-1.5 text-[10px]" style={{ color: "var(--c-text-muted)" }}>
+                  {(["x", "y", "w", "h"] as const).map((k) => (
+                    <label key={k} className="flex items-center justify-between gap-1">
+                      <span className="uppercase">{k}</span>
+                      <input type="number" value={Math.round(selected[k] as number)}
+                        onChange={(e) => patchEl(selected.id, { [k]: Number(e.target.value) } as Partial<LayoutElement>)}
+                        className="w-12 rounded px-1 py-0.5 text-[10px] outline-none" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
+                    </label>
+                  ))}
                 </div>
               </div>
-            );
-          })}
+            )}
+          </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+// Preview de un elemento dentro del lienzo del builder (no interactivo).
+function LayoutElementPreview({ el, field }: { el: LayoutElement; field?: FormField }) {
+  if (el.kind === "divider") {
+    return <div style={{ width: "100%", height: "100%", background: "var(--c-border)" }} />;
+  }
+  if (el.kind === "title" || el.kind === "text") {
+    return (
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", padding: "0 6px", fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start", overflow: "hidden" }}>
+        {el.text || (el.kind === "title" ? "Título" : "Texto")}
+      </div>
+    );
+  }
+  // field
+  return (
+    <div style={{ width: "100%", height: "100%", padding: 6, background: "var(--c-bg-elevated)", display: "flex", flexDirection: "column", gap: 3 }}>
+      <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--c-text-secondary)" }}>
+        {field?.label ?? "(campo eliminado)"}
+        {el.readOnly && <span className="rounded px-1 font-mono text-[7px] uppercase" style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.15)", color: "var(--c-accent-amber)" }}>solo lec.</span>}
+      </span>
+      <div className="flex-1 rounded" style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", minHeight: 8 }} />
     </div>
   );
 }
@@ -522,12 +692,12 @@ function PropertiesPanel({
   node,
   onUpdate,
   onClose,
-  processFields,
+  onOpenLayoutBuilder,
 }: {
   node: BpmNode;
   onUpdate: (id: string, data: Partial<BpmData>) => void;
   onClose: () => void;
-  processFields: FormField[];
+  onOpenLayoutBuilder: () => void;
 }) {
   const positions = useOrgPositions();
 
@@ -669,11 +839,20 @@ function PropertiesPanel({
 
       {node.type === "userTask" && (
         <>
-          <StepFieldVisibility
-            processFields={processFields}
-            visibility={node.data.fieldVisibility ?? {}}
-            onChange={(v) => onUpdate(node.id, { fieldVisibility: v })}
-          />
+          <button
+            type="button"
+            onClick={onOpenLayoutBuilder}
+            className="flex w-full items-center justify-center gap-2 rounded px-3 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px"
+            style={{ background: "var(--c-accent-blue)" }}
+          >
+            <LayoutTemplate className="h-4 w-4" strokeWidth={2} />
+            Diseñar ventana del paso
+          </button>
+          <p className="text-[10px] leading-relaxed" style={{ color: "var(--c-text-muted)" }}>
+            {(node.data.layout?.length ?? 0) > 0
+              ? `${node.data.layout!.length} elemento(s) en la ventana de este paso.`
+              : "Sin diseño todavía. Abrí el diseñador para armar la ventana que verá quien ejecute este paso."}
+          </p>
           <label className="flex items-center gap-2 text-xs" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
             <input
               type="checkbox"
@@ -728,6 +907,8 @@ function DesignerFlow({
   // por paso (qué campos ve cada nodo) llega en Fase 2.
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [showFormBuilder, setShowFormBuilder] = useState(false);
+  // Nodo cuyo layout visual se está diseñando (builder estilo Canva por paso).
+  const [layoutBuilderNodeId, setLayoutBuilderNodeId] = useState<string | null>(null);
   // Track cambios sin guardar — se setea true en cualquier mutación post-load.
   // Se resetea cuando definition cambia (load nuevo o post-save trae fresh).
   const [isDirty, setIsDirty] = useState(false);
@@ -1002,7 +1183,7 @@ function DesignerFlow({
             node={selectedNode}
             onUpdate={updateNodeData}
             onClose={() => setSelectedNode(null)}
-            processFields={formFields}
+            onOpenLayoutBuilder={() => setLayoutBuilderNodeId(selectedNode.id)}
           />
         </div>
       )}
@@ -1036,6 +1217,21 @@ function DesignerFlow({
           </div>
         </div>
       )}
+
+      {/* Step Layout Builder — diseñador visual de la ventana de un paso */}
+      {layoutBuilderNodeId && (() => {
+        const bn = nodes.find((n) => n.id === layoutBuilderNodeId);
+        if (!bn) return null;
+        return (
+          <StepLayoutBuilder
+            nodeLabel={bn.data.label}
+            processFields={formFields}
+            layout={bn.data.layout ?? []}
+            onChange={(lay) => updateNodeData(bn.id, { layout: lay })}
+            onClose={() => setLayoutBuilderNodeId(null)}
+          />
+        );
+      })()}
 
       {/* Edge condition panel — solo para exclusiveGateway */}
       {selectedEdge && (

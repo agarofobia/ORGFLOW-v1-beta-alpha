@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { X, CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
 import type { InboxTask } from "@/db/schema";
 import type { FormField, FormFieldType } from "@/app/dashboard/processes/[id]/page";
+import type { LayoutElement } from "@/lib/bpm";
+
+const CANVAS_W = 560; // mismo ancho que el lienzo del builder (WYSIWYG)
 
 // ─── Dynamic options hook ─────────────────────────────────────────────────────
 
@@ -157,7 +160,7 @@ function FieldInput({
 interface TaskWithForm extends InboxTask {
   formFields?: FormField[];
   fieldValues?: Record<string, unknown>; // valores acumulados de pasos anteriores (tren de carga)
-  fieldVisibility?: Record<string, "hidden" | "view" | "edit">; // visibilidad por paso (Fase 2)
+  layout?: LayoutElement[];              // diseño visual de la ventana de este paso
 }
 
 export default function TaskRunnerModal({
@@ -211,11 +214,12 @@ export default function TaskRunnerModal({
     }
   };
 
-  // Visibilidad por paso (Fase 2): un campo sin config explícita → "edit" (default).
-  const visOf = (fieldId: string): "hidden" | "view" | "edit" =>
-    task?.fieldVisibility?.[fieldId] ?? "edit";
-  const visibleFields = (task?.formFields ?? []).filter((f) => visOf(f.id) !== "hidden");
-  const hasFields = visibleFields.length > 0;
+  // El paso define su ventana con un layout visual (builder estilo Canva).
+  const layout = task?.layout ?? [];
+  const fieldById = new Map((task?.formFields ?? []).map((f) => [f.id, f]));
+  // Alto del lienzo = el necesario para contener todos los elementos.
+  const canvasHeight = layout.reduce((max, el) => Math.max(max, el.y + el.h), 0) + 24;
+  const hasLayout = layout.length > 0;
 
   return (
     <div
@@ -257,7 +261,7 @@ export default function TaskRunnerModal({
                 {task.nodeLabel !== task.processName && <> · {task.nodeLabel}</>}
               </p>
 
-              {!hasFields ? (
+              {!hasLayout ? (
                 <div
                   className="rounded-lg p-5 text-center"
                   style={{ background: "var(--c-bg-elevated)", border: "1px dashed var(--c-border)" }}
@@ -267,17 +271,32 @@ export default function TaskRunnerModal({
                     Sin formulario requerido
                   </p>
                   <p className="mt-1 text-xs" style={{ color: "var(--c-text-muted)" }}>
-                    Esta etapa solo requiere confirmación. Hacé click en "Completar" para avanzar.
+                    Esta etapa solo requiere confirmación. Hacé click en &quot;Completar&quot; para avanzar.
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-5">
-                  {visibleFields.map((field) => {
-                    const readOnly = visOf(field.id) === "view";
+                // Render WYSIWYG: cada elemento en su posición del lienzo del paso.
+                <div className="relative mx-auto" style={{ width: CANVAS_W, height: canvasHeight }}>
+                  {layout.map((el) => {
+                    const common = { position: "absolute" as const, left: el.x, top: el.y, width: el.w, height: el.h };
+                    if (el.kind === "divider") {
+                      return <div key={el.id} style={{ ...common, background: "var(--c-border)" }} />;
+                    }
+                    if (el.kind === "title" || el.kind === "text") {
+                      return (
+                        <div key={el.id} style={{ ...common, display: "flex", alignItems: "center", fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start" }}>
+                          {el.text}
+                        </div>
+                      );
+                    }
+                    // field
+                    const field = el.fieldId ? fieldById.get(el.fieldId) : undefined;
+                    if (!field) return null;
+                    const readOnly = el.readOnly === true;
                     return (
-                      <div key={field.id}>
+                      <div key={el.id} style={{ ...common, display: "flex", flexDirection: "column", gap: 4 }}>
                         {field.type !== "checkbox" && (
-                          <label className="mb-1.5 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--c-text-secondary)" }}>
+                          <label className="flex items-center gap-2 text-xs font-medium" style={{ color: "var(--c-text-secondary)" }}>
                             {field.label}
                             {field.required && !readOnly && <span style={{ color: "var(--c-accent-red)" }}>*</span>}
                             {readOnly && (
@@ -287,12 +306,14 @@ export default function TaskRunnerModal({
                             )}
                           </label>
                         )}
-                        <FieldInput
-                          field={field}
-                          value={formData[field.id]}
-                          onChange={(v) => setFormData((prev) => ({ ...prev, [field.id]: v }))}
-                          readOnly={readOnly}
-                        />
+                        <div style={{ flex: 1, minHeight: 0 }}>
+                          <FieldInput
+                            field={field}
+                            value={formData[field.id]}
+                            onChange={(v) => setFormData((prev) => ({ ...prev, [field.id]: v }))}
+                            readOnly={readOnly}
+                          />
+                        </div>
                       </div>
                     );
                   })}
