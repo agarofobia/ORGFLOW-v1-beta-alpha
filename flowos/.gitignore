@@ -12,6 +12,7 @@ build/
 next-env.d.ts
 .eslintcache
 src/db/migrations/
+tsconfig.tsbuildinfo
 
 # clerk configuration (can include secrets)
 /.clerk/

@@ -9,6 +9,7 @@ import { db } from "@/db";
 import { users, employees } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 
 export async function POST(
@@ -18,6 +19,8 @@ export async function POST(
   const { id } = await params;
   const { orgId, orgRole, userId: clerkUserId } = await auth();
   if (!orgId || !clerkUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("employees", "create");
+  if (block) return block;
   const isAdmin = orgRole === "org:admin";
 
   try {
@@ -71,6 +74,8 @@ export async function DELETE(
   const { id } = await params;
   const { orgId, orgRole, userId: clerkUserId } = await auth();
   if (!orgId || !clerkUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("employees", "delete");
+  if (block) return block;
   const isAdmin = orgRole === "org:admin";
 
   try {

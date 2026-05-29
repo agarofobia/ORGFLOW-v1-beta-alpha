@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { milestoneDependencies } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 
 export async function DELETE(
@@ -14,6 +15,8 @@ export async function DELETE(
   const { id, depId } = await params;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("projects", "delete");
+  if (block) return block;
 
   try {
     await db.delete(milestoneDependencies)

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { orgchartStates } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 
 export async function GET() {
@@ -24,6 +25,8 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("org_chart", "edit");
+  if (block) return block;
 
   try {
     const { edges } = await req.json();

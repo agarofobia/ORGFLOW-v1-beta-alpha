@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { processDefinitions } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 import { logProcessEvent } from "@/lib/process-events";
 
@@ -39,6 +40,8 @@ export async function PUT(
   const { id } = await params;
   const { orgId, userId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("processes", "edit");
+  if (block) return block;
 
   try {
     const body = await req.json();
@@ -103,6 +106,8 @@ export async function DELETE(
   const { id } = await params;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("processes", "delete");
+  if (block) return block;
 
   try {
     await db

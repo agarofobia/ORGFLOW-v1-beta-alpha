@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { documentAccess } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 
 /** GET /api/documents/[id]/access — list active access grants */
@@ -39,6 +40,8 @@ export async function POST(
   const { id: documentId } = await params;
   const { orgId, userId } = await auth();
   if (!orgId || !userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("documents", "manage");
+  if (block) return block;
 
   try {
     const body = await req.json();
@@ -87,6 +90,8 @@ export async function DELETE(
   const { id: documentId } = await params;
   const { orgId, userId } = await auth();
   if (!orgId || !userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("documents", "manage");
+  if (block) return block;
 
   try {
     const body = await req.json();

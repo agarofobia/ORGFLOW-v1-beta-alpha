@@ -7,12 +7,15 @@ import { db } from "@/db";
 import { permissionGroups } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 import { PRESETS, PresetKey } from "@/lib/permissions";
 
 export async function POST() {
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("settings", "manage");
+  if (block) return block;
 
   try {
     const existing = await db

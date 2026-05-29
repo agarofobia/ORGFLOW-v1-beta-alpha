@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { employees } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 
 // PUT /api/employees/:id/vacate
@@ -17,6 +18,8 @@ export async function PUT(
   const { id } = await params;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("employees", "edit");
+  if (block) return block;
 
   try {
     // El puesto sigue activo (status="active") porque continúa siendo parte

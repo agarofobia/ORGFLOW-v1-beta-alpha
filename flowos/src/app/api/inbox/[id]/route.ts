@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { advanceInstance } from "@/lib/bpm";
 import { logProcessEvent } from "@/lib/process-events";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 import type { ProcessNode } from "@/lib/bpm";
 import type { FormField } from "@/app/dashboard/processes/[id]/page";
@@ -59,6 +60,8 @@ export async function PATCH(
   const { id } = await params;
   const { orgId, userId } = await auth();
   if (!orgId || !userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("inbox", "edit");
+  if (block) return block;
 
   try {
     const body = await req.json();

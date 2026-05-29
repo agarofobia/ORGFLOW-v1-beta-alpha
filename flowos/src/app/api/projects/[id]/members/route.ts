@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projectMembers, employees } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 
 export async function GET(
@@ -42,6 +43,8 @@ export async function POST(
   const { id: projectId } = await params;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("projects", "create");
+  if (block) return block;
 
   try {
     const body = await req.json();
@@ -84,6 +87,8 @@ export async function DELETE(
   const { id: projectId } = await params;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("projects", "delete");
+  if (block) return block;
 
   try {
     const body = await req.json();

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 import { logActivity } from "@/lib/project-activity";
 import { dispatchWebhook } from "@/lib/webhooks";
@@ -32,6 +33,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { orgId, userId: clerkUserId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("projects", "create");
+  if (block) return block;
 
   try {
     const body = await req.json();

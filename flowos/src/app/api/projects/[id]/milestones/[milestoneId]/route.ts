@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projectMilestones, projects, processInstances } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 import { logActivity } from "@/lib/project-activity";
 import { advanceInstance } from "@/lib/bpm";
@@ -17,6 +18,8 @@ export async function PUT(
   const { id: projectId, milestoneId } = await params;
   const { orgId, userId: clerkUserId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("projects", "edit");
+  if (block) return block;
 
   try {
     const body = await req.json();
@@ -124,6 +127,8 @@ export async function DELETE(
   const { milestoneId } = await params;
   const { orgId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const block = await requirePermission("projects", "delete");
+  if (block) return block;
 
   try {
     await db
