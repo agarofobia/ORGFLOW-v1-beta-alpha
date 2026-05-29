@@ -6,7 +6,7 @@ import type { InboxTask } from "@/db/schema";
 import type { FormField, FormFieldType } from "@/app/dashboard/processes/[id]/page";
 import type { LayoutElement } from "@/lib/bpm";
 
-const CANVAS_W = 560; // mismo ancho que el lienzo del builder (WYSIWYG)
+const CANVAS_W = 680; // mismo ancho que el lienzo del builder (WYSIWYG)
 
 // ─── Dynamic options hook ─────────────────────────────────────────────────────
 
@@ -223,18 +223,20 @@ export default function TaskRunnerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "var(--c-shadow-strong)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgb(0 0 0 / 0.6)", backdropFilter: "blur(2px)" }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-full max-w-lg rounded-xl"
-        style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
+        className="w-full overflow-hidden rounded-2xl"
+        style={{ maxWidth: CANVAS_W + 96, background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)", boxShadow: "0 24px 80px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--c-accent-blue-rgb) / 0.05)", maxHeight: "94vh", display: "flex", flexDirection: "column" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: "var(--c-border)" }}>
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4" style={{ color: "var(--c-accent-blue)" }} />
+        <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: "var(--c-border)", background: "linear-gradient(180deg, rgb(var(--c-accent-blue-rgb) / 0.06), transparent)" }}>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.15)" }}>
+              <FileText className="h-4 w-4" style={{ color: "var(--c-accent-blue)" }} />
+            </div>
             <span className="font-semibold text-sm" style={{ color: "var(--c-text-primary)" }}>
               {loading ? "Cargando…" : task?.nodeLabel ?? "Tarea"}
             </span>

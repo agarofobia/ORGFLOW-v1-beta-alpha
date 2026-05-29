@@ -456,8 +456,8 @@ function FormFieldsEditor({
 // lienzo, los posicionás y redimensionás con guías de alineación (react-moveable).
 // El ancho del lienzo = ancho de la ventana del runtime (WYSIWYG).
 
-const CANVAS_W = 560;
-const CANVAS_H = 640;
+const CANVAS_W = 680;
+const CANVAS_H = 900;
 
 function nid() {
   return `el-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
@@ -479,7 +479,9 @@ function StepLayoutBuilder({
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const usedFieldIds = new Set(layout.filter((e) => e.kind === "field").map((e) => e.fieldId));
-  const nextY = layout.length > 0 ? Math.min(CANVAS_H - 80, 20 + layout.length * 16) : 24;
+  // Nuevo elemento debajo del más bajo existente (sin superposición).
+  const bottomMost = layout.reduce((m, e) => Math.max(m, e.y + e.h), 0);
+  const nextY = Math.min(CANVAS_H - 90, bottomMost > 0 ? bottomMost + 16 : 24);
 
   const update = (next: LayoutElement[]) => onChange(next);
   const patchEl = (id: string, patch: Partial<LayoutElement>) =>
@@ -508,15 +510,20 @@ function StepLayoutBuilder({
   const fieldOf = (fid?: string) => processFields.find((f) => f.id === fid);
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center" style={{ background: "rgb(0 0 0 / 0.55)" }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="flex flex-col rounded-lg" style={{ width: "min(1000px, 94vw)", height: "min(760px, 92vh)", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", boxShadow: "0 16px 64px rgb(0 0 0 / 0.5)" }}>
+    <div className="fixed inset-0 z-30 flex items-center justify-center p-4" style={{ background: "rgb(0 0 0 / 0.6)", backdropFilter: "blur(2px)" }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="flex flex-col overflow-hidden rounded-2xl" style={{ width: "min(1280px, 97vw)", height: "min(900px, 95vh)", background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)", boxShadow: "0 24px 80px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--c-accent-blue-rgb) / 0.05)" }}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--c-border)" }}>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: "var(--c-text-primary)" }}>Diseñar ventana del paso</p>
-            <p className="text-[11px]" style={{ color: "var(--c-text-muted)" }}>{nodeLabel} · arrastrá y redimensioná; las guías te alinean solo</p>
+        <div className="flex items-center justify-between border-b px-5 py-3.5" style={{ borderColor: "var(--c-border)", background: "linear-gradient(180deg, rgb(var(--c-accent-blue-rgb) / 0.06), transparent)" }}>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.15)" }}>
+              <LayoutTemplate className="h-4 w-4" style={{ color: "var(--c-accent-blue)" }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: "var(--c-text-primary)" }}>Diseñar ventana del paso</p>
+              <p className="text-[11px]" style={{ color: "var(--c-text-muted)" }}>{nodeLabel} · arrastrá y redimensioná; las guías te alinean solo</p>
+            </div>
           </div>
-          <button onClick={onClose} className="rounded px-3 py-1.5 text-sm font-medium text-white" style={{ background: "var(--c-accent-blue)" }}>Listo</button>
+          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px" style={{ background: "var(--c-accent-blue)", boxShadow: "0 0 16px rgb(var(--c-accent-blue-rgb) / 0.35)" }}>Listo</button>
         </div>
 
         <div className="flex min-h-0 flex-1">
@@ -553,18 +560,43 @@ function StepLayoutBuilder({
             </div>
           </div>
 
-          {/* Lienzo */}
-          <div className="flex-1 overflow-auto p-6" style={{ background: "var(--c-bg-base)" }} onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}>
-            <div className="relative mx-auto" style={{ width: CANVAS_W, height: CANVAS_H, background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 8, boxShadow: "0 2px 16px rgb(0 0 0 / 0.2)" }}>
+          {/* Lienzo — área con grid + glow estilo app */}
+          <div
+            className="flex-1 overflow-auto p-8"
+            style={{
+              background: `
+                linear-gradient(to right, rgb(var(--c-border-rgb) / 0.35) 1px, transparent 1px) 0 0 / 32px 32px,
+                linear-gradient(to bottom, rgb(var(--c-border-rgb) / 0.35) 1px, transparent 1px) 0 0 / 32px 32px,
+                radial-gradient(ellipse at 25% 15%, rgb(var(--c-accent-blue-rgb) / 0.10), transparent 55%),
+                radial-gradient(ellipse at 80% 85%, rgb(var(--c-accent-violet-rgb) / 0.08), transparent 55%),
+                var(--c-bg-base)`,
+            }}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
+          >
+            {/* Hoja: la ventana que verá el ejecutor (WYSIWYG) */}
+            <div
+              className="relative mx-auto"
+              style={{
+                width: CANVAS_W, height: CANVAS_H,
+                background: `
+                  linear-gradient(to right, rgb(var(--c-border-rgb) / 0.25) 1px, transparent 1px) 0 0 / 24px 24px,
+                  linear-gradient(to bottom, rgb(var(--c-border-rgb) / 0.25) 1px, transparent 1px) 0 0 / 24px 24px,
+                  var(--c-bg-surface)`,
+                border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.2)",
+                borderRadius: 12,
+                boxShadow: "0 8px 40px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(var(--c-accent-blue-rgb) / 0.06)",
+              }}
+            >
               {layout.map((el) => (
                 <div
                   key={el.id}
                   data-lid={el.id}
                   onMouseDown={() => setSelectedId(el.id)}
-                  className="absolute"
+                  className="absolute transition-shadow"
                   style={{
                     left: el.x, top: el.y, width: el.w, height: el.h,
-                    outline: selectedId === el.id ? "1px solid var(--c-accent-blue)" : "1px dashed var(--c-border)",
+                    outline: selectedId === el.id ? "2px solid var(--c-accent-blue)" : "1px dashed rgb(var(--c-border-rgb) / 0.8)",
+                    boxShadow: selectedId === el.id ? "0 0 16px rgb(var(--c-accent-blue-rgb) / 0.3)" : undefined,
                     borderRadius: el.kind === "divider" ? 0 : 6,
                     cursor: "move", boxSizing: "border-box", overflow: "hidden",
                   }}
@@ -579,11 +611,11 @@ function StepLayoutBuilder({
                   resizable
                   origin={false}
                   snappable
-                  snapThreshold={6}
+                  snapThreshold={7}
                   elementGuidelines={layout.filter((e) => e.id !== selected.id).map((e) => `[data-lid="${e.id}"]`)}
                   snapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
                   elementSnapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
-                  bounds={{ left: 0, top: 0, right: CANVAS_W, bottom: CANVAS_H }}
+                  bounds={{ left: 0, top: 0, right: 0, bottom: 0, position: "css" }}
                   onDrag={({ left, top }) => patchEl(selected.id, { x: Math.round(left), y: Math.round(top) })}
                   onResize={({ width, height, drag }) => patchEl(selected.id, { w: Math.round(width), h: Math.round(height), x: Math.round(drag.left), y: Math.round(drag.top) })}
                 />
