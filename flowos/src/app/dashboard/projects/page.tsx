@@ -14,96 +14,13 @@ import {
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useToast } from "@/components/ui/toast";
 import { Popover, popoverOptionStyle, popoverOptionHover } from "@/components/ui/popover";
-
-const STATUSES = ["todo", "in_progress", "in_review", "done"] as const;
-type Status = (typeof STATUSES)[number];
-type Priority = "low" | "medium" | "high" | "urgent";
-type ViewMode = "summary" | "milestones" | "list" | "board";
-
-const STATUS_LABELS: Record<Status, string> = {
-  todo: "Por hacer", in_progress: "En progreso", in_review: "En revisión", done: "Completado",
-};
-const STATUS_COLORS: Record<Status, string> = {
-  todo: "var(--c-text-muted)", in_progress: "var(--c-accent-blue)", in_review: "var(--c-accent-amber)", done: "var(--c-accent-emerald)",
-};
-const PRIORITY_COLORS: Record<Priority, string> = {
-  low: "var(--c-text-muted)", medium: "var(--c-accent-blue)", high: "var(--c-accent-amber)", urgent: "var(--c-accent-red)",
-};
-const PRIORITY_LABELS: Record<Priority, string> = {
-  low: "Baja", medium: "Media", high: "Alta", urgent: "Urgente",
-};
-
-// VFP — la declaración "qué es estar terminado" del proyecto.
-// Si está null/incompleta, el proyecto está en "modo planning" y se gatea la creación de tareas.
-interface ProjectVFP {
-  producto?: string;
-  para?: string;
-  quien?: string;
-  aDiferenciaDe?: string;
-  terminadoCuando?: string;
-}
-interface Project {
-  id: string; name: string; description?: string;
-  vfp?: ProjectVFP | null;
-  ownerEmployeeId?: string | null;
-  status?: string;
-}
-interface Task {
-  id: string; projectId: string; organizationId?: string;
-  title: string; description?: string; status: Status; priority?: Priority;
-  assigneeName?: string;                  // legacy: nombre como string
-  assigneeEmployeeId?: string | null;     // correlación con orgchart (preferido)
-  milestoneId?: string | null;            // tarea scopeada a entregable
-  dueDate?: string; orderIndex?: number;
-  sectionName?: string; createdAt?: string;
-}
-interface Milestone {
-  id: string; title: string; description?: string | null;
-  status: "pending" | "in_progress" | "done"; dueDate?: string; orderIndex: number;
-  acceptanceCriteria?: string | null;
-  ownerEmployeeId?: string | null;
-  bpmNodeId?: string | null;
-}
-
-// Info del proceso BPM del proyecto (si fue auto-creado por una instancia BPM)
-interface BpmNodeInfo { id: string; label: string; type: string }
-interface ProjectBpmContext {
-  hasProcess: boolean;
-  nodes: BpmNodeInfo[];
-  processName?: string;
-  currentNodeId?: string;
-  status?: string;
-}
-interface Member {
-  id: string; employeeId?: string; userId?: string; role: string;
-  employee?: { fullName: string; jobTitle?: string; color?: string };
-}
-interface Employee { id: string; fullName: string; jobTitle?: string; color?: string }
-
-// ─── Avatar (lookup by employee id preferido, fallback a nombre) ───────────────
-// Buscar por id primero — sobrevive a renombres del empleado y es la correlación real.
-
-function EmployeeAvatar({ name, employeeId, employees, size = 22 }: {
-  name?: string | null; employeeId?: string | null; employees: Employee[]; size?: number;
-}) {
-  const emp = employeeId ? employees.find(e => e.id === employeeId) : (name ? employees.find(e => e.fullName === name) : null);
-  const displayName = emp?.fullName ?? name ?? "";
-  if (!displayName) return null;
-  const color = emp?.color ?? "var(--c-text-muted)";
-  const initials = displayName.split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
-  return (
-    <div title={emp ? `${displayName}${emp.jobTitle ? " — " + emp.jobTitle : ""}` : displayName}
-      style={{
-        width: size, height: size, borderRadius: "50%", background: color,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: size * 0.42, fontWeight: 700, color: "#fff",
-        flexShrink: 0, boxShadow: `0 0 0 1.5px ${color}33`,
-      }}
-    >
-      {initials}
-    </div>
-  );
-}
+import {
+  STATUSES, type Status, type Priority, type ViewMode,
+  STATUS_LABELS, STATUS_COLORS, PRIORITY_COLORS, PRIORITY_LABELS,
+  type ProjectVFP, type Project, type Task, type Milestone,
+  type BpmNodeInfo, type ProjectBpmContext, type Member, type Employee,
+} from "./_shared";
+import { EmployeeAvatar, Stat, QuickChip } from "./_components";
 
 // ─── Employee picker dropdown ──────────────────────────────────────────────────
 // onChange recibe (name, id) — name para display legacy/fallback, id para correlación.
@@ -2467,15 +2384,6 @@ function ProjectModal(props: {
   );
 }
 
-function Stat({ label, value, color = "var(--c-accent-blue)" }: { label: string; value: number; color?: string }) {
-  return (
-    <div>
-      <p style={{ margin: 0, fontSize: 9, color: "var(--c-text-muted)", fontFamily: "monospace", textTransform: "uppercase" }}>{label}</p>
-      <p style={{ margin: "2px 0 0", fontSize: 20, fontWeight: 700, color }}>{value}</p>
-    </div>
-  );
-}
-
 /* ─── Equipo del proyecto ─── */
 interface ProjectMember {
   id: string; projectId: string; employeeId: string | null; role: string;
@@ -3181,25 +3089,6 @@ function TimelineBoardView({
           onOpenDetail={() => {}} onDelete={() => {}} onCycleStatus={() => {}} isDragging />}
       </DragOverlay>
     </DndContext>
-  );
-}
-
-function QuickChip({ label, active, color, onClick, disabled }: {
-  label: string; active: boolean; color: string; onClick: () => void; disabled?: boolean;
-}) {
-  return (
-    <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{
-      fontSize: 11, padding: "4px 10px", borderRadius: 4,
-      background: active ? `${color}22` : "transparent",
-      border: `1px solid ${active ? color + "66" : "var(--c-border)"}`,
-      color: active ? color : "var(--c-text-muted)",
-      cursor: disabled ? "not-allowed" : "pointer",
-      opacity: disabled ? 0.4 : 1,
-      fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.04em",
-    }}
-      title={disabled ? "Pronto" : undefined}>
-      {label}
-    </button>
   );
 }
 
