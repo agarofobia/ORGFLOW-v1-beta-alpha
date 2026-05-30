@@ -7,8 +7,7 @@ import { logProcessEvent } from "@/lib/process-events";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
-import type { ProcessNode, LayoutElement } from "@/lib/bpm";
-import type { FormField } from "@/app/dashboard/processes/[id]/page";
+import type { ProcessNode, LayoutElement, FormField } from "@/lib/process-types";
 
 export async function GET(
   _req: NextRequest,

@@ -3,7 +3,7 @@
 // entrar al bundle del cliente. Acá solo van tipos + funciones puras, usables
 // tanto en runtime cliente (TaskRunnerModal) como en el editor.
 
-import type { ShowWhen } from "./bpm";
+import type { ShowWhen } from "./process-types";
 
 // Evalúa una condición de visibilidad contra los valores actuales del formulario.
 export function evalShowWhen(cond: ShowWhen | undefined, values: Record<string, unknown>): boolean {

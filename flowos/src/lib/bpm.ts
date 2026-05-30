@@ -8,83 +8,21 @@ import { logProcessEvent } from "@/lib/process-events";
 import { dispatchWebhook } from "@/lib/webhooks";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+// Los tipos puros del dominio (sin deps de DB) viven en `./process-types` para ser
+// la única fuente de verdad compartida con el cliente. Acá los re-exportamos para
+// no romper imports existentes (`import type { ProcessNode } from "@/lib/bpm"`).
+export type {
+  FormFieldType,
+  FormField,
+  LayoutElementKind,
+  ConditionOperator,
+  ShowWhen,
+  LayoutElement,
+  ProcessNode,
+  ProcessEdge,
+} from "./process-types";
 
-// Layout visual de la ventana de un paso (builder estilo Canva, por paso).
-// Cada elemento se posiciona libre (x,y,w,h) con guías de alineación en el editor.
-//  - kind "field":   referencia un campo del proceso (FormField.id). readOnly = solo lectura.
-//  - kind "title":   encabezado de texto grande.
-//  - kind "text":    subtítulo / texto de ayuda.
-//  - kind "divider": separador visual.
-// Si un campo NO está en el layout de un paso → no se muestra en ese paso.
-export type LayoutElementKind = "field" | "title" | "text" | "divider" | "image" | "section";
-
-// Lógica condicional (mostrar/ocultar por valor). Un elemento con `showWhen`
-// solo se renderiza en runtime si la condición se cumple contra los valores
-// cargados. Ej: mostrar el campo "detalle" solo si "item" == "otro".
-export type ConditionOperator = "equals" | "notEquals" | "includes" | "isFilled" | "isEmpty";
-
-export interface ShowWhen {
-  fieldId: string;            // campo del proceso que dispara la condición
-  operator: ConditionOperator;
-  value?: string;             // valor a comparar (no aplica a isFilled/isEmpty)
-}
-
-export interface LayoutElement {
-  id: string;                 // id del elemento de layout (no del campo)
-  kind: LayoutElementKind;
-  fieldId?: string;           // solo kind "field" → apunta a un FormField del proceso
-  text?: string;              // kind "title" | "text"
-  x: number; y: number;       // posición en px dentro del lienzo
-  w: number; h: number;       // tamaño en px
-  readOnly?: boolean;         // kind "field": solo lectura en este paso
-  fontSize?: number;          // kind "title" | "text"
-  align?: "left" | "center" | "right";
-  vAlign?: "top" | "middle" | "bottom"; // alineación vertical del texto
-  fontFamily?: string;        // tipografía (kind title | text)
-  src?: string;               // kind "image" → URL de la imagen
-  showWhen?: ShowWhen;        // visibilidad condicional (si está, el elemento es condicional)
-}
-
-// La evaluación de condiciones vive en `./form-conditions` (módulo puro, sin deps
-// de DB) para que pueda importarse desde componentes cliente sin arrastrar postgres.
-
-export interface ProcessNode {
-  id: string;
-  type: string;
-  label: string;
-  description?: string;
-  assigneeDeptId?: string;
-  serviceAction?: string;
-  position?: { x: number; y: number };
-  // Layout visual de la ventana de este paso (Fase A — builder por paso).
-  layout?: LayoutElement[];
-  // SLA: tiempo esperado para completar este nodo en ms.
-  // Si la instancia supera este tiempo, se considera "atrasada" (visible en audit).
-  // Null = sin SLA definido (no se trackea).
-  expectedDurationMs?: number | null;
-}
-
-export interface ProcessEdge {
-  id: string;
-  from: string;
-  to: string;
-  label?: string;
-  condition?: string;
-}
-
-// ─── Formularios dinámicos (modelo "tren de carga") ───────────────────────────
-// Campos compartidos a nivel proceso. Cada instancia acumula sus valores en
-// processInstances.context.fieldValues = { [fieldId]: value }.
-export type FormFieldType = "text" | "textarea" | "select" | "number" | "date" | "checkbox";
-
-export interface FormField {
-  id: string;                 // estable, generado al crear el campo
-  label: string;
-  type: FormFieldType;
-  options?: string[];         // solo para type "select"
-  required?: boolean;
-  placeholder?: string;
-}
+import type { ProcessNode, ProcessEdge } from "./process-types";
 
 interface HistoryEntry {
   nodeId: string;

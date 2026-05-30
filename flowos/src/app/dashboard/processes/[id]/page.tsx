@@ -60,24 +60,13 @@ import Moveable from "react-moveable";
 import { evalShowWhen, interpolate } from "@/lib/form-conditions";
 import type { ProcessDefinition } from "@/db/schema";
 import { useToast } from "@/components/ui/toast";
-import type { ProcessNode, ProcessEdge, LayoutElement, ShowWhen, ConditionOperator } from "@/lib/bpm";
+import type {
+  ProcessNode, ProcessEdge, LayoutElement, ShowWhen, ConditionOperator, FormField, FormFieldType,
+} from "@/lib/process-types";
 import AuditPanel from "@/components/dashboard/processes/audit-panel";
 import { usePermissions } from "@/hooks/usePermissions";
 
 // ─── Node data type ───────────────────────────────────────────────────────────
-
-export type FormFieldType = "text" | "textarea" | "number" | "date" | "select" | "checkbox" | "file" | "currency" | "radio" | "multiselect";
-
-export type FormField = {
-  id: string;
-  type: FormFieldType;
-  label: string;
-  required: boolean;
-  options?: string[]; // for select — opciones manuales
-  source?: "departments" | "employees" | "divisions"; // para select dinámico desde la org
-  placeholder?: string;
-  autoFolder?: string; // para file: carpeta destino en Docs
-};
 
 type BpmData = {
   label: string;

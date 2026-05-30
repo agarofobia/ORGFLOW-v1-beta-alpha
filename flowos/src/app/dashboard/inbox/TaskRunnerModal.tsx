@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
 import type { InboxTask } from "@/db/schema";
-import type { FormField, FormFieldType } from "@/app/dashboard/processes/[id]/page";
-import type { LayoutElement } from "@/lib/bpm";
+import type { FormField, FormFieldType, LayoutElement } from "@/lib/process-types";
 import { evalShowWhen, interpolate } from "@/lib/form-conditions";
 
 const CANVAS_W = 680; // mismo ancho que el lienzo del builder (WYSIWYG)
