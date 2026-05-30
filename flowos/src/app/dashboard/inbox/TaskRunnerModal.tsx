@@ -342,7 +342,7 @@ export default function TaskRunnerModal({
                     // Secciones detrás (z-index bajo); el resto encima.
                     const common = { position: "absolute" as const, left: el.x, top: el.y, width: el.w, height: el.h, zIndex: el.kind === "section" ? 1 : 2 };
                     if (el.kind === "divider") {
-                      return <div key={el.id} style={{ ...common, background: "var(--c-border)" }} />;
+                      return <div key={el.id} style={{ ...common, display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: 2, background: "var(--c-border)" }} /></div>;
                     }
                     if (el.kind === "section") {
                       return (
@@ -358,8 +358,9 @@ export default function TaskRunnerModal({
                         : null;
                     }
                     if (el.kind === "title" || el.kind === "text") {
+                      const vItems = el.vAlign === "top" ? "flex-start" : el.vAlign === "bottom" ? "flex-end" : "center";
                       return (
-                        <div key={el.id} style={{ ...common, display: "flex", alignItems: "center", fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start" }}>
+                        <div key={el.id} style={{ ...common, display: "flex", alignItems: vItems, fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, fontFamily: el.fontFamily ?? "inherit", color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start" }}>
                           {interpolate(el.text ?? "", interpFields, formData)}
                         </div>
                       );

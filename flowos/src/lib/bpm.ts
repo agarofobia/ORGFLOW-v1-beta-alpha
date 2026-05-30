@@ -39,6 +39,8 @@ export interface LayoutElement {
   readOnly?: boolean;         // kind "field": solo lectura en este paso
   fontSize?: number;          // kind "title" | "text"
   align?: "left" | "center" | "right";
+  vAlign?: "top" | "middle" | "bottom"; // alineación vertical del texto
+  fontFamily?: string;        // tipografía (kind title | text)
   src?: string;               // kind "image" → URL de la imagen
   showWhen?: ShowWhen;        // visibilidad condicional (si está, el elemento es condicional)
 }

@@ -39,6 +39,12 @@ import {
   LayoutTemplate,
   Plus,
   Trash2,
+  Check,
+  Heading,
+  Minus,
+  SquareDashed,
+  Type as TextIcon,
+  Image as ImageIcon,
 } from "lucide-react";
 import Moveable from "react-moveable";
 import type { ProcessDefinition } from "@/db/schema";
@@ -465,6 +471,25 @@ function FormFieldsEditor({
 const CANVAS_W = 680;
 const CANVAS_H = 900;
 
+// Elementos visuales de la paleta — con ícono y descripción de qué hace cada uno.
+const PALETTE_ELEMENTS: { kind: "title" | "text" | "divider" | "section" | "image"; label: string; desc: string; Icon: typeof Heading }[] = [
+  { kind: "title", label: "Título", desc: "Encabezado grande de la ventana.", Icon: Heading },
+  { kind: "text", label: "Texto", desc: "Subtítulo o instrucción de ayuda.", Icon: TextIcon },
+  { kind: "divider", label: "Divisor", desc: "Línea para separar secciones.", Icon: Minus },
+  { kind: "section", label: "Sección", desc: "Caja de fondo para agrupar campos visualmente.", Icon: SquareDashed },
+  { kind: "image", label: "Imagen", desc: "Logo, diagrama o instrucción visual (URL o subida).", Icon: ImageIcon },
+];
+
+// Tipografías disponibles para título/texto.
+const FONT_OPTIONS: { label: string; value: string }[] = [
+  { label: "Por defecto", value: "" },
+  { label: "Space Grotesk", value: "'Space Grotesk', sans-serif" },
+  { label: "JetBrains Mono", value: "'JetBrains Mono', monospace" },
+  { label: "Sans-serif", value: "system-ui, sans-serif" },
+  { label: "Serif", value: "Georgia, serif" },
+  { label: "Monoespaciada", value: "monospace" },
+];
+
 function nid() {
   return `el-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
 }
@@ -518,55 +543,63 @@ function StepLayoutBuilder({
   const fieldOf = (fid?: string) => processFields.find((f) => f.id === fid);
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center p-4" style={{ background: "rgb(0 0 0 / 0.6)", backdropFilter: "blur(2px)" }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="flex flex-col overflow-hidden rounded-2xl" style={{ width: "min(1280px, 97vw)", height: "min(900px, 95vh)", background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)", boxShadow: "0 24px 80px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--c-accent-blue-rgb) / 0.05)" }}>
-        {/* Header */}
-        <div className="flex items-center justify-between border-b px-5 py-3.5" style={{ borderColor: "var(--c-border)", background: "linear-gradient(180deg, rgb(var(--c-accent-blue-rgb) / 0.06), transparent)" }}>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.15)" }}>
-              <LayoutTemplate className="h-4 w-4" style={{ color: "var(--c-accent-blue)" }} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--c-text-primary)" }}>Diseñar ventana del paso</p>
-              <p className="text-[11px]" style={{ color: "var(--c-text-muted)" }}>{nodeLabel} · arrastrá y redimensioná; las guías te alinean solo</p>
-            </div>
+    <div className="fixed inset-0 z-40 flex flex-col" style={{ background: "var(--c-bg-base)" }}>
+      {/* Header — barra superior estilo módulo */}
+      <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: "var(--c-border)", background: "linear-gradient(180deg, rgb(var(--c-accent-blue-rgb) / 0.07), var(--c-bg-surface))" }}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.15)", boxShadow: "0 0 16px rgb(var(--c-accent-blue-rgb) / 0.2)" }}>
+            <LayoutTemplate className="h-5 w-5" style={{ color: "var(--c-accent-blue)" }} />
           </div>
-          <button onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px" style={{ background: "var(--c-accent-blue)", boxShadow: "0 0 16px rgb(var(--c-accent-blue-rgb) / 0.35)" }}>Listo</button>
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Diseñador de ventana · {nodeLabel}</p>
+            <p className="text-base font-semibold" style={{ color: "var(--c-text-primary)" }}>Diseñar ventana del paso</p>
+          </div>
         </div>
+        <button onClick={onClose} className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-medium text-white transition-all hover:-translate-y-px" style={{ background: "var(--c-accent-blue)", boxShadow: "0 0 16px rgb(var(--c-accent-blue-rgb) / 0.35)" }}>
+          <Check className="h-4 w-4" /> Listo
+        </button>
+      </div>
 
-        <div className="flex min-h-0 flex-1">
-          {/* Paleta */}
-          <div className="w-48 shrink-0 overflow-y-auto border-r p-3" style={{ borderColor: "var(--c-border)" }}>
-            <p className="mb-1.5 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Campos del proceso</p>
-            {processFields.length === 0 ? (
-              <p className="mb-3 text-[10px]" style={{ color: "var(--c-text-placeholder)" }}>Sin campos. Crealos con el botón &quot;Campos&quot;.</p>
-            ) : (
-              <div className="mb-3 flex flex-col gap-1">
-                {processFields.map((f) => {
-                  const used = usedFieldIds.has(f.id);
-                  return (
-                    <button key={f.id} type="button" disabled={used} onClick={() => addField(f)}
-                      className="flex items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11px] transition-colors disabled:opacity-40"
-                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)", cursor: used ? "default" : "pointer" }}>
-                      <Plus className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-blue)" }} />
-                      <span className="truncate" title={f.label}>{f.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <p className="mb-1.5 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Elementos</p>
-            <div className="flex flex-col gap-1">
-              {([["title", "Título"], ["text", "Texto"], ["divider", "Divisor"], ["section", "Sección"], ["image", "Imagen"]] as const).map(([k, label]) => (
-                <button key={k} type="button" onClick={() => addPresentation(k)}
-                  className="flex items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11px]"
-                  style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}>
-                  <Plus className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-violet)" }} />
-                  {label}
-                </button>
-              ))}
+      <div className="flex min-h-0 flex-1">
+        {/* Paleta — con íconos + descripción de cada herramienta */}
+        <div className="w-60 shrink-0 overflow-y-auto border-r p-4" style={{ borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
+          <p className="mb-2 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Campos del proceso</p>
+          {processFields.length === 0 ? (
+            <p className="mb-4 text-[10px] leading-relaxed" style={{ color: "var(--c-text-placeholder)" }}>Sin campos todavía. Crealos con el botón &quot;Campos&quot; del editor del proceso, después los arrastrás acá.</p>
+          ) : (
+            <div className="mb-4 flex flex-col gap-1">
+              {processFields.map((f) => {
+                const used = usedFieldIds.has(f.id);
+                return (
+                  <button key={f.id} type="button" disabled={used} onClick={() => addField(f)}
+                    title={used ? "Ya está en la ventana" : `Agregar ${f.label}`}
+                    className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-[11px] transition-colors hover:border-[var(--c-accent-blue)] disabled:opacity-40"
+                    style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)", cursor: used ? "default" : "pointer" }}>
+                    {used ? <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-emerald)" }} /> : <Plus className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-blue)" }} />}
+                    <span className="truncate" title={f.label}>{f.label}</span>
+                  </button>
+                );
+              })}
             </div>
+          )}
+          <p className="mb-2 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Elementos visuales</p>
+          <div className="flex flex-col gap-1.5">
+            {PALETTE_ELEMENTS.map(({ kind, label, desc, Icon }) => (
+              <button key={kind} type="button" onClick={() => addPresentation(kind)}
+                title={desc}
+                className="flex items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:border-[var(--c-accent-violet)]"
+                style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded" style={{ background: "rgb(var(--c-accent-violet-rgb) / 0.12)" }}>
+                  <Icon className="h-3.5 w-3.5" style={{ color: "var(--c-accent-violet)" }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium" style={{ color: "var(--c-text-secondary)" }}>{label}</p>
+                  <p className="text-[9px] leading-tight" style={{ color: "var(--c-text-muted)" }}>{desc}</p>
+                </div>
+              </button>
+            ))}
           </div>
+        </div>
 
           {/* Lienzo — área con grid + glow estilo app */}
           <div
@@ -622,12 +655,31 @@ function StepLayoutBuilder({
                   origin={false}
                   snappable
                   snapThreshold={7}
+                  throttleDrag={0}
+                  throttleResize={0}
                   elementGuidelines={layout.filter((e) => e.id !== selected.id).map((e) => `[data-lid="${e.id}"]`)}
                   snapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
                   elementSnapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
                   bounds={{ left: 0, top: 0, right: 0, bottom: 0, position: "css" }}
-                  onDrag={({ left, top }) => patchEl(selected.id, { x: Math.round(left), y: Math.round(top) })}
-                  onResize={({ width, height, drag }) => patchEl(selected.id, { w: Math.round(width), h: Math.round(height), x: Math.round(drag.left), y: Math.round(drag.top) })}
+                  // Drag/resize SUAVE: durante el gesto movemos el DOM directo (sin
+                  // setState → sin re-render por frame). Persistimos al soltar.
+                  onDrag={({ target, left, top }) => {
+                    (target as HTMLElement).style.left = `${left}px`;
+                    (target as HTMLElement).style.top = `${top}px`;
+                  }}
+                  onDragEnd={({ lastEvent }) => {
+                    if (lastEvent) patchEl(selected.id, { x: Math.round(lastEvent.left), y: Math.round(lastEvent.top) });
+                  }}
+                  onResize={({ target, width, height, drag }) => {
+                    const t = target as HTMLElement;
+                    t.style.width = `${width}px`;
+                    t.style.height = `${height}px`;
+                    t.style.left = `${drag.left}px`;
+                    t.style.top = `${drag.top}px`;
+                  }}
+                  onResizeEnd={({ lastEvent }) => {
+                    if (lastEvent) patchEl(selected.id, { w: Math.round(lastEvent.width), h: Math.round(lastEvent.height), x: Math.round(lastEvent.drag.left), y: Math.round(lastEvent.drag.top) });
+                  }}
                 />
               )}
             </div>
@@ -682,6 +734,25 @@ function StepLayoutBuilder({
                         </button>
                       ))}
                     </div>
+                    {/* Alineación vertical */}
+                    <div className="flex gap-1">
+                      {(["top", "middle", "bottom"] as const).map((a) => (
+                        <button key={a} type="button" onClick={() => patchEl(selected.id, { vAlign: a })}
+                          className="flex-1 rounded px-1 py-0.5 text-[9px]"
+                          style={{ background: (selected.vAlign ?? "middle") === a ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "var(--c-bg-elevated)", border: `1px solid ${(selected.vAlign ?? "middle") === a ? "var(--c-accent-blue)" : "var(--c-border)"}`, color: (selected.vAlign ?? "middle") === a ? "var(--c-accent-blue)" : "var(--c-text-muted)" }}>
+                          {a === "top" ? "Arriba" : a === "middle" ? "Medio" : "Abajo"}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Tipografía */}
+                    <select
+                      value={selected.fontFamily ?? ""}
+                      onChange={(e) => patchEl(selected.id, { fontFamily: e.target.value || undefined })}
+                      className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
+                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+                    >
+                      {FONT_OPTIONS.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
+                    </select>
                   </>
                 )}
 
@@ -740,7 +811,6 @@ function StepLayoutBuilder({
           </div>
         </div>
       </div>
-    </div>
   );
 }
 
@@ -842,7 +912,8 @@ function ConditionEditor({
 // Preview de un elemento dentro del lienzo del builder (no interactivo).
 function LayoutElementPreview({ el, field }: { el: LayoutElement; field?: FormField }) {
   if (el.kind === "divider") {
-    return <div style={{ width: "100%", height: "100%", background: "var(--c-border)" }} />;
+    // Línea fina centrada vertical (el alto del elemento es solo el área de agarre).
+    return <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: 2, background: "var(--c-border)" }} /></div>;
   }
   if (el.kind === "section") {
     return (
@@ -858,8 +929,9 @@ function LayoutElementPreview({ el, field }: { el: LayoutElement; field?: FormFi
       : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", fontSize: 10 }}>Imagen (URL)</div>;
   }
   if (el.kind === "title" || el.kind === "text") {
+    const vAlignItems = el.vAlign === "top" ? "flex-start" : el.vAlign === "bottom" ? "flex-end" : "center";
     return (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", padding: "0 6px", fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start", overflow: "hidden" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: vAlignItems, padding: "2px 6px", fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, fontFamily: el.fontFamily ?? "inherit", color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start", overflow: "hidden" }}>
         {el.text || (el.kind === "title" ? "Título" : "Texto")}
       </div>
     );
