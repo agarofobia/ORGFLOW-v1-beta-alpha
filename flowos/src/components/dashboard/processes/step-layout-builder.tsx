@@ -30,13 +30,23 @@ import {
   Loader2,
   ListChecks,
   Circle,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Asterisk,
+  Lock,
+  MousePointer2,
+  Braces,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Moveable from "react-moveable";
 import { evalShowWhen, interpolate } from "@/lib/form-conditions";
 import type {
-  FormField, FormFieldType, LayoutElement, ShowWhen, ConditionOperator,
+  FormField, FormFieldType, LayoutElement, ShowWhen, ConditionOperator, ColorToken,
 } from "@/lib/process-types";
 import { FIELD_TYPES, OPTION_FIELD_TYPES } from "./field-config";
+import { resolveColor, COLOR_VAR, TEXT_COLOR_SWATCHES, DIVIDER_COLOR_SWATCHES } from "./layout-style";
 
 // ─── Step Layout Builder (lienzo visual estilo Canva, por paso) ───────────────
 // Diseñador WYSIWYG de la ventana de un paso. Arrastrás campos/títulos/textos al
@@ -121,6 +131,136 @@ type SpawnState =
   | { payload: SpawnPayload; x: number; y: number; moved: boolean; icon: typeof Heading; label: string; accent: string }
   | null;
 
+// ─── Componentes UI del inspector (sistema de diseño del prototipo) ───────────
+
+function PRow({ label, hint, children }: { label?: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-3.5">
+      {label && <div className="flo-label mb-1.5">{label}</div>}
+      {children}
+      {hint && <div className="mt-1 text-[11px] leading-snug" style={{ color: "var(--c-text-dim)" }}>{hint}</div>}
+    </div>
+  );
+}
+
+function FloInput({ value, onChange, placeholder, mono }: { value: string; onChange: (v: string) => void; placeholder?: string; mono?: boolean }) {
+  return (
+    <input
+      className="flo-input w-full"
+      value={value ?? ""}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      style={{ height: 34, padding: "0 10px", fontSize: 13, fontFamily: mono ? "var(--font-dm-mono)" : "inherit" }}
+    />
+  );
+}
+
+function ToggleRow({ label, value, onChange, Icon, amber }: { label: string; value: boolean; onChange: (v: boolean) => void; Icon?: typeof Heading; amber?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className="h-3.5 w-3.5" style={{ color: "var(--c-text-muted)" }} />}
+        <span className="text-[12.5px]" style={{ color: "var(--c-text-secondary)" }}>{label}</span>
+      </div>
+      <div className={`flo-switch${value ? " on" : ""}${amber ? " amber" : ""}`} onClick={() => onChange(!value)}><span className="knob" /></div>
+    </div>
+  );
+}
+
+type SegOpt<T> = { value: T; label?: string; Icon?: typeof Heading; title?: string };
+function Segmented<T extends string | number>({ value, options, onChange }: { value: T; options: SegOpt<T>[]; onChange: (v: T) => void }) {
+  return (
+    <div className="flo-seg">
+      {options.map((o) => (
+        <button key={String(o.value)} type="button" className={value === o.value ? "active" : ""} onClick={() => onChange(o.value)} title={o.title || o.label}>
+          {o.Icon && <o.Icon className="h-3.5 w-3.5" />}
+          {o.label && <span>{o.label}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function NumField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex items-center gap-1.5" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 7, padding: "0 9px", height: 32 }}>
+      <span className="font-mono text-[10px]" style={{ color: "var(--c-text-muted)", width: 11 }}>{label}</span>
+      <input
+        value={Math.round(value)}
+        onChange={(e) => { const v = parseInt(e.target.value, 10); onChange(isNaN(v) ? 0 : v); }}
+        className="font-mono"
+        style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: "var(--c-text-primary)", fontSize: 12.5, width: "100%" }}
+      />
+    </div>
+  );
+}
+
+function ColorSwatches({ value, onChange, swatches }: { value: ColorToken | undefined; onChange: (v: ColorToken) => void; swatches: ColorToken[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {swatches.map((tok) => (
+        <button key={tok} type="button" onClick={() => onChange(tok)} title={tok}
+          style={{
+            width: 26, height: 26, borderRadius: 7, background: COLOR_VAR[tok],
+            border: value === tok ? "2px solid #fff" : "1px solid var(--c-border-strong)",
+            boxShadow: value === tok ? "0 0 0 2px rgb(var(--c-accent-blue-rgb) / 0.5)" : "none", cursor: "pointer",
+          }} />
+      ))}
+    </div>
+  );
+}
+
+function OptionsEditor({ options, onChange }: { options: string[] | undefined; onChange: (v: string[]) => void }) {
+  const opts = options ?? [];
+  const set = (i: number, v: string) => { const n = opts.slice(); n[i] = v; onChange(n); };
+  const add = () => onChange([...opts, `Opción ${opts.length + 1}`]);
+  const del = (i: number) => onChange(opts.filter((_, j) => j !== i));
+  return (
+    <div className="flex flex-col gap-1.5">
+      {opts.map((o, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <GripVertical className="h-3 w-3 shrink-0" style={{ color: "var(--c-text-dim)" }} />
+          <input className="flo-input" value={o} onChange={(e) => set(i, e.target.value)} style={{ flex: 1, height: 32, padding: "0 9px", fontSize: 12.5 }} />
+          <button type="button" onClick={() => del(i)} className="shrink-0 p-0.5" style={{ color: "var(--c-text-dim)" }}><X className="h-3 w-3" /></button>
+        </div>
+      ))}
+      <button type="button" onClick={add} className="flo-ghost flex items-center justify-center gap-1.5" style={{ height: 30, fontSize: 12 }}>
+        <Plus className="h-3 w-3" /> Agregar opción
+      </button>
+    </div>
+  );
+}
+
+// Insertar token de texto dinámico {Campo} en título/texto.
+function DynInsert({ fields, onInsert }: { fields: FormField[]; onInsert: (token: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as globalThis.Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+  if (fields.length === 0) return null;
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flo-ghost flex items-center gap-1.5" style={{ height: 28, padding: "0 9px", fontSize: 11.5 }}>
+        <Braces className="h-3 w-3" style={{ color: "var(--c-accent-blue)" }} /> Insertar campo
+      </button>
+      {open && (
+        <div className="flo-popin absolute left-0 z-40 overflow-auto" style={{ top: 32, background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", borderRadius: 9, padding: 5, boxShadow: "0 16px 40px rgb(0 0 0 / 0.55)", minWidth: 180, maxHeight: 220 }}>
+          {fields.map((f) => (
+            <div key={f.id} onClick={() => { onInsert(`{${f.label}}`); setOpen(false); }}
+              className="cursor-pointer rounded px-2 py-1.5 text-[12.5px] hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }}>
+              <span style={{ color: "var(--c-accent-blue)", background: "rgb(var(--c-accent-blue-rgb) / 0.12)", borderRadius: 4, padding: "0 3px" }}>{`{${f.label}}`}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function StepLayoutBuilder({
   nodeLabel,
   processFields,
@@ -142,6 +282,7 @@ export function StepLayoutBuilder({
   const [dragging, setDragging] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [newFieldMenu, setNewFieldMenu] = useState(false);
+  const [layersOpen, setLayersOpen] = useState(true);
   const [spawn, setSpawn] = useState<SpawnState>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const cascadeRef = useRef(0);
@@ -394,57 +535,66 @@ export function StepLayoutBuilder({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {/* Paleta — arrastrá al lienzo (o click para agregar arriba) */}
-        <div className="w-60 shrink-0 overflow-y-auto border-r p-4" style={{ borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
-          <div className="mb-2 flex items-center justify-between">
-            <p className="font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Campos del proceso</p>
-            <span className="rounded px-1.5 py-0.5 font-mono text-[9px]" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)" }}>{usedFieldIds.size}/{processFields.length}</span>
+        {/* Paleta — una sola barra: campos del proceso, elementos visuales y capas */}
+        <div className="flo-scroll w-[252px] shrink-0 overflow-y-auto border-r" style={{ borderColor: "var(--c-border)", background: "var(--c-bg-surface)", padding: "16px 12px 24px" }}>
+          {/* Campos del proceso */}
+          <div className="mb-2.5 flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5">
+              <Layers className="h-3 w-3" style={{ color: "var(--c-accent-blue)" }} />
+              <span className="flo-label">Campos del proceso</span>
+            </div>
+            <span className="flo-chip" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", padding: "1px 6px" }}>{usedFieldIds.size}/{processFields.length}</span>
           </div>
           {processFields.length === 0 ? (
-            <p className="mb-2 text-[10px] leading-relaxed" style={{ color: "var(--c-text-placeholder)" }}>Sin campos todavía. Creá uno con el botón de abajo o arrastrá un elemento visual.</p>
+            <p className="mb-2 px-1 text-[11px] leading-relaxed" style={{ color: "var(--c-text-placeholder)" }}>Sin campos todavía. Creá uno con el botón de abajo o arrastrá un elemento visual.</p>
           ) : (
-            <div className="mb-2 flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               {processFields.map((f) => {
                 const used = usedFieldIds.has(f.id);
                 const FIcon = FIELD_TYPE_ICON[f.type] ?? TextIcon;
+                const typeLabel = FIELD_TYPES.find((t) => t.value === f.type)?.label ?? f.type;
                 return (
                   <div key={f.id}
                     onMouseDown={(e) => !used && onSpawnStart({ source: "field", field: f }, e)}
                     title={used ? "Ya está en la ventana" : `Arrastrá ${f.label} al lienzo`}
-                    className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-[11px] transition-colors hover:border-[var(--c-accent-blue)]"
-                    style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)", cursor: used ? "default" : "grab", opacity: used ? 0.4 : 1, userSelect: "none" }}>
+                    className={`flo-pitem flex items-center gap-2.5${used ? " is-used" : ""}`}
+                    style={{ padding: "8px 10px" }}>
+                    <span className="flo-icon-chip" style={{ width: 30, height: 30, background: "rgb(var(--c-accent-blue-rgb) / 0.13)", color: "var(--c-accent-blue)" }}>
+                      <FIcon className="h-[15px] w-[15px]" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{f.label}</div>
+                      <div className="flo-label mt-px" style={{ letterSpacing: "0.04em" }}>{typeLabel}</div>
+                    </div>
                     {used
-                      ? <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-emerald)" }} />
-                      : <FIcon className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-blue)" }} />}
-                    <span className="flex-1 truncate" title={f.label}>{f.label}</span>
-                    {!used && <GripVertical className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-text-dim)" }} />}
+                      ? <span className="flo-icon-chip" style={{ width: 18, height: 18, background: "rgb(var(--c-accent-emerald-rgb) / 0.15)", color: "var(--c-accent-emerald)" }}><Check className="h-3 w-3" /></span>
+                      : <GripVertical className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-text-dim)" }} />}
                   </div>
                 );
               })}
             </div>
           )}
 
-          {/* Nuevo campo de datos — crea un FormField en el proceso + lo coloca */}
-          <div className="relative mb-4">
+          {/* Nuevo campo de datos */}
+          <div className="relative mt-2.5">
             <button type="button" onClick={() => setNewFieldMenu((v) => !v)}
-              className="flex w-full items-center justify-center gap-2 rounded-md px-2.5 py-2 text-[11px] font-medium transition-colors hover:bg-[var(--c-bg-elevated)]"
-              style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.08)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)", color: "var(--c-accent-blue)" }}>
+              className="flo-ghost flex w-full items-center justify-center gap-2" style={{ height: 34, fontSize: 12.5 }}>
               <Plus className="h-3.5 w-3.5" /> Nuevo campo de datos
             </button>
             {newFieldMenu && (
-              <div className="absolute left-0 right-0 z-20 mt-1.5 rounded-lg p-1.5" style={{ background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", boxShadow: "0 16px 40px rgb(0 0 0 / 0.5)" }}>
+              <div className="flo-popin absolute left-0 right-0 z-20 mt-1.5 rounded-[10px] p-1.5" style={{ background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", boxShadow: "0 16px 40px rgb(0 0 0 / 0.5)" }}>
                 <div className="mb-1 flex items-center justify-between px-1.5 pt-0.5">
-                  <span className="font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Tipo de campo</span>
+                  <span className="flo-label">Tipo de campo nuevo</span>
                   <button type="button" onClick={() => setNewFieldMenu(false)} style={{ color: "var(--c-text-muted)" }}><X className="h-3 w-3" /></button>
                 </div>
-                <div className="grid grid-cols-2 gap-1">
+                <div className="grid grid-cols-2 gap-1.5">
                   {FIELD_TYPES.map((t) => {
                     const TIcon = FIELD_TYPE_ICON[t.value] ?? TextIcon;
                     return (
                       <button key={t.value} type="button" onClick={() => createField(t.value)}
-                        className="flex items-center gap-1.5 rounded px-2 py-1.5 text-left text-[10px] transition-colors hover:border-[var(--c-accent-blue)]"
+                        className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11.5px] transition-colors hover:border-[var(--c-border-strong)]"
                         style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}>
-                        <TIcon className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-blue)" }} />
+                        <TIcon className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-blue)" }} />
                         <span className="truncate">{t.label}</span>
                       </button>
                     );
@@ -454,52 +604,66 @@ export function StepLayoutBuilder({
             )}
           </div>
 
-          <p className="mb-2 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Elementos visuales</p>
+          <div className="my-4 h-px" style={{ background: "var(--c-border)" }} />
+
+          {/* Elementos visuales */}
+          <div className="mb-2.5 flex items-center gap-1.5 px-1">
+            <SquareDashed className="h-3 w-3" style={{ color: "var(--c-accent-violet)" }} />
+            <span className="flo-label">Elementos visuales</span>
+          </div>
           <div className="flex flex-col gap-1.5">
             {PALETTE_ELEMENTS.map(({ kind, label, desc, Icon }) => (
               <div key={kind}
                 onMouseDown={(e) => onSpawnStart({ source: "present", kind }, e)}
                 title={`${desc} — arrastrá al lienzo`}
-                className="flex items-start gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors hover:border-[var(--c-accent-violet)]"
-                style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", cursor: "grab", userSelect: "none" }}>
-                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded" style={{ background: "rgb(var(--c-accent-violet-rgb) / 0.12)" }}>
-                  <Icon className="h-3.5 w-3.5" style={{ color: "var(--c-accent-violet)" }} />
-                </div>
+                className="flo-pitem flex items-center gap-2.5" style={{ padding: "9px 10px" }}>
+                <span className="flo-icon-chip" style={{ width: 30, height: 30, background: "rgb(var(--c-accent-violet-rgb) / 0.14)", color: "var(--c-accent-violet)" }}>
+                  <Icon className="h-[15px] w-[15px]" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-medium" style={{ color: "var(--c-text-secondary)" }}>{label}</p>
-                  <p className="text-[9px] leading-tight" style={{ color: "var(--c-text-muted)" }}>{desc}</p>
+                  <div className="text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{label}</div>
+                  <div className="truncate text-[11px]" style={{ color: "var(--c-text-muted)" }}>{desc}</div>
                 </div>
-                <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-text-dim)" }} />
+                <GripVertical className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-text-dim)" }} />
               </div>
             ))}
           </div>
 
-          {/* Capas — lista de elementos del lienzo */}
+          {/* Capas — colapsable */}
           {layout.length > 0 && (
             <>
-              <p className="mb-2 mt-5 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>
-                <Layers className="h-3 w-3" /> Capas
-              </p>
-              <div className="flex flex-col gap-0.5">
-                {layout.map((el) => {
-                  const isSel = el.id === selectedId;
-                  const LIcon = el.kind === "field" ? (FIELD_TYPE_ICON[fieldOf(el.fieldId)?.type ?? "text"] ?? TextIcon) : PRESENT_ICON[el.kind as PresentKind];
-                  const lbl = el.kind === "field" ? (fieldOf(el.fieldId)?.label ?? "(campo)") : (el.text || PRESENT_LABEL[el.kind as PresentKind]);
-                  return (
-                    <div key={el.id}
-                      onClick={() => setSelectedId(el.id)}
-                      className="group flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[11px] transition-colors"
-                      style={{ background: isSel ? "rgb(var(--c-accent-blue-rgb) / 0.12)" : "transparent", border: `1px solid ${isSel ? "var(--c-accent-blue)" : "transparent"}`, color: isSel ? "var(--c-accent-blue)" : "var(--c-text-secondary)" }}>
-                      <LIcon className="h-3.5 w-3.5 shrink-0" style={{ color: el.kind === "field" ? "var(--c-accent-blue)" : "var(--c-accent-violet)" }} />
-                      <span className="flex-1 truncate">{lbl}</span>
-                      {el.showWhen && <Filter className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-amber)" }} />}
-                      <button type="button" onClick={(e) => { e.stopPropagation(); removeEl(el.id); }} title="Eliminar" className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--c-accent-red)" }}>
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              <div className="my-4 h-px" style={{ background: "var(--c-border)" }} />
+              <button type="button" onClick={() => setLayersOpen((v) => !v)} className="mb-2.5 flex w-full items-center justify-between px-1">
+                <div className="flex items-center gap-1.5">
+                  <LayoutTemplate className="h-3 w-3" style={{ color: "var(--c-text-muted)" }} />
+                  <span className="flo-label">Capas · {layout.length}</span>
+                </div>
+                {layersOpen ? <ChevronUp className="h-3.5 w-3.5" style={{ color: "var(--c-text-muted)" }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: "var(--c-text-muted)" }} />}
+              </button>
+              {layersOpen && (
+                <div className="flex flex-col gap-0.5">
+                  {[...layout].reverse().map((el) => {
+                    const isSel = el.id === selectedId;
+                    const LIcon = el.kind === "field" ? (FIELD_TYPE_ICON[fieldOf(el.fieldId)?.type ?? "text"] ?? TextIcon) : PRESENT_ICON[el.kind as PresentKind];
+                    const lbl = el.kind === "field" ? (fieldOf(el.fieldId)?.label ?? "(campo)") : ((el.text || PRESENT_LABEL[el.kind as PresentKind]).replace(/\{[^}]+\}/g, "…"));
+                    return (
+                      <div key={el.id}
+                        onClick={() => setSelectedId(el.id)}
+                        className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12px] transition-colors"
+                        style={{ background: isSel ? "rgb(var(--c-accent-blue-rgb) / 0.12)" : "transparent", border: `1px solid ${isSel ? "rgb(var(--c-accent-blue-rgb) / 0.4)" : "transparent"}`, color: isSel ? "var(--c-text-primary)" : "var(--c-text-secondary)" }}
+                        onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = "rgb(var(--c-bg-overlay-rgb, 26 32 53) / 0.6)"; }}
+                        onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}>
+                        <LIcon className="h-3.5 w-3.5 shrink-0" style={{ color: el.kind === "field" ? "var(--c-accent-blue)" : "var(--c-accent-violet)" }} />
+                        <span className="flex-1 truncate">{lbl}</span>
+                        {el.showWhen && <Filter className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-amber)" }} />}
+                        <button type="button" onClick={(e) => { e.stopPropagation(); removeEl(el.id); }} title="Eliminar" className="shrink-0 opacity-55 transition-opacity group-hover:opacity-100" style={{ color: "var(--c-text-dim)" }}>
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -567,16 +731,16 @@ export function StepLayoutBuilder({
                     zIndex: 30,
                   }}
                 >
-                  <div className="flex items-center gap-0.5 rounded-lg p-1" style={{ background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", boxShadow: "0 8px 24px rgb(0 0 0 / 0.5)" }}>
-                    <button type="button" onClick={() => duplicateEl(selected.id)} title="Duplicar (⌘D)" className="flex h-7 w-7 items-center justify-center rounded hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }}>
-                      <Copy className="h-3.5 w-3.5" />
+                  <div className="flo-ftoolbar">
+                    <button type="button" onClick={() => duplicateEl(selected.id)} title="Duplicar (⌘D)">
+                      <Copy className="h-[15px] w-[15px]" />
                     </button>
-                    <button type="button" onClick={() => toggleCondition(selected.id)} title="Mostrar solo si…" className="flex h-7 w-7 items-center justify-center rounded hover:bg-[var(--c-bg-elevated)]" style={{ color: selected.showWhen ? "var(--c-accent-amber)" : "var(--c-text-secondary)" }}>
-                      <Filter className="h-3.5 w-3.5" />
+                    <button type="button" onClick={() => toggleCondition(selected.id)} title="Mostrar solo si…" style={selected.showWhen ? { color: "var(--c-accent-amber)" } : undefined}>
+                      <Filter className="h-[15px] w-[15px]" />
                     </button>
-                    <div className="mx-0.5 h-4 w-px" style={{ background: "var(--c-border)" }} />
-                    <button type="button" onClick={() => removeEl(selected.id)} title="Eliminar (Supr)" className="flex h-7 w-7 items-center justify-center rounded hover:bg-[rgb(var(--c-accent-red-rgb)/0.15)]" style={{ color: "var(--c-accent-red)" }}>
-                      <Trash2 className="h-3.5 w-3.5" />
+                    <div className="sep" />
+                    <button type="button" className="danger" onClick={() => removeEl(selected.id)} title="Eliminar (Supr)">
+                      <Trash2 className="h-[15px] w-[15px]" />
                     </button>
                   </div>
                 </div>
@@ -632,206 +796,208 @@ export function StepLayoutBuilder({
             </div>
           </div>
 
-          {/* Propiedades del elemento */}
-          <div className="w-56 shrink-0 overflow-y-auto border-l p-3" style={{ borderColor: "var(--c-border)" }}>
+          {/* Inspector de propiedades */}
+          <div className="flex shrink-0 flex-col border-l" style={{ width: 264, borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
             {!selected ? (
-              <p className="text-[11px]" style={{ color: "var(--c-text-muted)" }}>Seleccioná un elemento del lienzo para editar sus propiedades.</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-mono text-[10px] uppercase" style={{ color: "var(--c-text-muted)" }}>
-                    {selected.kind === "field" ? "Campo" : selected.kind === "title" ? "Título" : selected.kind === "text" ? "Texto" : selected.kind === "section" ? "Sección" : selected.kind === "image" ? "Imagen" : "Divisor"}
-                  </p>
-                  <button type="button" onClick={() => removeEl(selected.id)} title="Eliminar" style={{ color: "var(--c-accent-red)" }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                {selected.kind === "field" && (() => {
-                  const f = fieldOf(selected.fieldId);
-                  if (!f) return <p className="text-[11px]" style={{ color: "var(--c-accent-red)" }}>Campo eliminado del proceso.</p>;
-                  const isOptionType = OPTION_FIELD_TYPES.includes(f.type);
-                  return (
-                    <>
-                      <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Etiqueta</label>
-                      <input
-                        value={f.label}
-                        onChange={(e) => patchField(f.id, { label: e.target.value })}
-                        className="w-full rounded px-2 py-1 text-xs outline-none"
-                        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-                      />
-                      <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Tipo de dato</label>
-                      <select
-                        value={f.type}
-                        onChange={(e) => patchField(f.id, { type: e.target.value as FormFieldType })}
-                        className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
-                        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-                      >
-                        {FIELD_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                      </select>
-                      <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
-                        <input type="checkbox" checked={f.required} onChange={(e) => patchField(f.id, { required: e.target.checked })} />
-                        Obligatorio
-                      </label>
-                      <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
-                        <input type="checkbox" checked={selected.readOnly ?? false} onChange={(e) => patchEl(selected.id, { readOnly: e.target.checked })} />
-                        Solo lectura en este paso
-                      </label>
-                      {isOptionType && (
-                        <>
-                          <div className="flex gap-1">
-                            {(["manual", "departments", "employees", "divisions"] as const).map((opt) => {
-                              const active = opt === "manual" ? !f.source : f.source === opt;
-                              const labels: Record<string, string> = { manual: "Manual", departments: "Depts", employees: "Empl.", divisions: "Divis." };
-                              return (
-                                <button key={opt} type="button"
-                                  onClick={() => patchField(f.id, { source: opt === "manual" ? undefined : (opt as "departments" | "employees" | "divisions") })}
-                                  className="flex-1 rounded px-1 py-0.5 text-[9px] transition-colors"
-                                  style={{ background: active ? "rgb(var(--c-accent-blue-rgb) / 0.13)" : "var(--c-bg-elevated)", border: `1px solid ${active ? "var(--c-accent-blue)" : "var(--c-border)"}`, color: active ? "var(--c-accent-blue)" : "var(--c-text-muted)" }}>
-                                  {labels[opt]}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          {!f.source ? (
-                            <input
-                              value={(f.options ?? []).join(", ")}
-                              onChange={(e) => patchField(f.id, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-                              placeholder="Opción 1, Opción 2…"
-                              className="w-full rounded px-2 py-1 text-[10px] outline-none"
-                              style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}
-                            />
-                          ) : (
-                            <p className="text-[9px]" style={{ color: "var(--c-text-muted)" }}>Opciones dinámicas desde {f.source === "departments" ? "departamentos" : f.source === "employees" ? "empleados" : "divisiones"} de la org.</p>
-                          )}
-                        </>
-                      )}
-                      {(f.type === "text" || f.type === "textarea" || f.type === "number") && (
-                        <input
-                          value={f.placeholder ?? ""}
-                          onChange={(e) => patchField(f.id, { placeholder: e.target.value })}
-                          placeholder="Placeholder (opcional)"
-                          className="w-full rounded px-2 py-1 text-[10px] outline-none"
-                          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}
-                        />
-                      )}
-                    </>
-                  );
-                })()}
-
-                {(selected.kind === "title" || selected.kind === "text") && (
-                  <>
-                    <textarea
-                      value={selected.text ?? ""}
-                      onChange={(e) => patchEl(selected.id, { text: e.target.value }, 400)}
-                      rows={2}
-                      className="w-full rounded px-2 py-1 text-xs outline-none"
-                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)", resize: "none" }}
-                    />
-                    <label className="flex items-center justify-between text-[11px]" style={{ color: "var(--c-text-muted)" }}>
-                      Tamaño
-                      <input type="number" value={selected.fontSize ?? 14} min={9} max={48}
-                        onChange={(e) => patchEl(selected.id, { fontSize: Number(e.target.value) })}
-                        className="w-16 rounded px-1.5 py-0.5 text-xs outline-none" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
-                    </label>
-                    <div className="flex gap-1">
-                      {(["left", "center", "right"] as const).map((a) => (
-                        <button key={a} type="button" onClick={() => patchEl(selected.id, { align: a })}
-                          className="flex-1 rounded px-1 py-0.5 text-[9px]"
-                          style={{ background: (selected.align ?? "left") === a ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "var(--c-bg-elevated)", border: `1px solid ${(selected.align ?? "left") === a ? "var(--c-accent-blue)" : "var(--c-border)"}`, color: (selected.align ?? "left") === a ? "var(--c-accent-blue)" : "var(--c-text-muted)" }}>
-                          {a === "left" ? "Izq" : a === "center" ? "Centro" : "Der"}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Alineación vertical */}
-                    <div className="flex gap-1">
-                      {(["top", "middle", "bottom"] as const).map((a) => (
-                        <button key={a} type="button" onClick={() => patchEl(selected.id, { vAlign: a })}
-                          className="flex-1 rounded px-1 py-0.5 text-[9px]"
-                          style={{ background: (selected.vAlign ?? "middle") === a ? "rgb(var(--c-accent-blue-rgb) / 0.15)" : "var(--c-bg-elevated)", border: `1px solid ${(selected.vAlign ?? "middle") === a ? "var(--c-accent-blue)" : "var(--c-border)"}`, color: (selected.vAlign ?? "middle") === a ? "var(--c-accent-blue)" : "var(--c-text-muted)" }}>
-                          {a === "top" ? "Arriba" : a === "middle" ? "Medio" : "Abajo"}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Tipografía */}
-                    <select
-                      value={selected.fontFamily ?? ""}
-                      onChange={(e) => patchEl(selected.id, { fontFamily: e.target.value || undefined })}
-                      className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
-                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-                    >
-                      {FONT_OPTIONS.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
-                    </select>
-                  </>
-                )}
-
-                {selected.kind === "image" && (
-                  <>
-                    {/* Subida directa */}
-                    <label
-                      className="flex cursor-pointer items-center justify-center gap-2 rounded px-2 py-2 text-[11px] font-medium transition-colors hover:bg-[var(--c-bg-elevated)]"
-                      style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.1)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)", color: "var(--c-accent-blue)" }}
-                    >
-                      {uploadingImg ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                      {uploadingImg ? "Subiendo…" : "Subir imagen"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={uploadingImg}
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(selected.id, f); e.target.value = ""; }}
-                      />
-                    </label>
-                    <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>…o pegá una URL</label>
-                    <input
-                      value={selected.src ?? ""}
-                      onChange={(e) => patchEl(selected.id, { src: e.target.value }, 400)}
-                      placeholder="https://…"
-                      className="w-full rounded px-2 py-1 text-xs outline-none"
-                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-                    />
-                    {selected.src ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={selected.src} alt="" className="max-h-24 w-full rounded object-contain" style={{ background: "var(--c-bg-elevated)" }} />
-                    ) : null}
-                  </>
-                )}
-
-                {selected.kind === "section" && (
-                  <>
-                    <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Título de la sección</label>
-                    <input
-                      value={selected.text ?? ""}
-                      onChange={(e) => patchEl(selected.id, { text: e.target.value }, 400)}
-                      placeholder="Sección"
-                      className="w-full rounded px-2 py-1 text-xs outline-none"
-                      style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-                    />
-                    <p className="text-[10px]" style={{ color: "var(--c-text-muted)" }}>Caja de fondo para agrupar campos. Posicioná los campos encima.</p>
-                  </>
-                )}
-
-                {/* Visibilidad condicional — mostrar este elemento solo si... */}
-                <ConditionEditor
-                  selfId={selected.id}
-                  layout={layout}
-                  processFields={processFields}
-                  showWhen={selected.showWhen}
-                  onChange={(sw) => patchEl(selected.id, { showWhen: sw })}
-                />
-
-                <div className="grid grid-cols-2 gap-1.5 text-[10px]" style={{ color: "var(--c-text-muted)" }}>
-                  {(["x", "y", "w", "h"] as const).map((k) => (
-                    <label key={k} className="flex items-center justify-between gap-1">
-                      <span className="uppercase">{k}</span>
-                      <input type="number" value={Math.round(selected[k] as number)}
-                        onChange={(e) => patchEl(selected.id, { [k]: Number(e.target.value) } as Partial<LayoutElement>)}
-                        className="w-12 rounded px-1 py-0.5 text-[10px] outline-none" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }} />
-                    </label>
-                  ))}
+              <div className="flex h-full flex-col items-center justify-center gap-3.5 px-7 text-center">
+                <span className="flo-icon-chip" style={{ width: 48, height: 48, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-dim)" }}>
+                  <MousePointer2 className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="mb-1 text-[13.5px] font-medium" style={{ color: "var(--c-text-secondary)" }}>Nada seleccionado</p>
+                  <p className="text-[12px] leading-relaxed" style={{ color: "var(--c-text-muted)" }}>Elegí un elemento del lienzo para editar sus propiedades, o arrastrá uno desde la paleta.</p>
                 </div>
               </div>
-            )}
+            ) : (() => {
+              const f = selected.kind === "field" ? fieldOf(selected.fieldId) : undefined;
+              const badgeIcon = selected.kind === "field" ? (FIELD_TYPE_ICON[f?.type ?? "text"] ?? TextIcon) : PRESENT_ICON[selected.kind as PresentKind];
+              const isField = selected.kind === "field";
+              const typeName = isField ? (FIELD_TYPES.find((t) => t.value === f?.type)?.label ?? "Campo") : PRESENT_LABEL[selected.kind as PresentKind];
+              const BIcon = badgeIcon;
+              return (
+                <>
+                  <div className="flo-scroll flex-1 overflow-y-auto px-4 pb-2.5 pt-4">
+                    {/* Badge del elemento */}
+                    <div className="mb-3.5 flex items-center gap-2.5">
+                      <span className="flo-icon-chip" style={{ width: 34, height: 34, background: isField ? "rgb(var(--c-accent-blue-rgb) / 0.14)" : "rgb(var(--c-accent-violet-rgb) / 0.14)", color: isField ? "var(--c-accent-blue)" : "var(--c-accent-violet)" }}>
+                        <BIcon className="h-[17px] w-[17px]" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold" style={{ color: "var(--c-text-primary)" }}>{typeName}</div>
+                        <div className="flo-label mt-0.5" style={{ letterSpacing: "0.08em" }}>{isField ? "Campo del proceso" : "Elemento visual"}</div>
+                      </div>
+                    </div>
+
+                    {/* ── Campo ── */}
+                    {isField && f && (() => {
+                      const isOptionType = OPTION_FIELD_TYPES.includes(f.type);
+                      return (
+                        <>
+                          <PRow label="Etiqueta"><FloInput value={f.label} onChange={(v) => patchField(f.id, { label: v })} /></PRow>
+                          <PRow label="Tipo de dato">
+                            <div className="flo-select" style={{ height: 34, padding: 0 }}>
+                              <select value={f.type} onChange={(e) => patchField(f.id, { type: e.target.value as FormFieldType })}
+                                className="w-full bg-transparent outline-none" style={{ height: 34, padding: "0 10px", fontSize: 13, color: "var(--c-text-primary)", appearance: "none" }}>
+                                {FIELD_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                              </select>
+                            </div>
+                          </PRow>
+                          {(f.type === "text" || f.type === "textarea") && (
+                            <PRow label="Placeholder"><FloInput value={f.placeholder ?? ""} onChange={(v) => patchField(f.id, { placeholder: v })} placeholder="Texto de ayuda…" /></PRow>
+                          )}
+                          {isOptionType && (
+                            <PRow label="Opciones">
+                              <div className="mb-2">
+                                <Segmented value={f.source ? "dynamic" : "manual"} options={[{ value: "manual", label: "Manual" }, { value: "dynamic", label: "Dinámica" }]}
+                                  onChange={(v) => patchField(f.id, { source: v === "manual" ? undefined : "employees" })} />
+                              </div>
+                              {!f.source ? (
+                                <OptionsEditor options={f.options} onChange={(v) => patchField(f.id, { options: v })} />
+                              ) : (
+                                <>
+                                  <div className="mb-2">
+                                    <Segmented value={f.source} options={[{ value: "departments", label: "Depts" }, { value: "employees", label: "Empleados" }, { value: "divisions", label: "Divisiones" }]}
+                                      onChange={(v) => patchField(f.id, { source: v })} />
+                                  </div>
+                                  <span className="flo-chip" style={{ background: "rgb(var(--c-accent-cyan-rgb) / 0.1)", color: "var(--c-accent-cyan)", padding: "4px 8px" }}>
+                                    <Circle className="h-2.5 w-2.5" /> opciones dinámicas desde la org
+                                  </span>
+                                </>
+                              )}
+                            </PRow>
+                          )}
+                          <div style={{ height: 1, background: "var(--c-border)", margin: "4px 0 8px" }} />
+                          <ToggleRow label="Obligatorio" value={f.required} onChange={(v) => patchField(f.id, { required: v })} Icon={Asterisk} />
+                          <ToggleRow label="Solo lectura en este paso" value={selected.readOnly ?? false} onChange={(v) => patchEl(selected.id, { readOnly: v })} Icon={Lock} />
+                        </>
+                      );
+                    })()}
+
+                    {/* ── Título / Texto ── */}
+                    {(selected.kind === "title" || selected.kind === "text") && (
+                      <>
+                        <PRow label="Texto">
+                          <textarea className="flo-input flo-scroll w-full" value={selected.text ?? ""} onChange={(e) => patchEl(selected.id, { text: e.target.value }, 400)}
+                            style={{ minHeight: 64, padding: "9px 10px", fontSize: 13, resize: "vertical", lineHeight: 1.4 }} />
+                          <div className="mt-1.5"><DynInsert fields={processFields} onInsert={(tok) => patchEl(selected.id, { text: (selected.text ?? "") + (selected.text && !selected.text.endsWith(" ") ? " " : "") + tok })} /></div>
+                        </PRow>
+                        <PRow label="Tamaño de fuente">
+                          <div className="flex items-center gap-2.5">
+                            <input type="range" min={11} max={56} value={selected.fontSize ?? (selected.kind === "title" ? 22 : 13)}
+                              onChange={(e) => patchEl(selected.id, { fontSize: Number(e.target.value) }, 200)} style={{ flex: 1, accentColor: "var(--c-accent-blue)" }} />
+                            <span className="font-mono text-right text-xs" style={{ color: "var(--c-text-secondary)", width: 38 }}>{selected.fontSize ?? (selected.kind === "title" ? 22 : 13)}px</span>
+                          </div>
+                        </PRow>
+                        <PRow label="Tipografía">
+                          <div className="flo-select" style={{ height: 34, padding: 0 }}>
+                            <select value={selected.fontFamily ?? ""} onChange={(e) => patchEl(selected.id, { fontFamily: e.target.value || undefined })}
+                              className="w-full bg-transparent outline-none" style={{ height: 34, padding: "0 10px", fontSize: 13, color: "var(--c-text-primary)", appearance: "none" }}>
+                              {FONT_OPTIONS.map((opt) => <option key={opt.label} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                          </div>
+                        </PRow>
+                        <PRow label="Peso">
+                          <Segmented value={selected.fontWeight ?? (selected.kind === "title" ? 700 : 400)} options={[{ value: 400, label: "Regular" }, { value: 500, label: "Medium" }, { value: 700, label: "Bold" }]}
+                            onChange={(v) => patchEl(selected.id, { fontWeight: v })} />
+                        </PRow>
+                        <PRow label="Alineación">
+                          <Segmented value={selected.align ?? "left"} options={[{ value: "left", Icon: AlignLeft }, { value: "center", Icon: AlignCenter }, { value: "right", Icon: AlignRight }]}
+                            onChange={(v) => patchEl(selected.id, { align: v })} />
+                        </PRow>
+                        <PRow label="Alineación vertical">
+                          <Segmented value={selected.vAlign ?? "middle"} options={[{ value: "top", label: "Arriba" }, { value: "middle", label: "Medio" }, { value: "bottom", label: "Abajo" }]}
+                            onChange={(v) => patchEl(selected.id, { vAlign: v })} />
+                        </PRow>
+                        <PRow label="Color">
+                          <ColorSwatches value={selected.color} onChange={(v) => patchEl(selected.id, { color: v })} swatches={TEXT_COLOR_SWATCHES} />
+                        </PRow>
+                      </>
+                    )}
+
+                    {/* ── Divisor ── */}
+                    {selected.kind === "divider" && (
+                      <>
+                        <PRow label="Grosor">
+                          <div className="flex items-center gap-2.5">
+                            <input type="range" min={1} max={6} value={selected.thickness ?? 2} onChange={(e) => patchEl(selected.id, { thickness: Number(e.target.value) }, 200)} style={{ flex: 1, accentColor: "var(--c-accent-blue)" }} />
+                            <span className="font-mono text-right text-xs" style={{ color: "var(--c-text-secondary)", width: 32 }}>{selected.thickness ?? 2}px</span>
+                          </div>
+                        </PRow>
+                        <PRow label="Color"><ColorSwatches value={selected.color} onChange={(v) => patchEl(selected.id, { color: v })} swatches={DIVIDER_COLOR_SWATCHES} /></PRow>
+                      </>
+                    )}
+
+                    {/* ── Sección ── */}
+                    {selected.kind === "section" && (
+                      <>
+                        <PRow label="Título de la sección" hint="Dejalo vacío para una caja sin título."><FloInput value={selected.text ?? ""} onChange={(v) => patchEl(selected.id, { text: v }, 400)} placeholder="Sección" /></PRow>
+                        <PRow label="Opacidad del relleno">
+                          <div className="flex items-center gap-2.5">
+                            <input type="range" min={0} max={100} value={Math.round((selected.fill ?? 0.4) * 100)} onChange={(e) => patchEl(selected.id, { fill: Number(e.target.value) / 100 }, 200)} style={{ flex: 1, accentColor: "var(--c-accent-blue)" }} />
+                            <span className="font-mono text-right text-xs" style={{ color: "var(--c-text-secondary)", width: 38 }}>{Math.round((selected.fill ?? 0.4) * 100)}%</span>
+                          </div>
+                        </PRow>
+                        <p className="text-[11px] leading-snug" style={{ color: "var(--c-text-dim)" }}>Caja de fondo para agrupar campos. Posicioná los campos encima.</p>
+                      </>
+                    )}
+
+                    {/* ── Imagen ── */}
+                    {selected.kind === "image" && (
+                      <>
+                        <PRow label="Imagen" hint="Subí un archivo o pegá un enlace.">
+                          <label className="flo-ghost flex cursor-pointer items-center justify-center gap-2" style={{ height: 34, fontSize: 12.5 }}>
+                            {uploadingImg ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                            {uploadingImg ? "Subiendo…" : "Subir archivo"}
+                            <input type="file" accept="image/*" className="hidden" disabled={uploadingImg}
+                              onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadImage(selected.id, file); e.target.value = ""; }} />
+                          </label>
+                          <div className="mt-1.5"><FloInput value={selected.src ?? ""} onChange={(v) => patchEl(selected.id, { src: v }, 400)} placeholder="https://…" /></div>
+                        </PRow>
+                        <PRow label="Ajuste">
+                          <Segmented value={selected.imageFit ?? "contain"} options={[{ value: "contain", label: "Contener" }, { value: "cover", label: "Cubrir" }]} onChange={(v) => patchEl(selected.id, { imageFit: v })} />
+                        </PRow>
+                        {selected.src ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={selected.src} alt="" className="max-h-24 w-full rounded object-contain" style={{ background: "var(--c-bg-elevated)" }} />
+                        ) : null}
+                      </>
+                    )}
+
+                    <div style={{ height: 1, background: "var(--c-border)", margin: "6px 0 14px" }} />
+
+                    {/* Visibilidad condicional */}
+                    <ConditionEditor
+                      selfId={selected.id}
+                      layout={layout}
+                      processFields={processFields}
+                      showWhen={selected.showWhen}
+                      onChange={(sw) => patchEl(selected.id, { showWhen: sw })}
+                    />
+
+                    {/* Posición y tamaño */}
+                    <div className="mt-4">
+                      <div className="flo-label mb-2">Posición y tamaño</div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <NumField label="X" value={selected.x} onChange={(v) => patchEl(selected.id, { x: v })} />
+                        <NumField label="Y" value={selected.y} onChange={(v) => patchEl(selected.id, { y: v })} />
+                        <NumField label="W" value={selected.w} onChange={(v) => patchEl(selected.id, { w: Math.max(20, v) })} />
+                        <NumField label="H" value={selected.h} onChange={(v) => patchEl(selected.id, { h: Math.max(16, v) })} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer — duplicar / eliminar */}
+                  <div className="flex gap-2 border-t px-4 py-3" style={{ borderColor: "var(--c-border)" }}>
+                    <button type="button" onClick={() => duplicateEl(selected.id)} className="flo-ghost flex flex-1 items-center justify-center gap-1.5" style={{ height: 36, fontSize: 12.5 }}>
+                      <Copy className="h-3.5 w-3.5" /> Duplicar
+                    </button>
+                    <button type="button" onClick={() => removeEl(selected.id)} className="flo-ghost flex flex-1 items-center justify-center gap-1.5" style={{ height: 36, fontSize: 12.5, color: "var(--c-accent-red)", borderColor: "rgb(var(--c-accent-red-rgb) / 0.3)" }}>
+                      <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -941,20 +1107,20 @@ function StepPreview({ layout, processFields, onClose }: { layout: LayoutElement
         <div className="relative" style={{ width: CANVAS_W, height: CANVAS_H, background: "var(--c-bg-surface)", borderRadius: 16, border: "1px solid var(--c-border-strong)", boxShadow: "0 30px 90px rgb(0 0 0 / 0.7)", overflow: "hidden" }}>
           {visible.map((el) => {
             const common = { position: "absolute" as const, left: el.x, top: el.y, width: el.w, height: el.h, zIndex: el.kind === "section" ? 1 : 2 };
-            if (el.kind === "divider") return <div key={el.id} style={{ ...common, display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: 2, background: "var(--c-border)" }} /></div>;
+            if (el.kind === "divider") return <div key={el.id} style={{ ...common, display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: Math.max(1, el.thickness ?? 2), background: resolveColor(el.color, "var(--c-border)") }} /></div>;
             if (el.kind === "section") return (
-              <div key={el.id} style={{ ...common, borderRadius: 10, border: "1px solid var(--c-border)", background: "rgb(var(--c-border-rgb) / 0.05)" }}>
-                {el.text && <span className="absolute -top-2 left-3 px-1.5 font-mono text-[9px] uppercase" style={{ background: "var(--c-bg-surface)", color: "var(--c-text-muted)" }}>{el.text}</span>}
+              <div key={el.id} style={{ ...common, borderRadius: 12, border: "1px solid var(--c-border)", background: `rgb(var(--c-border-rgb) / ${el.fill ?? 0.4})` }}>
+                {el.text && <span className="flo-label absolute left-3.5 top-2.5">{el.text}</span>}
               </div>
             );
             if (el.kind === "image") return el.src
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img key={el.id} src={el.src} alt="" style={{ ...common, objectFit: "contain" }} />
+              ? <img key={el.id} src={el.src} alt="" style={{ ...common, objectFit: el.imageFit ?? "contain", borderRadius: 8 }} />
               : null;
             if (el.kind === "title" || el.kind === "text") {
               const vItems = el.vAlign === "top" ? "flex-start" : el.vAlign === "bottom" ? "flex-end" : "center";
               return (
-                <div key={el.id} style={{ ...common, display: "flex", alignItems: vItems, fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, fontFamily: el.fontFamily ?? "inherit", color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start" }}>
+                <div key={el.id} style={{ ...common, display: "flex", flexDirection: "column", justifyContent: vItems, fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.fontWeight ?? (el.kind === "title" ? 700 : 400), fontFamily: el.fontFamily ?? "inherit", color: resolveColor(el.color, el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)"), textAlign: el.align ?? "left" }}>
                   {interpolate(el.text ?? "", interpFields, values)}
                 </div>
               );
@@ -1021,60 +1187,47 @@ function ConditionEditor({
     { value: "isEmpty", label: "está vacío" },
   ];
 
+  const selStyle = { background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)", appearance: "none" as const };
   return (
-    <div className="rounded px-2 py-2" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
-      <label className="flex items-center gap-2 text-[11px]" style={{ color: enabled ? "var(--c-accent-violet)" : "var(--c-text-muted)", cursor: "pointer" }}>
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => onChange(e.target.checked ? { fieldId: sourceFields[0]?.fieldId ?? "", operator: "equals", value: "" } : undefined)}
-        />
-        Mostrar solo si…
-      </label>
+    <div className="rounded-[10px] px-3 py-2.5" style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.05)", border: `1px solid ${enabled ? "rgb(var(--c-accent-amber-rgb) / 0.3)" : "var(--c-border)"}` }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Filter className="h-3.5 w-3.5" style={{ color: "var(--c-accent-amber)" }} />
+          <span className="text-[12.5px] font-medium" style={{ color: "var(--c-text-secondary)" }}>Mostrar solo si…</span>
+        </div>
+        <div className={`flo-switch${enabled ? " on amber" : ""}`} onClick={() => onChange(enabled ? undefined : { fieldId: sourceFields[0]?.fieldId ?? "", operator: "equals", value: "" })}><span className="knob" /></div>
+      </div>
       {enabled && (
         sourceFields.length === 0 ? (
-          <p className="mt-1.5 text-[10px]" style={{ color: "var(--c-text-placeholder)" }}>
+          <p className="mt-2 text-[11px]" style={{ color: "var(--c-text-placeholder)" }}>
             Agregá otro campo al lienzo para usarlo como condición.
           </p>
         ) : (
-          <div className="mt-2 flex flex-col gap-1.5">
-            <select
-              value={showWhen!.fieldId}
-              onChange={(e) => onChange({ ...showWhen!, fieldId: e.target.value })}
-              className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
-              style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-            >
-              {sourceFields.map((s) => <option key={s.fieldId} value={s.fieldId}>{s.label}</option>)}
-            </select>
-            <select
-              value={showWhen!.operator}
-              onChange={(e) => onChange({ ...showWhen!, operator: e.target.value as ConditionOperator })}
-              className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
-              style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-            >
-              {OPS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+          <div className="mt-2.5 flex flex-col gap-1.5">
+            <div className="flo-select" style={{ height: 32, padding: 0 }}>
+              <select value={showWhen!.fieldId} onChange={(e) => onChange({ ...showWhen!, fieldId: e.target.value })}
+                className="w-full bg-transparent outline-none" style={{ ...selStyle, height: 32, padding: "0 10px", fontSize: 12.5, border: "none" }}>
+                {sourceFields.map((s) => <option key={s.fieldId} value={s.fieldId}>{s.label}</option>)}
+              </select>
+            </div>
+            <div className="flo-select" style={{ height: 32, padding: 0 }}>
+              <select value={showWhen!.operator} onChange={(e) => onChange({ ...showWhen!, operator: e.target.value as ConditionOperator })}
+                className="w-full bg-transparent outline-none" style={{ ...selStyle, height: 32, padding: "0 10px", fontSize: 12.5, border: "none" }}>
+                {OPS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
             {needsValue && (() => {
-              // Si el campo fuente es un select con opciones, ofrecemos un dropdown.
               const opts = srcField?.type === "select" && !srcField.source ? (srcField.options ?? []) : null;
               return opts ? (
-                <select
-                  value={showWhen!.value ?? ""}
-                  onChange={(e) => onChange({ ...showWhen!, value: e.target.value })}
-                  className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
-                  style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-                >
-                  <option value="">— Valor —</option>
-                  {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
+                <div className="flo-select" style={{ height: 32, padding: 0 }}>
+                  <select value={showWhen!.value ?? ""} onChange={(e) => onChange({ ...showWhen!, value: e.target.value })}
+                    className="w-full bg-transparent outline-none" style={{ ...selStyle, height: 32, padding: "0 10px", fontSize: 12.5, border: "none" }}>
+                    <option value="">— Valor —</option>
+                    {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
               ) : (
-                <input
-                  value={showWhen!.value ?? ""}
-                  onChange={(e) => onChange({ ...showWhen!, value: e.target.value })}
-                  placeholder="Valor…"
-                  className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
-                  style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
-                />
+                <FloInput value={showWhen!.value ?? ""} onChange={(v) => onChange({ ...showWhen!, value: v })} placeholder="Valor…" />
               );
             })()}
           </div>
@@ -1087,38 +1240,51 @@ function ConditionEditor({
 // Preview de un elemento dentro del lienzo del builder (no interactivo).
 function LayoutElementPreview({ el, field }: { el: LayoutElement; field?: FormField }) {
   if (el.kind === "divider") {
-    // Línea fina centrada vertical (el alto del elemento es solo el área de agarre).
-    return <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: 2, background: "var(--c-border)" }} /></div>;
+    return <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: Math.max(1, el.thickness ?? 2), background: resolveColor(el.color, "var(--c-border)") }} /></div>;
   }
   if (el.kind === "section") {
     return (
-      <div style={{ width: "100%", height: "100%", borderRadius: 8, border: "1px solid rgb(var(--c-accent-violet-rgb) / 0.3)", background: "rgb(var(--c-accent-violet-rgb) / 0.04)", padding: "4px 8px" }}>
-        <span className="font-mono text-[10px] uppercase" style={{ color: "var(--c-accent-violet)" }}>{el.text || "Sección"}</span>
+      <div style={{ width: "100%", height: "100%", borderRadius: 12, border: "1px solid var(--c-border)", background: `rgb(var(--c-border-rgb) / ${el.fill ?? 0.4})`, position: "relative" }}>
+        {el.text && <span className="flo-label" style={{ position: "absolute", top: 10, left: 14 }}>{el.text}</span>}
       </div>
     );
   }
   if (el.kind === "image") {
     return el.src
       // eslint-disable-next-line @next/next/no-img-element
-      ? <img src={el.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", fontSize: 10 }}>Imagen (URL)</div>;
+      ? <img src={el.src} alt="" style={{ width: "100%", height: "100%", objectFit: el.imageFit ?? "contain", borderRadius: 8, display: "block" }} />
+      : (
+        <div style={{ width: "100%", height: "100%", borderRadius: 8, border: "1px solid var(--c-border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: "var(--c-text-muted)", background: "repeating-linear-gradient(135deg, rgb(var(--c-accent-violet-rgb) / 0.05) 0 8px, rgb(var(--c-border-rgb) / 0.4) 8px 16px)" }}>
+          <ImageIcon className="h-5 w-5" />
+          <span className="flo-label">imagen</span>
+        </div>
+      );
   }
   if (el.kind === "title" || el.kind === "text") {
     const vAlignItems = el.vAlign === "top" ? "flex-start" : el.vAlign === "bottom" ? "flex-end" : "center";
     return (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: vAlignItems, padding: "2px 6px", fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, fontFamily: el.fontFamily ?? "inherit", color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start", overflow: "hidden" }}>
-        {el.text || (el.kind === "title" ? "Título" : "Texto")}
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: vAlignItems, padding: "2px 6px", overflow: "hidden" }}>
+        <div style={{
+          fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13),
+          fontWeight: el.fontWeight ?? (el.kind === "title" ? 700 : 400),
+          fontFamily: el.fontFamily ?? "inherit",
+          color: resolveColor(el.color, el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)"),
+          textAlign: el.align ?? "left", lineHeight: 1.2, letterSpacing: el.kind === "title" ? "-0.01em" : "0",
+        }}>
+          {el.text || (el.kind === "title" ? "Título" : "Texto")}
+        </div>
       </div>
     );
   }
   // field
   return (
-    <div style={{ width: "100%", height: "100%", padding: 6, background: "var(--c-bg-elevated)", display: "flex", flexDirection: "column", gap: 3 }}>
-      <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--c-text-secondary)" }}>
+    <div style={{ width: "100%", height: "100%", padding: 6, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
+      <span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--c-text-secondary)" }}>
         {field?.label ?? "(campo eliminado)"}
-        {el.readOnly && <span className="rounded px-1 font-mono text-[7px] uppercase" style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.15)", color: "var(--c-accent-amber)" }}>solo lec.</span>}
+        {field?.required && <Asterisk className="h-2 w-2" style={{ color: "var(--c-accent-red)" }} />}
+        {el.readOnly && <span className="flo-chip" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", padding: "1px 5px", fontSize: 8 }}><Lock className="h-2 w-2" /> solo lec.</span>}
       </span>
-      <div className="flex-1 rounded" style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", minHeight: 8 }} />
+      <div className="flex-1 rounded-lg" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", minHeight: 8 }} />
     </div>
   );
 }

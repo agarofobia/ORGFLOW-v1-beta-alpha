@@ -1014,3 +1014,184 @@ html.light .flo-grid-bg {
   background: var(--c-accent-blue);
   transition: width 0.3s ease;
 }
+
+/* ═══ Design system del diseñador de procesos (match prototipo Claude Design) ═══
+   Mapeado a los tokens --c-* del tema para respetar light/dark. */
+
+.flo-label {
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--c-text-muted);
+  font-weight: 500;
+}
+
+.flo-icon-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  flex: none;
+}
+
+/* Item de paleta — card redondeada con profundidad, hover sutil, cursor grab */
+.flo-pitem {
+  background: var(--c-bg-elevated);
+  border: 1px solid var(--c-border);
+  border-radius: 11px;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.08s ease;
+  cursor: grab;
+  user-select: none;
+}
+.flo-pitem:hover { border-color: var(--c-border-strong); background: var(--c-bg-overlay); }
+.flo-pitem:active { cursor: grabbing; }
+.flo-pitem.is-used { opacity: 0.45; cursor: default; }
+.flo-pitem.is-used:hover { border-color: var(--c-border); background: var(--c-bg-elevated); }
+
+/* Input / textarea */
+.flo-input {
+  background: var(--c-bg-elevated);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  color: var(--c-text-primary);
+  outline: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.flo-input::placeholder { color: var(--c-text-placeholder); }
+.flo-input:focus {
+  border-color: rgb(var(--c-accent-blue-rgb) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--c-accent-blue-rgb) / 0.12);
+}
+
+/* Select / dropdown trigger */
+.flo-select {
+  background: var(--c-bg-elevated);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  color: var(--c-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.flo-select:hover { border-color: var(--c-border-strong); }
+
+/* Botón fantasma */
+.flo-ghost {
+  background: var(--c-bg-elevated);
+  color: var(--c-text-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  cursor: pointer;
+}
+.flo-ghost:hover { background: var(--c-bg-overlay); border-color: var(--c-border-strong); color: var(--c-text-primary); }
+
+/* Toggle switch — reemplaza al checkbox crudo */
+.flo-switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--c-bg-elevated);
+  border: 1px solid var(--c-border);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  flex: none;
+}
+.flo-switch.on {
+  background: rgb(var(--c-accent-blue-rgb) / 0.9);
+  border-color: rgb(var(--c-accent-blue-rgb) / 0.9);
+  box-shadow: 0 0 12px rgb(var(--c-accent-blue-rgb) / 0.4);
+}
+.flo-switch.on.amber {
+  background: rgb(var(--c-accent-amber-rgb) / 0.9);
+  border-color: rgb(var(--c-accent-amber-rgb) / 0.9);
+  box-shadow: 0 0 12px rgb(var(--c-accent-amber-rgb) / 0.4);
+}
+.flo-switch .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  transition: left 0.15s ease;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+.flo-switch.on .knob { left: 18px; }
+
+/* Segmented control */
+.flo-seg {
+  display: flex;
+  background: var(--c-bg-base);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.flo-seg button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--c-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.1s, color 0.1s;
+  font-family: inherit;
+}
+.flo-seg button.active { background: var(--c-bg-elevated); color: var(--c-text-primary); box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); }
+.flo-seg button:hover:not(.active) { color: var(--c-text-secondary); }
+
+/* Toolbar flotante sobre el elemento seleccionado */
+.flo-ftoolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--c-bg-overlay);
+  border: 1px solid var(--c-border-strong);
+  border-radius: 9px;
+  padding: 3px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.55);
+}
+.flo-ftoolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--c-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.flo-ftoolbar button:hover { background: var(--c-bg-elevated); color: var(--c-text-primary); }
+.flo-ftoolbar button.danger:hover { background: rgb(var(--c-accent-red-rgb) / 0.15); color: var(--c-accent-red); }
+.flo-ftoolbar .sep { width: 1px; height: 16px; background: var(--c-border-strong); margin: 0 2px; }
+
+/* Chip mono */
+.flo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+@keyframes flo-popin { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+.flo-popin { animation: flo-popin 0.14s ease; }

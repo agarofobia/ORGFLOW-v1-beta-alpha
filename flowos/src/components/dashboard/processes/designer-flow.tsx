@@ -17,7 +17,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Save, Loader2, ListChecks, X } from "lucide-react";
+import { Save, Loader2, X } from "lucide-react";
 import type { ProcessDefinition } from "@/db/schema";
 import type { FormField, ProcessNode, ProcessEdge } from "@/lib/process-types";
 import {
@@ -30,7 +30,6 @@ import {
   type BpmData,
   type BpmNode,
 } from "./process-flow";
-import { FormFieldsEditor } from "./form-fields-editor";
 import { StepLayoutBuilder } from "./step-layout-builder";
 import { PropertiesPanel } from "./properties-panel";
 
@@ -56,7 +55,6 @@ export function DesignerFlow({
   // una vez para el proceso y cada instancia acumula sus valores. La visibilidad
   // por paso (qué campos ve cada nodo) llega en Fase 2.
   const [formFields, setFormFields] = useState<FormField[]>([]);
-  const [showFormBuilder, setShowFormBuilder] = useState(false);
   // Nodo cuyo layout visual se está diseñando (builder estilo Canva por paso).
   const [layoutBuilderNodeId, setLayoutBuilderNodeId] = useState<string | null>(null);
   // Track cambios sin guardar — se setea true en cualquier mutación post-load.
@@ -292,19 +290,6 @@ export function DesignerFlow({
           <Panel position="top-right" className="m-3">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowFormBuilder(true)}
-                title="Campos del formulario del proceso"
-                className="flex items-center gap-2 rounded px-3 py-2 text-sm font-medium transition-all hover:-translate-y-px"
-                style={{
-                  background: "var(--c-bg-surface)",
-                  border: "1px solid var(--c-border)",
-                  color: "var(--c-text-secondary)",
-                }}
-              >
-                <ListChecks className="h-4 w-4" strokeWidth={2} />
-                Campos{formFields.length > 0 ? ` (${formFields.length})` : ""}
-              </button>
-              <button
                 onClick={handleSave}
                 disabled={saving || !isDirty}
                 title={isDirty ? "Guardar cambios (Ctrl+S)" : "Sin cambios pendientes"}
@@ -338,35 +323,6 @@ export function DesignerFlow({
         </div>
       )}
 
-      {/* Form builder a nivel proceso (modelo "tren de carga") */}
-      {showFormBuilder && (
-        <div
-          className="absolute inset-0 z-20 flex items-center justify-center"
-          style={{ background: "rgb(0 0 0 / 0.45)" }}
-          onClick={() => setShowFormBuilder(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="flex max-h-[80vh] w-[460px] flex-col rounded-lg"
-            style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", boxShadow: "0 12px 48px rgb(0 0 0 / 0.4)" }}
-          >
-            <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--c-border)" }}>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: "var(--c-text-primary)" }}>Campos del formulario</p>
-                <p className="text-[11px]" style={{ color: "var(--c-text-muted)" }}>
-                  Compartidos por todo el proceso. Cada instancia acumula sus valores.
-                </p>
-              </div>
-              <button onClick={() => setShowFormBuilder(false)} className="rounded p-1 hover:bg-[var(--c-border)]" style={{ color: "var(--c-text-muted)" }}>
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="overflow-y-auto p-4">
-              <FormFieldsEditor fields={formFields} onChange={handleFormFieldsChange} />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Step Layout Builder — diseñador visual de la ventana de un paso */}
       {layoutBuilderNodeId && (() => {

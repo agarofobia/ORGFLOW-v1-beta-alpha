@@ -5,6 +5,7 @@ import { X, CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
 import type { InboxTask } from "@/db/schema";
 import type { FormField, FormFieldType, LayoutElement } from "@/lib/process-types";
 import { evalShowWhen, interpolate } from "@/lib/form-conditions";
+import { resolveColor } from "@/components/dashboard/processes/layout-style";
 
 const CANVAS_W = 680; // mismo ancho que el lienzo del builder (WYSIWYG)
 
@@ -341,25 +342,25 @@ export default function TaskRunnerModal({
                     // Secciones detrás (z-index bajo); el resto encima.
                     const common = { position: "absolute" as const, left: el.x, top: el.y, width: el.w, height: el.h, zIndex: el.kind === "section" ? 1 : 2 };
                     if (el.kind === "divider") {
-                      return <div key={el.id} style={{ ...common, display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: 2, background: "var(--c-border)" }} /></div>;
+                      return <div key={el.id} style={{ ...common, display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: Math.max(1, el.thickness ?? 2), background: resolveColor(el.color, "var(--c-border)") }} /></div>;
                     }
                     if (el.kind === "section") {
                       return (
-                        <div key={el.id} style={{ ...common, borderRadius: 10, border: "1px solid var(--c-border)", background: "rgb(var(--c-border-rgb) / 0.05)" }}>
-                          {el.text && <span className="absolute -top-2 left-3 px-1.5 font-mono text-[9px] uppercase" style={{ background: "var(--c-bg-surface)", color: "var(--c-text-muted)" }}>{el.text}</span>}
+                        <div key={el.id} style={{ ...common, borderRadius: 12, border: "1px solid var(--c-border)", background: `rgb(var(--c-border-rgb) / ${el.fill ?? 0.4})` }}>
+                          {el.text && <span className="flo-label absolute left-3.5 top-2.5">{el.text}</span>}
                         </div>
                       );
                     }
                     if (el.kind === "image") {
                       return el.src
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img key={el.id} src={el.src} alt="" style={{ ...common, objectFit: "contain" }} />
+                        ? <img key={el.id} src={el.src} alt="" style={{ ...common, objectFit: el.imageFit ?? "contain", borderRadius: 8 }} />
                         : null;
                     }
                     if (el.kind === "title" || el.kind === "text") {
                       const vItems = el.vAlign === "top" ? "flex-start" : el.vAlign === "bottom" ? "flex-end" : "center";
                       return (
-                        <div key={el.id} style={{ ...common, display: "flex", alignItems: vItems, fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.kind === "title" ? 700 : 400, fontFamily: el.fontFamily ?? "inherit", color: el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)", textAlign: el.align ?? "left", justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start" }}>
+                        <div key={el.id} style={{ ...common, display: "flex", flexDirection: "column", justifyContent: vItems, fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.fontWeight ?? (el.kind === "title" ? 700 : 400), fontFamily: el.fontFamily ?? "inherit", color: resolveColor(el.color, el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)"), textAlign: el.align ?? "left" }}>
                           {interpolate(el.text ?? "", interpFields, formData)}
                         </div>
                       );

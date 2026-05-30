@@ -65,12 +65,24 @@ export interface LayoutElement {
   w: number; h: number;       // tamaño en px
   readOnly?: boolean;         // kind "field": solo lectura en este paso
   fontSize?: number;          // kind "title" | "text"
+  fontWeight?: number;        // kind "title" | "text" (400 | 500 | 700)
   align?: "left" | "center" | "right";
   vAlign?: "top" | "middle" | "bottom"; // alineación vertical del texto
   fontFamily?: string;        // tipografía (kind title | text)
+  color?: ColorToken;         // kind "title" | "text" | "divider" — token de color del tema
+  thickness?: number;         // kind "divider" → grosor en px
+  fill?: number;              // kind "section" → opacidad del relleno (0..1)
   src?: string;               // kind "image" → URL de la imagen
+  imageFit?: "contain" | "cover"; // kind "image" → ajuste
   showWhen?: ShowWhen;        // visibilidad condicional (si está, el elemento es condicional)
 }
+
+// Tokens de color del tema (no hex, para respetar light/dark). Resolución en
+// `@/components/dashboard/processes/layout-style`.
+export type ColorToken =
+  | "primary" | "secondary" | "muted" | "dim"
+  | "blue" | "emerald" | "amber" | "red" | "violet" | "cyan"
+  | "border" | "borderStrong";
 
 // La evaluación de condiciones vive en `./form-conditions` (módulo puro).
 
