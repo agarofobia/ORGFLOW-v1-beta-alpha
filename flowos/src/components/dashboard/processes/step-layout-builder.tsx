@@ -267,6 +267,8 @@ export function StepLayoutBuilder({
   layout,
   onChange,
   onCreateField,
+  fieldUsage = {},
+  onDeleteField,
   onClose,
 }: {
   nodeLabel: string;
@@ -274,6 +276,10 @@ export function StepLayoutBuilder({
   layout: LayoutElement[];
   onChange: (layout: LayoutElement[]) => void;
   onCreateField: (fields: FormField[]) => void;
+  // En cuántos PASOS (nodos) del proceso aparece cada campo. Default {} (sin info).
+  fieldUsage?: Record<string, number>;
+  // Borra el campo del PROCESO entero (catálogo + todos los pasos).
+  onDeleteField?: (fieldId: string) => void;
   onClose: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -283,6 +289,7 @@ export function StepLayoutBuilder({
   const [uploadingImg, setUploadingImg] = useState(false);
   const [newFieldMenu, setNewFieldMenu] = useState(false);
   const [layersOpen, setLayersOpen] = useState(true);
+  const [confirmDelId, setConfirmDelId] = useState<string | null>(null);
   const [spawn, setSpawn] = useState<SpawnState>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const cascadeRef = useRef(0);
@@ -395,6 +402,28 @@ export function StepLayoutBuilder({
     commit([...layout, el]);
     setSelectedId(el.id);
     setNewFieldMenu(false);
+  };
+
+  // Coloca en ESTE paso un campo del proceso ya existente (en cascada).
+  const addFieldHere = (f: FormField) => {
+    if (usedFieldIds.has(f.id)) return;
+    const c = cascadeRef.current; cascadeRef.current = (c + 1) % 6;
+    const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24 + c * 16, y: nextY, w: 280, h: 66 };
+    commit([...layout, el]);
+    setSelectedId(el.id);
+  };
+  // Saca de ESTE paso todos los elementos de un campo (no lo borra del proceso).
+  const removeFieldFromStep = (fieldId: string) => {
+    const has = layout.some((e) => e.kind === "field" && e.fieldId === fieldId);
+    if (!has) return;
+    if (selectedId && layout.find((e) => e.id === selectedId)?.fieldId === fieldId) setSelectedId(null);
+    commit(layout.filter((e) => !(e.kind === "field" && e.fieldId === fieldId)));
+  };
+  // Confirma y borra el campo del proceso entero (todos los pasos).
+  const confirmDeleteField = (fieldId: string) => {
+    onDeleteField?.(fieldId);
+    if (selectedId && layout.find((e) => e.id === selectedId)?.fieldId === fieldId) setSelectedId(null);
+    setConfirmDelId(null);
   };
 
   // ─── Spawn (arrastrar desde la paleta hacia el lienzo) ──────────────────────
@@ -550,25 +579,66 @@ export function StepLayoutBuilder({
           ) : (
             <div className="flex flex-col gap-1.5">
               {processFields.map((f) => {
-                const used = usedFieldIds.has(f.id);
+                const inThisStep = usedFieldIds.has(f.id);
+                const usage = fieldUsage[f.id] ?? (inThisStep ? 1 : 0);
+                const otherSteps = inThisStep ? usage - 1 : usage;
                 const FIcon = FIELD_TYPE_ICON[f.type] ?? TextIcon;
                 const typeLabel = FIELD_TYPES.find((t) => t.value === f.type)?.label ?? f.type;
+                // Estado de uso: en este paso (+otros), solo en otros, o sin usar.
+                const usageText = inThisStep
+                  ? (otherSteps > 0 ? `en este paso · +${otherSteps}` : "en este paso")
+                  : (otherSteps > 0 ? `en ${otherSteps} paso${otherSteps > 1 ? "s" : ""}` : "sin usar");
+                const usageColor = inThisStep ? "var(--c-accent-emerald)" : otherSteps > 0 ? "var(--c-text-muted)" : "var(--c-text-dim)";
+                const confirming = confirmDelId === f.id;
                 return (
-                  <div key={f.id}
-                    onMouseDown={(e) => !used && onSpawnStart({ source: "field", field: f }, e)}
-                    title={used ? "Ya está en la ventana" : `Arrastrá ${f.label} al lienzo`}
-                    className={`flo-pitem flex items-center gap-2.5${used ? " is-used" : ""}`}
-                    style={{ padding: "8px 10px" }}>
-                    <span className="flo-icon-chip" style={{ width: 30, height: 30, background: "rgb(var(--c-accent-blue-rgb) / 0.13)", color: "var(--c-accent-blue)" }}>
-                      <FIcon className="h-[15px] w-[15px]" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{f.label}</div>
-                      <div className="flo-label mt-px" style={{ letterSpacing: "0.04em" }}>{typeLabel}</div>
+                  <div key={f.id} className="flo-pitem" style={{ padding: "8px 10px", cursor: "default", opacity: !inThisStep && usage === 0 ? 0.6 : 1 }}>
+                    <div className="flex items-center gap-2.5">
+                      {/* Cuerpo arrastrable (solo si no está en este paso) */}
+                      <div
+                        className="flex min-w-0 flex-1 items-center gap-2.5"
+                        onMouseDown={(e) => { if (!inThisStep) onSpawnStart({ source: "field", field: f }, e); }}
+                        title={inThisStep ? f.label : `Arrastrá ${f.label} al lienzo`}
+                        style={{ cursor: inThisStep ? "default" : "grab" }}
+                      >
+                        <span className="flo-icon-chip" style={{ width: 30, height: 30, background: "rgb(var(--c-accent-blue-rgb) / 0.13)", color: "var(--c-accent-blue)" }}>
+                          <FIcon className="h-[15px] w-[15px]" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{f.label}</div>
+                          <div className="mt-px flex items-center gap-1.5">
+                            <span className="flo-label" style={{ letterSpacing: "0.04em" }}>{typeLabel}</span>
+                            <span style={{ width: 3, height: 3, borderRadius: 999, background: usageColor, opacity: 0.6 }} />
+                            <span className="font-mono text-[9px]" style={{ color: usageColor }}>{usageText}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Toggle "en este paso" */}
+                      <div className={`flo-switch${inThisStep ? " on" : ""}`} style={{ width: 32, height: 19 }}
+                        title={inThisStep ? "Quitar de este paso" : "Mostrar en este paso"}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={() => (inThisStep ? removeFieldFromStep(f.id) : addFieldHere(f))}>
+                        <span className="knob" style={{ width: 13, height: 13, left: inThisStep ? 16 : 2 }} />
+                      </div>
+                      {/* Papelera — borrar del proceso */}
+                      <button type="button" title="Eliminar del proceso"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={() => setConfirmDelId(confirming ? null : f.id)}
+                        className="shrink-0 p-0.5" style={{ color: confirming ? "var(--c-accent-red)" : "var(--c-text-dim)" }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
-                    {used
-                      ? <span className="flo-icon-chip" style={{ width: 18, height: 18, background: "rgb(var(--c-accent-emerald-rgb) / 0.15)", color: "var(--c-accent-emerald)" }}><Check className="h-3 w-3" /></span>
-                      : <GripVertical className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-text-dim)" }} />}
+                    {/* Confirmación inline de borrado del proceso */}
+                    {confirming && (
+                      <div className="mt-2 flex items-center justify-between gap-2 rounded-md px-2 py-1.5" style={{ background: "rgb(var(--c-accent-red-rgb) / 0.08)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.25)" }}>
+                        <span className="text-[10px] leading-tight" style={{ color: "var(--c-text-secondary)" }}>
+                          {usage > 0 ? `Lo saca de ${usage} paso${usage > 1 ? "s" : ""} y del proceso.` : "Eliminar del proceso."}
+                        </span>
+                        <div className="flex shrink-0 gap-1">
+                          <button type="button" onClick={() => setConfirmDelId(null)} className="rounded px-2 py-0.5 text-[10px]" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)" }}>No</button>
+                          <button type="button" onClick={() => confirmDeleteField(f.id)} className="rounded px-2 py-0.5 text-[10px] font-medium text-white" style={{ background: "var(--c-accent-red)" }}>Borrar</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

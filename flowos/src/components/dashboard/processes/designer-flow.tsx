@@ -3,7 +3,7 @@
 // Editor BPM interno (vive dentro de un ReactFlowProvider): paleta de nodos, lienzo
 // ReactFlow, panel de propiedades del nodo, editor de campos del proceso (modal) y
 // diseñador de ventana por paso (StepLayoutBuilder). Maneja el estado dirty + guardado.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -221,6 +221,34 @@ export function DesignerFlow({
     setIsDirty(true);
   };
 
+  // Uso de cada campo a lo largo del proceso: en cuántos PASOS (nodos) aparece.
+  // Permite mostrar "usado en N pasos / sin usar" en la paleta del diseñador.
+  const fieldUsage = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const n of nodes) {
+      const lay = n.data.layout ?? [];
+      const seen = new Set<string>();
+      for (const el of lay) {
+        if (el.kind === "field" && el.fieldId && !seen.has(el.fieldId)) {
+          seen.add(el.fieldId);
+          m[el.fieldId] = (m[el.fieldId] ?? 0) + 1;
+        }
+      }
+    }
+    return m;
+  }, [nodes]);
+
+  // Borra un campo del PROCESO entero: lo saca del catálogo y de todos los pasos.
+  const deleteProcessField = (fieldId: string) => {
+    setNodes((nds) => nds.map((n) => {
+      const lay = n.data.layout;
+      if (!lay || !lay.some((el) => el.fieldId === fieldId)) return n;
+      return { ...n, data: { ...n.data, layout: lay.filter((el) => el.fieldId !== fieldId) } };
+    }));
+    setFormFields((prev) => prev.filter((f) => f.id !== fieldId));
+    setIsDirty(true);
+  };
+
   return (
     <div className="relative flex h-full w-full">
       {/* Palette */}
@@ -335,6 +363,8 @@ export function DesignerFlow({
             layout={bn.data.layout ?? []}
             onChange={(lay) => updateNodeData(bn.id, { layout: lay })}
             onCreateField={handleFormFieldsChange}
+            fieldUsage={fieldUsage}
+            onDeleteField={deleteProcessField}
             onClose={() => setLayoutBuilderNodeId(null)}
           />
         );
