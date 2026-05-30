@@ -519,6 +519,20 @@ function makePresentEl(kind: PresentKind, x: number, y: number): LayoutElement {
   return base;
 }
 
+// Construye un FormField nuevo con defaults sensatos por tipo (para crear campos
+// directo desde la paleta del diseñador, sin ir al panel de campos del proceso).
+function makeNewField(type: FormFieldType): FormField {
+  const label = FIELD_TYPES.find((t) => t.value === type)?.label ?? "Campo";
+  const f: FormField = {
+    id: `field-${Date.now()}-${Math.floor(Math.random() * 1e3)}`,
+    type,
+    label: `Nuevo ${label.toLowerCase()}`,
+    required: false,
+  };
+  if (OPTION_FIELD_TYPES.includes(type)) f.options = ["Opción A", "Opción B", "Opción C"];
+  return f;
+}
+
 // Mapas de presentación (ícono / label / tamaño) para paleta, ghost y capas.
 const PRESENT_ICON: Record<PresentKind, typeof Heading> = {
   title: Heading, text: TextIcon, divider: Minus, section: SquareDashed, image: ImageIcon,
@@ -548,12 +562,14 @@ function StepLayoutBuilder({
   processFields,
   layout,
   onChange,
+  onCreateField,
   onClose,
 }: {
   nodeLabel: string;
   processFields: FormField[];
   layout: LayoutElement[];
   onChange: (layout: LayoutElement[]) => void;
+  onCreateField: (fields: FormField[]) => void;
   onClose: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -561,6 +577,7 @@ function StepLayoutBuilder({
   const [preview, setPreview] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [newFieldMenu, setNewFieldMenu] = useState(false);
   const [spawn, setSpawn] = useState<SpawnState>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const cascadeRef = useRef(0);
@@ -608,6 +625,11 @@ function StepLayoutBuilder({
 
   const patchEl = (id: string, patch: Partial<LayoutElement>, coalesceMs?: number) =>
     commit(layout.map((e) => (e.id === id ? { ...e, ...patch } : e)), coalesceMs);
+  // Edita un FormField del proceso (label, required, opciones…) desde el diseñador.
+  const patchField = (fieldId: string | undefined, patch: Partial<FormField>) => {
+    if (!fieldId) return;
+    onCreateField(processFields.map((f) => (f.id === fieldId ? { ...f, ...patch } : f)));
+  };
   const removeEl = (id: string) => {
     commit(layout.filter((e) => e.id !== id));
     if (selectedId === id) setSelectedId(null);
@@ -657,6 +679,17 @@ function StepLayoutBuilder({
     } finally {
       setUploadingImg(false);
     }
+  };
+
+  // Crea un campo nuevo en el proceso y lo coloca en el lienzo de este paso.
+  const createField = (type: FormFieldType) => {
+    const f = makeNewField(type);
+    onCreateField([...processFields, f]);
+    const c = cascadeRef.current; cascadeRef.current = (c + 1) % 6;
+    const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24 + c * 16, y: nextY, w: 280, h: 66 };
+    commit([...layout, el]);
+    setSelectedId(el.id);
+    setNewFieldMenu(false);
   };
 
   // ─── Spawn (arrastrar desde la paleta hacia el lienzo) ──────────────────────
@@ -799,11 +832,14 @@ function StepLayoutBuilder({
       <div className="flex min-h-0 flex-1">
         {/* Paleta — arrastrá al lienzo (o click para agregar arriba) */}
         <div className="w-60 shrink-0 overflow-y-auto border-r p-4" style={{ borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
-          <p className="mb-2 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Campos del proceso</p>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Campos del proceso</p>
+            <span className="rounded px-1.5 py-0.5 font-mono text-[9px]" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)" }}>{usedFieldIds.size}/{processFields.length}</span>
+          </div>
           {processFields.length === 0 ? (
-            <p className="mb-4 text-[10px] leading-relaxed" style={{ color: "var(--c-text-placeholder)" }}>Sin campos todavía. Crealos con el botón &quot;Campos&quot; del editor del proceso, después los arrastrás acá.</p>
+            <p className="mb-2 text-[10px] leading-relaxed" style={{ color: "var(--c-text-placeholder)" }}>Sin campos todavía. Creá uno con el botón de abajo o arrastrá un elemento visual.</p>
           ) : (
-            <div className="mb-4 flex flex-col gap-1">
+            <div className="mb-2 flex flex-col gap-1">
               {processFields.map((f) => {
                 const used = usedFieldIds.has(f.id);
                 const FIcon = FIELD_TYPE_ICON[f.type] ?? TextIcon;
@@ -823,6 +859,37 @@ function StepLayoutBuilder({
               })}
             </div>
           )}
+
+          {/* Nuevo campo de datos — crea un FormField en el proceso + lo coloca */}
+          <div className="relative mb-4">
+            <button type="button" onClick={() => setNewFieldMenu((v) => !v)}
+              className="flex w-full items-center justify-center gap-2 rounded-md px-2.5 py-2 text-[11px] font-medium transition-colors hover:bg-[var(--c-bg-elevated)]"
+              style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.08)", border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.25)", color: "var(--c-accent-blue)" }}>
+              <Plus className="h-3.5 w-3.5" /> Nuevo campo de datos
+            </button>
+            {newFieldMenu && (
+              <div className="absolute left-0 right-0 z-20 mt-1.5 rounded-lg p-1.5" style={{ background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", boxShadow: "0 16px 40px rgb(0 0 0 / 0.5)" }}>
+                <div className="mb-1 flex items-center justify-between px-1.5 pt-0.5">
+                  <span className="font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Tipo de campo</span>
+                  <button type="button" onClick={() => setNewFieldMenu(false)} style={{ color: "var(--c-text-muted)" }}><X className="h-3 w-3" /></button>
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  {FIELD_TYPES.map((t) => {
+                    const TIcon = FIELD_TYPE_ICON[t.value] ?? TextIcon;
+                    return (
+                      <button key={t.value} type="button" onClick={() => createField(t.value)}
+                        className="flex items-center gap-1.5 rounded px-2 py-1.5 text-left text-[10px] transition-colors hover:border-[var(--c-accent-blue)]"
+                        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}>
+                        <TIcon className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-blue)" }} />
+                        <span className="truncate">{t.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
           <p className="mb-2 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Elementos visuales</p>
           <div className="flex flex-col gap-1.5">
             {PALETTE_ELEMENTS.map(({ kind, label, desc, Icon }) => (
@@ -1016,15 +1083,77 @@ function StepLayoutBuilder({
                   </button>
                 </div>
 
-                {selected.kind === "field" && (
-                  <>
-                    <p className="text-xs" style={{ color: "var(--c-text-secondary)" }}>{fieldOf(selected.fieldId)?.label ?? "Campo"}</p>
-                    <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
-                      <input type="checkbox" checked={selected.readOnly ?? false} onChange={(e) => patchEl(selected.id, { readOnly: e.target.checked })} />
-                      Solo lectura en este paso
-                    </label>
-                  </>
-                )}
+                {selected.kind === "field" && (() => {
+                  const f = fieldOf(selected.fieldId);
+                  if (!f) return <p className="text-[11px]" style={{ color: "var(--c-accent-red)" }}>Campo eliminado del proceso.</p>;
+                  const isOptionType = OPTION_FIELD_TYPES.includes(f.type);
+                  return (
+                    <>
+                      <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Etiqueta</label>
+                      <input
+                        value={f.label}
+                        onChange={(e) => patchField(f.id, { label: e.target.value })}
+                        className="w-full rounded px-2 py-1 text-xs outline-none"
+                        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+                      />
+                      <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Tipo de dato</label>
+                      <select
+                        value={f.type}
+                        onChange={(e) => patchField(f.id, { type: e.target.value as FormFieldType })}
+                        className="w-full rounded px-1.5 py-1 text-[11px] outline-none"
+                        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" }}
+                      >
+                        {FIELD_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                      <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
+                        <input type="checkbox" checked={f.required} onChange={(e) => patchField(f.id, { required: e.target.checked })} />
+                        Obligatorio
+                      </label>
+                      <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
+                        <input type="checkbox" checked={selected.readOnly ?? false} onChange={(e) => patchEl(selected.id, { readOnly: e.target.checked })} />
+                        Solo lectura en este paso
+                      </label>
+                      {isOptionType && (
+                        <>
+                          <div className="flex gap-1">
+                            {(["manual", "departments", "employees", "divisions"] as const).map((opt) => {
+                              const active = opt === "manual" ? !f.source : f.source === opt;
+                              const labels: Record<string, string> = { manual: "Manual", departments: "Depts", employees: "Empl.", divisions: "Divis." };
+                              return (
+                                <button key={opt} type="button"
+                                  onClick={() => patchField(f.id, { source: opt === "manual" ? undefined : (opt as "departments" | "employees" | "divisions") })}
+                                  className="flex-1 rounded px-1 py-0.5 text-[9px] transition-colors"
+                                  style={{ background: active ? "rgb(var(--c-accent-blue-rgb) / 0.13)" : "var(--c-bg-elevated)", border: `1px solid ${active ? "var(--c-accent-blue)" : "var(--c-border)"}`, color: active ? "var(--c-accent-blue)" : "var(--c-text-muted)" }}>
+                                  {labels[opt]}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {!f.source ? (
+                            <input
+                              value={(f.options ?? []).join(", ")}
+                              onChange={(e) => patchField(f.id, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+                              placeholder="Opción 1, Opción 2…"
+                              className="w-full rounded px-2 py-1 text-[10px] outline-none"
+                              style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}
+                            />
+                          ) : (
+                            <p className="text-[9px]" style={{ color: "var(--c-text-muted)" }}>Opciones dinámicas desde {f.source === "departments" ? "departamentos" : f.source === "employees" ? "empleados" : "divisiones"} de la org.</p>
+                          )}
+                        </>
+                      )}
+                      {(f.type === "text" || f.type === "textarea" || f.type === "number") && (
+                        <input
+                          value={f.placeholder ?? ""}
+                          onChange={(e) => patchField(f.id, { placeholder: e.target.value })}
+                          placeholder="Placeholder (opcional)"
+                          className="w-full rounded px-2 py-1 text-[10px] outline-none"
+                          style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}
+                        />
+                      )}
+                    </>
+                  );
+                })()}
 
                 {(selected.kind === "title" || selected.kind === "text") && (
                   <>
@@ -1972,6 +2101,7 @@ function DesignerFlow({
             processFields={formFields}
             layout={bn.data.layout ?? []}
             onChange={(lay) => updateNodeData(bn.id, { layout: lay })}
+            onCreateField={handleFormFieldsChange}
             onClose={() => setLayoutBuilderNodeId(null)}
           />
         );
