@@ -508,6 +508,8 @@ function StepLayoutBuilder({
   onClose: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const zoomBy = (d: number) => setZoom((z) => Math.min(2, Math.max(0.4, Math.round((z + d) * 100) / 100)));
 
   const usedFieldIds = new Set(layout.filter((e) => e.kind === "field").map((e) => e.fieldId));
   // Nuevo elemento debajo del más bajo existente (sin superposición).
@@ -614,11 +616,14 @@ function StepLayoutBuilder({
             }}
             onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
           >
+            {/* Wrapper que reserva el espacio escalado (para que el scroll funcione con zoom) */}
+            <div className="mx-auto" style={{ width: CANVAS_W * zoom, height: CANVAS_H * zoom }}>
             {/* Hoja: la ventana que verá el ejecutor (WYSIWYG) */}
             <div
-              className="relative mx-auto"
+              className="relative"
               style={{
                 width: CANVAS_W, height: CANVAS_H,
+                transform: `scale(${zoom})`, transformOrigin: "top left",
                 background: `
                   linear-gradient(to right, rgb(var(--c-border-rgb) / 0.25) 1px, transparent 1px) 0 0 / 24px 24px,
                   linear-gradient(to bottom, rgb(var(--c-border-rgb) / 0.25) 1px, transparent 1px) 0 0 / 24px 24px,
@@ -657,6 +662,7 @@ function StepLayoutBuilder({
                   snapThreshold={7}
                   throttleDrag={0}
                   throttleResize={0}
+                  zoom={zoom}
                   elementGuidelines={layout.filter((e) => e.id !== selected.id).map((e) => `[data-lid="${e.id}"]`)}
                   snapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
                   elementSnapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
@@ -682,6 +688,14 @@ function StepLayoutBuilder({
                   }}
                 />
               )}
+            </div>
+            </div>
+
+            {/* Controles de zoom — flotantes, no se escalan */}
+            <div className="sticky bottom-0 left-0 flex items-center gap-1 rounded-lg p-1" style={{ position: "sticky", width: "fit-content", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", boxShadow: "0 4px 16px rgb(0 0 0 / 0.3)" }}>
+              <button type="button" onClick={() => zoomBy(-0.1)} className="flex h-7 w-7 items-center justify-center rounded hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }} title="Alejar"><Minus className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => setZoom(1)} className="min-w-[44px] rounded px-2 py-1 text-[11px] font-mono hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }} title="Restablecer zoom">{Math.round(zoom * 100)}%</button>
+              <button type="button" onClick={() => zoomBy(0.1)} className="flex h-7 w-7 items-center justify-center rounded hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }} title="Acercar"><Plus className="h-3.5 w-3.5" /></button>
             </div>
           </div>
 
