@@ -4,7 +4,7 @@
 // DB ↔ ReactFlow, componentes visuales de cada nodo, el mapa nodeTypes y la paleta.
 import { Handle, Position, type Node, type Edge } from "@xyflow/react";
 import { Circle, User, Settings, Zap, GitMerge, GitBranch } from "lucide-react";
-import type { LayoutElement, ProcessNode, ProcessEdge } from "@/lib/process-types";
+import type { LayoutElement, ProcessNode, ProcessEdge, StepAction } from "@/lib/process-types";
 
 // ─── Node data type ───────────────────────────────────────────────────────────
 
@@ -15,6 +15,8 @@ export type BpmData = {
   serviceAction?: string;
   // Layout visual de la ventana de este paso (builder estilo Canva, por paso).
   layout?: LayoutElement[];
+  // Acciones/decisiones del paso (solo userTask).
+  actions?: StepAction[];
   allowTracking?: boolean;
   // Heatmap overlay — cuando está activo en el editor, este campo se inyecta
   // con el color calculado del cycle time del nodo (verde rápido → rojo lento).
@@ -35,6 +37,7 @@ export function nodesToDB(rfNodes: BpmNode[]): ProcessNode[] {
     assigneeDeptId: n.data.assigneeDeptId,
     serviceAction: n.data.serviceAction,
     layout: n.data.layout,
+    actions: n.data.actions,
     position: n.position,
   }));
 }
@@ -50,6 +53,7 @@ export function nodesFromDB(dbNodes: ProcessNode[]): BpmNode[] {
       assigneeDeptId: n.assigneeDeptId,
       serviceAction: n.serviceAction,
       layout: n.layout,
+      actions: n.actions,
     },
   }));
 }

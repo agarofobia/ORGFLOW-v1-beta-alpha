@@ -41,6 +41,7 @@ export async function GET(
     let formFields: unknown[] = [];
     let fieldValues: Record<string, unknown> = {};
     let layout: LayoutElement[] = [];
+    let actions: ProcessNode["actions"] = [];
     if (instance) {
       const [def] = await db
         .select({ formFields: processDefinitions.formFields, nodes: processDefinitions.nodes })
@@ -49,13 +50,14 @@ export async function GET(
         .limit(1);
       formFields = (def?.formFields as unknown[]) ?? [];
       fieldValues = (instance.context as Record<string, unknown>) ?? {};
-      // Layout visual de la ventana de ESTE paso (builder por paso).
+      // Layout visual + acciones/decisiones de ESTE paso (builder por paso).
       const nodes = (def?.nodes as unknown as ProcessNode[]) ?? [];
       const node = Array.isArray(nodes) ? nodes.find((n) => n.id === task.nodeId) : null;
       layout = node?.layout ?? [];
+      actions = node?.actions ?? [];
     }
 
-    return NextResponse.json({ ...task, formFields, fieldValues, layout });
+    return NextResponse.json({ ...task, formFields, fieldValues, layout, actions });
   } catch (err) {
     return apiError(err);
   }
@@ -186,6 +188,7 @@ export async function PATCH(
         completedNodeId: task.nodeId,
         output: { ...formData, ...(body.output ?? {}) },
         completedBy: userId,
+        actionId: typeof body.actionId === "string" ? body.actionId : undefined,
       });
 
       return NextResponse.json({ success: result.success, error: result.error });

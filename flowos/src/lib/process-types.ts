@@ -88,6 +88,18 @@ export type ColorToken =
 
 // ─── Topología BPM (persistida en processDefinitions.nodes / .edges) ──────────
 
+// Acción del paso (userTask): un botón que completa la tarea y dirige el flujo.
+// Modelo HÍBRIDO: si `to` está seteado, el motor va directo a ese nodo (sin evaluar
+// condiciones); si no, sigue el flujo normal por edges/gateways. Al elegirla, el
+// motor guarda `context.decision = label` (queda disponible para pasos siguientes,
+// texto dinámico y condiciones de gateways).
+export interface StepAction {
+  id: string;
+  label: string;
+  intent: "primary" | "neutral" | "danger";
+  to?: string; // nodeId destino (opcional)
+}
+
 export interface ProcessNode {
   id: string;
   type: string;
@@ -98,6 +110,8 @@ export interface ProcessNode {
   position?: { x: number; y: number };
   // Layout visual de la ventana de este paso (builder por paso).
   layout?: LayoutElement[];
+  // Acciones/decisiones del paso (solo userTask). Sin acciones → un botón "Completar".
+  actions?: StepAction[];
   // SLA: tiempo esperado para completar este nodo en ms. Null = sin SLA.
   expectedDurationMs?: number | null;
 }

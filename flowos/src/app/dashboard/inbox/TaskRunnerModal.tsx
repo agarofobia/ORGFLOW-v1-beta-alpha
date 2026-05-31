@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
 import type { InboxTask } from "@/db/schema";
-import type { FormField, FormFieldType, LayoutElement } from "@/lib/process-types";
+import type { FormField, FormFieldType, LayoutElement, StepAction } from "@/lib/process-types";
 import { evalShowWhen, interpolate } from "@/lib/form-conditions";
 import { resolveColor } from "@/components/dashboard/processes/layout-style";
 
@@ -215,6 +215,7 @@ interface TaskWithForm extends InboxTask {
   formFields?: FormField[];
   fieldValues?: Record<string, unknown>; // valores acumulados de pasos anteriores (tren de carga)
   layout?: LayoutElement[];              // diseño visual de la ventana de este paso
+  actions?: StepAction[];                // acciones/decisiones del paso (botones que ramifican)
 }
 
 export default function TaskRunnerModal({
@@ -247,15 +248,39 @@ export default function TaskRunnerModal({
       .finally(() => setLoading(false));
   }, [taskId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Valida los campos OBLIGATORIOS visibles (ignora los ocultos por condición y los
+  // de solo lectura). Cubre todos los tipos, incluidos radio/multiselección/checkbox/file
+  // que la validación nativa del navegador no enforza bien. Devuelve null si está OK.
+  const validateRequired = (): string | null => {
+    const lay = task?.layout ?? [];
+    const byId = new Map((task?.formFields ?? []).map((f) => [f.id, f]));
+    for (const el of lay) {
+      if (el.kind !== "field" || !el.fieldId || el.readOnly) continue;
+      if (!evalShowWhen(el.showWhen, formData)) continue; // oculto por condición → no exige
+      const f = byId.get(el.fieldId);
+      if (!f || !f.required) continue;
+      const v = formData[f.id];
+      const empty =
+        v == null || v === "" ||
+        (Array.isArray(v) && v.length === 0) ||
+        (f.type === "checkbox" && v !== true) ||
+        (f.type === "file" && !(v as { data?: string } | undefined)?.data);
+      if (empty) return `Falta completar "${f.label}".`;
+    }
+    return null;
+  };
+
+  // Completa el paso. `actionId` = decisión elegida (si el paso define acciones).
+  const submit = async (actionId?: string) => {
+    const invalid = validateRequired();
+    if (invalid) { setError(invalid); return; }
     setSubmitting(true);
     setError(null);
     try {
       const res = await fetch(`/api/inbox/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "complete", formData }),
+        body: JSON.stringify({ action: "complete", formData, actionId }),
       });
       const data = await res.json();
       if (res.ok && data.success !== false) {
@@ -267,6 +292,13 @@ export default function TaskRunnerModal({
       setSubmitting(false);
     }
   };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void submit(undefined);
+  };
+
+  const actions = task?.actions ?? [];
 
   // El paso define su ventana con un layout visual (builder estilo Canva).
   const layout = task?.layout ?? [];
@@ -404,29 +436,49 @@ export default function TaskRunnerModal({
               )}
             </div>
 
-            {/* Footer */}
-            <div className="flex justify-end gap-2 border-t px-6 py-4" style={{ borderColor: "var(--c-border)" }}>
+            {/* Footer — acciones del paso (decisión) o Completar por defecto */}
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t px-6 py-4" style={{ borderColor: "var(--c-border)" }}>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded px-4 py-2 text-sm"
+                className="mr-auto rounded px-4 py-2 text-sm"
                 style={{ color: "var(--c-text-muted)", background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}
               >
                 Cancelar
               </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex items-center gap-2 rounded px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
-                style={{ background: "var(--c-accent-emerald)" }}
-              >
-                {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4" />
-                )}
-                Completar
-              </button>
+              {actions.length > 0 ? (
+                actions.map((a) => {
+                  const styleByIntent =
+                    a.intent === "danger"
+                      ? { background: "var(--c-accent-red)", color: "#fff", border: "none" }
+                      : a.intent === "neutral"
+                      ? { background: "var(--c-bg-elevated)", color: "var(--c-text-primary)", border: "1px solid var(--c-border-strong)" }
+                      : { background: "var(--c-accent-emerald)", color: "#fff", border: "none" };
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => submit(a.id)}
+                      className="flex items-center gap-2 rounded px-5 py-2 text-sm font-medium disabled:opacity-50"
+                      style={styleByIntent}
+                    >
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      {a.label}
+                    </button>
+                  );
+                })
+              ) : (
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex items-center gap-2 rounded px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
+                  style={{ background: "var(--c-accent-emerald)" }}
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  Completar
+                </button>
+              )}
             </div>
           </form>
         )}

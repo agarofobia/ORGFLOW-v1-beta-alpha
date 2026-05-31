@@ -20,9 +20,10 @@ export type {
   LayoutElement,
   ProcessNode,
   ProcessEdge,
+  StepAction,
 } from "./process-types";
 
-import type { ProcessNode, ProcessEdge } from "./process-types";
+import type { ProcessNode, ProcessEdge, StepAction } from "./process-types";
 
 interface HistoryEntry {
   nodeId: string;
@@ -297,8 +298,11 @@ export async function advanceInstance(opts: {
   completedNodeId: string;
   output?: Record<string, unknown>;
   completedBy?: string;
+  // Acción/decisión elegida por el ejecutor (StepAction.id). Modelo híbrido: si la
+  // acción tiene `to`, el flujo va directo a ese nodo; si no, sigue por condiciones.
+  actionId?: string;
 }): Promise<{ success: boolean; error?: string }> {
-  const { instanceId, completedNodeId, output = {}, completedBy = "system" } = opts;
+  const { instanceId, completedNodeId, output = {}, completedBy = "system", actionId } = opts;
 
   const [instance] = await db
     .select()
@@ -340,6 +344,13 @@ export async function advanceInstance(opts: {
 
   const completedNode = nodes.find((n) => n.id === completedNodeId);
   const outgoingEdges = edges.filter((e) => e.from === completedNodeId);
+
+  // Acción/decisión elegida (solo userTask con acciones definidas). Guardamos la
+  // decisión en el context para que la vean pasos siguientes, texto dinámico y las
+  // condiciones de los gateways (modelo híbrido: si la acción tiene `to`, abajo se
+  // saltea la evaluación de edges).
+  const action = actionId ? completedNode?.actions?.find((a) => a.id === actionId) : undefined;
+  if (action) context.decision = action.label;
 
   // Audit: node completed
   if (completedNode) {
@@ -411,41 +422,65 @@ export async function advanceInstance(opts: {
     return { success: true };
   }
 
-  // Exclusive gateway or regular node → first matching edge
-  const nextEdge = outgoingEdges.find((e) => evaluateCondition(e.condition, context));
-  if (!nextEdge) {
-    await db
-      .update(processInstances)
-      .set({ status: "failed", history: updatedHistory })
-      .where(eq(processInstances.id, instanceId));
-    await logProcessEvent({
-      organizationId: instance.organizationId,
-      processDefinitionId: instance.processDefinitionId,
-      instanceId,
-      event: "instance_failed",
-      clerkUserId: completedBy,
-      actorType: completedBy === "system" ? "system" : "user",
-      metadata: { reason: "no matching outgoing edge", fromNodeId: completedNodeId },
-    });
-    return { success: false, error: "No matching outgoing edge — process failed" };
-  }
-
-  const nextNode = nodes.find((n) => n.id === nextEdge.to);
-  if (!nextNode) {
-    await db
-      .update(processInstances)
-      .set({ status: "failed", history: updatedHistory })
-      .where(eq(processInstances.id, instanceId));
-    await logProcessEvent({
-      organizationId: instance.organizationId,
-      processDefinitionId: instance.processDefinitionId,
-      instanceId,
-      event: "instance_failed",
-      clerkUserId: completedBy,
-      actorType: completedBy === "system" ? "system" : "user",
-      metadata: { reason: "next node not found", edgeId: nextEdge.id },
-    });
-    return { success: false, error: "Next node not found — process failed" };
+  // Exclusive gateway o nodo regular → HÍBRIDO:
+  //  - si la acción elegida define destino directo (`to`), vamos a ese nodo (la
+  //    decisión "rompe" el flujo por condiciones);
+  //  - si no, seguimos el primer edge cuya condición se cumple (decision ya está
+  //    en context, así que las condiciones pueden usarla: `decision === "Rechazar"`).
+  let nextNode: ProcessNode | undefined;
+  if (action?.to) {
+    nextNode = nodes.find((n) => n.id === action.to);
+    if (!nextNode) {
+      await db
+        .update(processInstances)
+        .set({ status: "failed", history: updatedHistory })
+        .where(eq(processInstances.id, instanceId));
+      await logProcessEvent({
+        organizationId: instance.organizationId,
+        processDefinitionId: instance.processDefinitionId,
+        instanceId,
+        event: "instance_failed",
+        clerkUserId: completedBy,
+        actorType: completedBy === "system" ? "system" : "user",
+        metadata: { reason: "action target not found", actionId, to: action.to },
+      });
+      return { success: false, error: "Action target node not found — process failed" };
+    }
+  } else {
+    const nextEdge = outgoingEdges.find((e) => evaluateCondition(e.condition, context));
+    if (!nextEdge) {
+      await db
+        .update(processInstances)
+        .set({ status: "failed", history: updatedHistory })
+        .where(eq(processInstances.id, instanceId));
+      await logProcessEvent({
+        organizationId: instance.organizationId,
+        processDefinitionId: instance.processDefinitionId,
+        instanceId,
+        event: "instance_failed",
+        clerkUserId: completedBy,
+        actorType: completedBy === "system" ? "system" : "user",
+        metadata: { reason: "no matching outgoing edge", fromNodeId: completedNodeId },
+      });
+      return { success: false, error: "No matching outgoing edge — process failed" };
+    }
+    nextNode = nodes.find((n) => n.id === nextEdge.to);
+    if (!nextNode) {
+      await db
+        .update(processInstances)
+        .set({ status: "failed", history: updatedHistory })
+        .where(eq(processInstances.id, instanceId));
+      await logProcessEvent({
+        organizationId: instance.organizationId,
+        processDefinitionId: instance.processDefinitionId,
+        instanceId,
+        event: "instance_failed",
+        clerkUserId: completedBy,
+        actorType: completedBy === "system" ? "system" : "user",
+        metadata: { reason: "next node not found", edgeId: nextEdge.id },
+      });
+      return { success: false, error: "Next node not found — process failed" };
+    }
   }
 
   const isEnd = nextNode.type === "endEvent";

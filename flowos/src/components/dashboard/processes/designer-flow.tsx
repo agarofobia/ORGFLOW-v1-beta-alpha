@@ -344,6 +344,7 @@ export function DesignerFlow({
         <div className="absolute right-4 top-4 z-10">
           <PropertiesPanel
             node={selectedNode}
+            allNodes={nodes.map((n) => ({ id: n.id, label: n.data.label, type: n.type ?? "" }))}
             onUpdate={updateNodeData}
             onClose={() => setSelectedNode(null)}
             onOpenLayoutBuilder={() => setLayoutBuilderNodeId(selectedNode.id)}
