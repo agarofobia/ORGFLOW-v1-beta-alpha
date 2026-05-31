@@ -37,6 +37,8 @@ import {
   Lock,
   MousePointer2,
   Braces,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import Moveable from "react-moveable";
 import { evalShowWhen, interpolate } from "@/lib/form-conditions";
@@ -342,6 +344,17 @@ export function StepLayoutBuilder({
   const removeEl = (id: string) => {
     commit(layout.filter((e) => e.id !== id));
     if (selectedId === id) setSelectedId(null);
+  };
+
+  // Reordena un elemento en el array → cambia el orden de apilado (z) en el lienzo.
+  // dir +1 = traer al frente un paso (más adelante en el array); -1 = enviar atrás.
+  const moveLayer = (id: string, dir: -1 | 1) => {
+    const idx = layout.findIndex((e) => e.id === id);
+    const target = idx + dir;
+    if (idx < 0 || target < 0 || target >= layout.length) return;
+    const next = [...layout];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    commit(next);
   };
 
   const duplicateEl = (id?: string) => {
@@ -695,6 +708,24 @@ export function StepLayoutBuilder({
                           </div>
                         </div>
                         {el.showWhen && <span title="Condicional" className="flex shrink-0"><Filter className="h-3.5 w-3.5" style={{ color: "var(--c-accent-amber)" }} /></span>}
+                        {/* Reordenar capa (z): traer al frente / enviar atrás */}
+                        {(() => {
+                          const idx = layout.findIndex((e) => e.id === el.id);
+                          return (
+                            <div className="flex shrink-0 flex-col" onMouseDown={(e) => e.stopPropagation()}>
+                              <button type="button" title="Traer al frente" disabled={idx >= layout.length - 1}
+                                onClick={(e) => { e.stopPropagation(); moveLayer(el.id, 1); }}
+                                className="flex h-3.5 w-4 items-center justify-center transition-opacity disabled:opacity-20 hover:text-[var(--c-text-secondary)]" style={{ color: "var(--c-text-dim)" }}>
+                                <ChevronUp className="h-3 w-3" />
+                              </button>
+                              <button type="button" title="Enviar atrás" disabled={idx <= 0}
+                                onClick={(e) => { e.stopPropagation(); moveLayer(el.id, -1); }}
+                                className="flex h-3.5 w-4 items-center justify-center transition-opacity disabled:opacity-20 hover:text-[var(--c-text-secondary)]" style={{ color: "var(--c-text-dim)" }}>
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })()}
                         {/* Quitar de esta ventana */}
                         <button type="button" title="Quitar de esta ventana"
                           onMouseDown={(e) => e.stopPropagation()}
