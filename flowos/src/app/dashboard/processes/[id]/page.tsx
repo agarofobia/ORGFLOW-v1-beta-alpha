@@ -14,12 +14,14 @@ import {
   Minimize2,
   Play,
   Loader2,
+  Layers,
 } from "lucide-react";
 import type { ProcessDefinition } from "@/db/schema";
 import type { ProcessNode, ProcessEdge, FormField } from "@/lib/process-types";
 import { useToast } from "@/components/ui/toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import AuditPanel from "@/components/dashboard/processes/audit-panel";
+import InstancesPanel from "@/components/dashboard/processes/instances-panel";
 import { DesignerFlow } from "@/components/dashboard/processes/designer-flow";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -57,6 +59,7 @@ export default function ProcessDesignerPage({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [instancesOpen, setInstancesOpen] = useState(false);
   const [heatmapOn, setHeatmapOn] = useState(false);
   const [heatmapData, setHeatmapData] = useState<Record<string, { color: string; label: string }>>({});
   const { can: canDo } = usePermissions();
@@ -444,6 +447,17 @@ export default function ProcessDesignerPage({
           </span>
         )}
 
+        <button
+          onClick={() => setInstancesOpen(true)}
+          title="Instancias en ejecución de este proceso"
+          aria-label="Instancias"
+          className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs transition-all hover:bg-[var(--c-bg-elevated)]"
+          style={{ color: "var(--c-text-muted)", border: "1px solid var(--c-border)" }}
+        >
+          <Layers className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Instancias</span>
+        </button>
+
         {canAudit && (
           <button
             onClick={() => setAuditOpen(true)}
@@ -515,6 +529,14 @@ export default function ProcessDesignerPage({
       </div>
 
       {auditOpen && <AuditPanel processId={processId} onClose={() => setAuditOpen(false)} />}
+      {instancesOpen && (
+        <InstancesPanel
+          processId={processId}
+          nodes={((definition.nodes ?? []) as unknown as ProcessNode[]).map((n) => ({ id: n.id, label: n.label, expectedDurationMs: n.expectedDurationMs }))}
+          formFields={((definition.formFields ?? []) as unknown as FormField[]).map((f) => ({ id: f.id, label: f.label }))}
+          onClose={() => setInstancesOpen(false)}
+        />
+      )}
     </div>
   );
 }
