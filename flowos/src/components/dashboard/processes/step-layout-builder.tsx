@@ -37,8 +37,6 @@ import {
   Lock,
   MousePointer2,
   Braces,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import Moveable from "react-moveable";
 import { evalShowWhen, interpolate } from "@/lib/form-conditions";
@@ -248,7 +246,7 @@ function DynInsert({ fields, onInsert }: { fields: FormField[]; onInsert: (token
         <Braces className="h-3 w-3" style={{ color: "var(--c-accent-blue)" }} /> Insertar campo
       </button>
       {open && (
-        <div className="flo-popin absolute left-0 z-40 overflow-auto" style={{ top: 32, background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", borderRadius: 9, padding: 5, boxShadow: "0 16px 40px rgb(0 0 0 / 0.55)", minWidth: 180, maxHeight: 220 }}>
+        <div className="flo-popin absolute left-0 z-40 overflow-auto" style={{ top: 32, background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", borderRadius: 9, padding: 5, boxShadow: "0 16px 40px var(--c-shadow-strong)", minWidth: 180, maxHeight: 220 }}>
           {fields.map((f) => (
             <div key={f.id} onClick={() => { onInsert(`{${f.label}}`); setOpen(false); }}
               className="cursor-pointer rounded px-2 py-1.5 text-[12.5px] hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }}>
@@ -287,8 +285,7 @@ export function StepLayoutBuilder({
   const [preview, setPreview] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
-  const [newFieldMenu, setNewFieldMenu] = useState(false);
-  const [layersOpen, setLayersOpen] = useState(true);
+  const [tab, setTab] = useState<"add" | "placed">("add");
   const [confirmDelId, setConfirmDelId] = useState<string | null>(null);
   const [spawn, setSpawn] = useState<SpawnState>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -401,7 +398,6 @@ export function StepLayoutBuilder({
     const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24 + c * 16, y: nextY, w: 280, h: 66 };
     commit([...layout, el]);
     setSelectedId(el.id);
-    setNewFieldMenu(false);
   };
 
   // Coloca en ESTE paso un campo del proceso ya existente (en cascada).
@@ -411,13 +407,6 @@ export function StepLayoutBuilder({
     const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24 + c * 16, y: nextY, w: 280, h: 66 };
     commit([...layout, el]);
     setSelectedId(el.id);
-  };
-  // Saca de ESTE paso todos los elementos de un campo (no lo borra del proceso).
-  const removeFieldFromStep = (fieldId: string) => {
-    const has = layout.some((e) => e.kind === "field" && e.fieldId === fieldId);
-    if (!has) return;
-    if (selectedId && layout.find((e) => e.id === selectedId)?.fieldId === fieldId) setSelectedId(null);
-    commit(layout.filter((e) => !(e.kind === "field" && e.fieldId === fieldId)));
   };
   // Confirma y borra el campo del proceso entero (todos los pasos).
   const confirmDeleteField = (fieldId: string) => {
@@ -564,178 +553,184 @@ export function StepLayoutBuilder({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {/* Paleta — una sola barra: campos del proceso, elementos visuales y capas */}
-        <div className="flo-scroll w-[252px] shrink-0 overflow-y-auto border-r" style={{ borderColor: "var(--c-border)", background: "var(--c-bg-surface)", padding: "16px 12px 24px" }}>
-          {/* Campos del proceso */}
-          <div className="mb-2.5 flex items-center justify-between px-1">
-            <div className="flex items-center gap-1.5">
-              <Layers className="h-3 w-3" style={{ color: "var(--c-accent-blue)" }} />
-              <span className="flo-label">Campos del proceso</span>
+        {/* Paleta — dos modos: Agregar elementos | En esta ventana (colocados) */}
+        <div className="flo-scroll flex w-[252px] shrink-0 flex-col overflow-y-auto border-r" style={{ borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
+          {/* Tabs */}
+          <div className="sticky top-0 z-10 px-3 pb-2.5 pt-3" style={{ background: "var(--c-bg-surface)", borderBottom: "1px solid var(--c-border)" }}>
+            <div className="flo-seg">
+              <button type="button" className={tab === "add" ? "active" : ""} onClick={() => setTab("add")}>
+                <Plus className="h-3.5 w-3.5" /> Agregar
+              </button>
+              <button type="button" className={tab === "placed" ? "active" : ""} onClick={() => setTab("placed")}>
+                <LayoutTemplate className="h-3.5 w-3.5" /> En esta ventana{layout.length > 0 ? ` · ${layout.length}` : ""}
+              </button>
             </div>
-            <span className="flo-chip" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", padding: "1px 6px" }}>{usedFieldIds.size}/{processFields.length}</span>
           </div>
-          {processFields.length === 0 ? (
-            <p className="mb-2 px-1 text-[11px] leading-relaxed" style={{ color: "var(--c-text-placeholder)" }}>Sin campos todavía. Creá uno con el botón de abajo o arrastrá un elemento visual.</p>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {processFields.map((f) => {
-                const inThisStep = usedFieldIds.has(f.id);
-                const usage = fieldUsage[f.id] ?? (inThisStep ? 1 : 0);
-                const otherSteps = inThisStep ? usage - 1 : usage;
-                const FIcon = FIELD_TYPE_ICON[f.type] ?? TextIcon;
-                const typeLabel = FIELD_TYPES.find((t) => t.value === f.type)?.label ?? f.type;
-                // Estado de uso: en este paso (+otros), solo en otros, o sin usar.
-                const usageText = inThisStep
-                  ? (otherSteps > 0 ? `en este paso · +${otherSteps}` : "en este paso")
-                  : (otherSteps > 0 ? `en ${otherSteps} paso${otherSteps > 1 ? "s" : ""}` : "sin usar");
-                const usageColor = inThisStep ? "var(--c-accent-emerald)" : otherSteps > 0 ? "var(--c-text-muted)" : "var(--c-text-dim)";
-                const confirming = confirmDelId === f.id;
+
+          <div className="flex-1 px-3 pb-6 pt-3">
+          {tab === "add" ? (
+            <>
+              {/* Elementos visuales */}
+              <div className="mb-2.5 flex items-center gap-1.5 px-1">
+                <SquareDashed className="h-3 w-3" style={{ color: "var(--c-accent-violet)" }} />
+                <span className="flo-label">Elementos visuales</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {PALETTE_ELEMENTS.map(({ kind, label, desc, Icon }) => (
+                  <div key={kind}
+                    onMouseDown={(e) => onSpawnStart({ source: "present", kind }, e)}
+                    title={`${desc} — arrastrá al lienzo`}
+                    className="flo-pitem flex items-center gap-2.5" style={{ padding: "9px 10px" }}>
+                    <span className="flo-icon-chip" style={{ width: 30, height: 30, background: "rgb(var(--c-accent-violet-rgb) / 0.14)", color: "var(--c-accent-violet)" }}>
+                      <Icon className="h-[15px] w-[15px]" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{label}</div>
+                      <div className="truncate text-[11px]" style={{ color: "var(--c-text-muted)" }}>{desc}</div>
+                    </div>
+                    <GripVertical className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-text-dim)" }} />
+                  </div>
+                ))}
+              </div>
+
+              <div className="my-4 h-px" style={{ background: "var(--c-border)" }} />
+
+              {/* Campos de datos — crear nuevo (todos los tipos desplegados) */}
+              <div className="mb-1 flex items-center gap-1.5 px-1">
+                <Layers className="h-3 w-3" style={{ color: "var(--c-accent-blue)" }} />
+                <span className="flo-label">Campos de datos</span>
+              </div>
+              <p className="mb-2 px-1 text-[10.5px] leading-snug" style={{ color: "var(--c-text-dim)" }}>Creá un campo nuevo y se coloca en la ventana.</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {FIELD_TYPES.map((t) => {
+                  const TIcon = FIELD_TYPE_ICON[t.value] ?? TextIcon;
+                  return (
+                    <button key={t.value} type="button" onClick={() => createField(t.value)}
+                      className="flo-pitem flex items-center gap-1.5" style={{ padding: "7px 8px", cursor: "pointer" }}>
+                      <span className="flo-icon-chip" style={{ width: 22, height: 22, background: "rgb(var(--c-accent-blue-rgb) / 0.13)", color: "var(--c-accent-blue)" }}>
+                        <TIcon className="h-3 w-3" />
+                      </span>
+                      <span className="truncate text-[11.5px]" style={{ color: "var(--c-text-secondary)" }}>{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Reutilizar campos ya creados que no están en este paso */}
+              {(() => {
+                const reusable = processFields.filter((f) => !usedFieldIds.has(f.id));
+                if (reusable.length === 0) return null;
                 return (
-                  <div key={f.id} className="flo-pitem" style={{ padding: "8px 10px", cursor: "default", opacity: !inThisStep && usage === 0 ? 0.6 : 1 }}>
-                    <div className="flex items-center gap-2.5">
-                      {/* Cuerpo arrastrable (solo si no está en este paso) */}
-                      <div
-                        className="flex min-w-0 flex-1 items-center gap-2.5"
-                        onMouseDown={(e) => { if (!inThisStep) onSpawnStart({ source: "field", field: f }, e); }}
-                        title={inThisStep ? f.label : `Arrastrá ${f.label} al lienzo`}
-                        style={{ cursor: inThisStep ? "default" : "grab" }}
-                      >
-                        <span className="flo-icon-chip" style={{ width: 30, height: 30, background: "rgb(var(--c-accent-blue-rgb) / 0.13)", color: "var(--c-accent-blue)" }}>
-                          <FIcon className="h-[15px] w-[15px]" />
+                  <>
+                    <div className="my-4 h-px" style={{ background: "var(--c-border)" }} />
+                    <div className="mb-1 flex items-center gap-1.5 px-1">
+                      <Copy className="h-3 w-3" style={{ color: "var(--c-accent-blue)" }} />
+                      <span className="flo-label">Reutilizar campo</span>
+                    </div>
+                    <p className="mb-2 px-1 text-[10.5px] leading-snug" style={{ color: "var(--c-text-dim)" }}>Mostrá en este paso un dato ya creado.</p>
+                    <div className="flex flex-col gap-1.5">
+                      {reusable.map((f) => {
+                        const usage = fieldUsage[f.id] ?? 0;
+                        const FIcon = FIELD_TYPE_ICON[f.type] ?? TextIcon;
+                        return (
+                          <div key={f.id}
+                            onMouseDown={(e) => onSpawnStart({ source: "field", field: f }, e)}
+                            onClick={() => addFieldHere(f)}
+                            title={`Agregá ${f.label} a este paso`}
+                            className="flo-pitem flex items-center gap-2.5" style={{ padding: "8px 10px" }}>
+                            <span className="flo-icon-chip" style={{ width: 30, height: 30, background: "rgb(var(--c-accent-blue-rgb) / 0.13)", color: "var(--c-accent-blue)" }}>
+                              <FIcon className="h-[15px] w-[15px]" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{f.label}</div>
+                              <div className="font-mono text-[9px]" style={{ color: usage > 0 ? "var(--c-text-muted)" : "var(--c-text-dim)" }}>{usage > 0 ? `en ${usage} paso${usage > 1 ? "s" : ""}` : "sin usar"}</div>
+                            </div>
+                            <Plus className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-blue)" }} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
+            </>
+          ) : (
+            /* ── En esta ventana — elementos colocados (modificar) ── */
+            layout.length === 0 ? (
+              <div className="flex flex-col items-center gap-2.5 px-4 pt-10 text-center">
+                <span className="flo-icon-chip" style={{ width: 40, height: 40, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-dim)" }}>
+                  <LayoutTemplate className="h-4 w-4" />
+                </span>
+                <p className="text-[12px] leading-relaxed" style={{ color: "var(--c-text-muted)" }}>Todavía no pusiste nada en esta ventana. Andá a <strong style={{ color: "var(--c-text-secondary)" }}>Agregar</strong> para empezar.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {[...layout].reverse().map((el) => {
+                  const isSel = el.id === selectedId;
+                  const isField = el.kind === "field";
+                  const f = isField ? fieldOf(el.fieldId) : undefined;
+                  const Icon = isField ? (FIELD_TYPE_ICON[f?.type ?? "text"] ?? TextIcon) : PRESENT_ICON[el.kind as PresentKind];
+                  const lbl = isField ? (f?.label ?? "(campo)") : ((el.text || PRESENT_LABEL[el.kind as PresentKind]).replace(/\{[^}]+\}/g, "…"));
+                  const typeLabel = isField ? (FIELD_TYPES.find((t) => t.value === f?.type)?.label ?? "") : PRESENT_LABEL[el.kind as PresentKind];
+                  const usage = isField && el.fieldId ? (fieldUsage[el.fieldId] ?? 1) : 0;
+                  const otherSteps = usage - 1;
+                  const confirming = isField && confirmDelId === el.fieldId;
+                  return (
+                    <div key={el.id} className="flo-pitem" style={{ padding: "8px 10px", cursor: "pointer", borderColor: isSel ? "rgb(var(--c-accent-blue-rgb) / 0.5)" : undefined, background: isSel ? "rgb(var(--c-accent-blue-rgb) / 0.08)" : undefined }}
+                      onClick={() => setSelectedId(el.id)}>
+                      <div className="flex items-center gap-2.5">
+                        <span className="flo-icon-chip" style={{ width: 30, height: 30, background: isField ? "rgb(var(--c-accent-blue-rgb) / 0.13)" : "rgb(var(--c-accent-violet-rgb) / 0.14)", color: isField ? "var(--c-accent-blue)" : "var(--c-accent-violet)" }}>
+                          <Icon className="h-[15px] w-[15px]" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{f.label}</div>
+                          <div className="truncate text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{lbl}</div>
                           <div className="mt-px flex items-center gap-1.5">
                             <span className="flo-label" style={{ letterSpacing: "0.04em" }}>{typeLabel}</span>
-                            <span style={{ width: 3, height: 3, borderRadius: 999, background: usageColor, opacity: 0.6 }} />
-                            <span className="font-mono text-[9px]" style={{ color: usageColor }}>{usageText}</span>
+                            {isField && otherSteps > 0 && (
+                              <>
+                                <span style={{ width: 3, height: 3, borderRadius: 999, background: "var(--c-text-muted)", opacity: 0.6 }} />
+                                <span className="font-mono text-[9px]" style={{ color: "var(--c-text-muted)" }}>+{otherSteps} paso{otherSteps > 1 ? "s" : ""}</span>
+                              </>
+                            )}
                           </div>
                         </div>
-                      </div>
-                      {/* Toggle "en este paso" */}
-                      <div className={`flo-switch${inThisStep ? " on" : ""}`} style={{ width: 32, height: 19 }}
-                        title={inThisStep ? "Quitar de este paso" : "Mostrar en este paso"}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={() => (inThisStep ? removeFieldFromStep(f.id) : addFieldHere(f))}>
-                        <span className="knob" style={{ width: 13, height: 13, left: inThisStep ? 16 : 2 }} />
-                      </div>
-                      {/* Papelera — borrar del proceso */}
-                      <button type="button" title="Eliminar del proceso"
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={() => setConfirmDelId(confirming ? null : f.id)}
-                        className="shrink-0 p-0.5" style={{ color: confirming ? "var(--c-accent-red)" : "var(--c-text-dim)" }}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    {/* Confirmación inline de borrado del proceso */}
-                    {confirming && (
-                      <div className="mt-2 flex items-center justify-between gap-2 rounded-md px-2 py-1.5" style={{ background: "rgb(var(--c-accent-red-rgb) / 0.08)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.25)" }}>
-                        <span className="text-[10px] leading-tight" style={{ color: "var(--c-text-secondary)" }}>
-                          {usage > 0 ? `Lo saca de ${usage} paso${usage > 1 ? "s" : ""} y del proceso.` : "Eliminar del proceso."}
-                        </span>
-                        <div className="flex shrink-0 gap-1">
-                          <button type="button" onClick={() => setConfirmDelId(null)} className="rounded px-2 py-0.5 text-[10px]" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)" }}>No</button>
-                          <button type="button" onClick={() => confirmDeleteField(f.id)} className="rounded px-2 py-0.5 text-[10px] font-medium text-white" style={{ background: "var(--c-accent-red)" }}>Borrar</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Nuevo campo de datos */}
-          <div className="relative mt-2.5">
-            <button type="button" onClick={() => setNewFieldMenu((v) => !v)}
-              className="flo-ghost flex w-full items-center justify-center gap-2" style={{ height: 34, fontSize: 12.5 }}>
-              <Plus className="h-3.5 w-3.5" /> Nuevo campo de datos
-            </button>
-            {newFieldMenu && (
-              <div className="flo-popin absolute left-0 right-0 z-20 mt-1.5 rounded-[10px] p-1.5" style={{ background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", boxShadow: "0 16px 40px rgb(0 0 0 / 0.5)" }}>
-                <div className="mb-1 flex items-center justify-between px-1.5 pt-0.5">
-                  <span className="flo-label">Tipo de campo nuevo</span>
-                  <button type="button" onClick={() => setNewFieldMenu(false)} style={{ color: "var(--c-text-muted)" }}><X className="h-3 w-3" /></button>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {FIELD_TYPES.map((t) => {
-                    const TIcon = FIELD_TYPE_ICON[t.value] ?? TextIcon;
-                    return (
-                      <button key={t.value} type="button" onClick={() => createField(t.value)}
-                        className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11.5px] transition-colors hover:border-[var(--c-border-strong)]"
-                        style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}>
-                        <TIcon className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-accent-blue)" }} />
-                        <span className="truncate">{t.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="my-4 h-px" style={{ background: "var(--c-border)" }} />
-
-          {/* Elementos visuales */}
-          <div className="mb-2.5 flex items-center gap-1.5 px-1">
-            <SquareDashed className="h-3 w-3" style={{ color: "var(--c-accent-violet)" }} />
-            <span className="flo-label">Elementos visuales</span>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {PALETTE_ELEMENTS.map(({ kind, label, desc, Icon }) => (
-              <div key={kind}
-                onMouseDown={(e) => onSpawnStart({ source: "present", kind }, e)}
-                title={`${desc} — arrastrá al lienzo`}
-                className="flo-pitem flex items-center gap-2.5" style={{ padding: "9px 10px" }}>
-                <span className="flo-icon-chip" style={{ width: 30, height: 30, background: "rgb(var(--c-accent-violet-rgb) / 0.14)", color: "var(--c-accent-violet)" }}>
-                  <Icon className="h-[15px] w-[15px]" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{label}</div>
-                  <div className="truncate text-[11px]" style={{ color: "var(--c-text-muted)" }}>{desc}</div>
-                </div>
-                <GripVertical className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--c-text-dim)" }} />
-              </div>
-            ))}
-          </div>
-
-          {/* Capas — colapsable */}
-          {layout.length > 0 && (
-            <>
-              <div className="my-4 h-px" style={{ background: "var(--c-border)" }} />
-              <button type="button" onClick={() => setLayersOpen((v) => !v)} className="mb-2.5 flex w-full items-center justify-between px-1">
-                <div className="flex items-center gap-1.5">
-                  <LayoutTemplate className="h-3 w-3" style={{ color: "var(--c-text-muted)" }} />
-                  <span className="flo-label">Capas · {layout.length}</span>
-                </div>
-                {layersOpen ? <ChevronUp className="h-3.5 w-3.5" style={{ color: "var(--c-text-muted)" }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: "var(--c-text-muted)" }} />}
-              </button>
-              {layersOpen && (
-                <div className="flex flex-col gap-0.5">
-                  {[...layout].reverse().map((el) => {
-                    const isSel = el.id === selectedId;
-                    const LIcon = el.kind === "field" ? (FIELD_TYPE_ICON[fieldOf(el.fieldId)?.type ?? "text"] ?? TextIcon) : PRESENT_ICON[el.kind as PresentKind];
-                    const lbl = el.kind === "field" ? (fieldOf(el.fieldId)?.label ?? "(campo)") : ((el.text || PRESENT_LABEL[el.kind as PresentKind]).replace(/\{[^}]+\}/g, "…"));
-                    return (
-                      <div key={el.id}
-                        onClick={() => setSelectedId(el.id)}
-                        className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12px] transition-colors"
-                        style={{ background: isSel ? "rgb(var(--c-accent-blue-rgb) / 0.12)" : "transparent", border: `1px solid ${isSel ? "rgb(var(--c-accent-blue-rgb) / 0.4)" : "transparent"}`, color: isSel ? "var(--c-text-primary)" : "var(--c-text-secondary)" }}
-                        onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = "rgb(var(--c-bg-overlay-rgb, 26 32 53) / 0.6)"; }}
-                        onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "transparent"; }}>
-                        <LIcon className="h-3.5 w-3.5 shrink-0" style={{ color: el.kind === "field" ? "var(--c-accent-blue)" : "var(--c-accent-violet)" }} />
-                        <span className="flex-1 truncate">{lbl}</span>
-                        {el.showWhen && <Filter className="h-3 w-3 shrink-0" style={{ color: "var(--c-accent-amber)" }} />}
-                        <button type="button" onClick={(e) => { e.stopPropagation(); removeEl(el.id); }} title="Eliminar" className="shrink-0 opacity-55 transition-opacity group-hover:opacity-100" style={{ color: "var(--c-text-dim)" }}>
-                          <Trash2 className="h-3 w-3" />
+                        {el.showWhen && <span title="Condicional" className="flex shrink-0"><Filter className="h-3.5 w-3.5" style={{ color: "var(--c-accent-amber)" }} /></span>}
+                        {/* Quitar de esta ventana */}
+                        <button type="button" title="Quitar de esta ventana"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); removeEl(el.id); }}
+                          className="shrink-0 p-0.5" style={{ color: "var(--c-text-dim)" }}>
+                          <X className="h-3.5 w-3.5" />
                         </button>
+                        {/* Eliminar campo del proceso (solo fields) */}
+                        {isField && el.fieldId && (
+                          <button type="button" title="Eliminar campo del proceso"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); setConfirmDelId(confirming ? null : el.fieldId!); }}
+                            className="shrink-0 p-0.5" style={{ color: confirming ? "var(--c-accent-red)" : "var(--c-text-dim)" }}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
+                      {confirming && el.fieldId && (
+                        <div className="mt-2 flex items-center justify-between gap-2 rounded-md px-2 py-1.5" style={{ background: "rgb(var(--c-accent-red-rgb) / 0.08)", border: "1px solid rgb(var(--c-accent-red-rgb) / 0.25)" }}
+                          onClick={(e) => e.stopPropagation()}>
+                          <span className="text-[10px] leading-tight" style={{ color: "var(--c-text-secondary)" }}>
+                            {usage > 1 ? `Lo saca de ${usage} pasos y del proceso.` : "Eliminar del proceso."}
+                          </span>
+                          <div className="flex shrink-0 gap-1">
+                            <button type="button" onClick={() => setConfirmDelId(null)} className="rounded px-2 py-0.5 text-[10px]" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)" }}>No</button>
+                            <button type="button" onClick={() => confirmDeleteField(el.fieldId!)} className="rounded px-2 py-0.5 text-[10px] font-medium text-white" style={{ background: "var(--c-accent-red)" }}>Borrar</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
           )}
+          </div>
         </div>
 
           {/* Lienzo — área con grid + glow estilo app */}
@@ -766,7 +761,7 @@ export function StepLayoutBuilder({
                   var(--c-bg-surface)`,
                 border: "1px solid rgb(var(--c-accent-blue-rgb) / 0.2)",
                 borderRadius: 12,
-                boxShadow: "0 8px 40px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(var(--c-accent-blue-rgb) / 0.06)",
+                boxShadow: "0 8px 40px var(--c-shadow-medium), 0 0 0 1px rgb(var(--c-accent-blue-rgb) / 0.06)",
               }}
             >
               {layout.map((el) => (
@@ -859,7 +854,7 @@ export function StepLayoutBuilder({
             </div>
 
             {/* Controles de zoom — flotantes, no se escalan */}
-            <div className="sticky bottom-0 left-0 flex items-center gap-1 rounded-lg p-1" style={{ position: "sticky", width: "fit-content", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", boxShadow: "0 4px 16px rgb(0 0 0 / 0.3)" }}>
+            <div className="sticky bottom-0 left-0 flex items-center gap-1 rounded-lg p-1" style={{ position: "sticky", width: "fit-content", background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", boxShadow: "0 4px 16px var(--c-shadow-medium)" }}>
               <button type="button" onClick={() => zoomBy(-0.1)} className="flex h-7 w-7 items-center justify-center rounded hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }} title="Alejar"><Minus className="h-3.5 w-3.5" /></button>
               <button type="button" onClick={() => setZoom(1)} className="min-w-[44px] rounded px-2 py-1 text-[11px] font-mono hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }} title="Restablecer zoom">{Math.round(zoom * 100)}%</button>
               <button type="button" onClick={() => zoomBy(0.1)} className="flex h-7 w-7 items-center justify-center rounded hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }} title="Acercar"><Plus className="h-3.5 w-3.5" /></button>
@@ -1076,7 +1071,7 @@ export function StepLayoutBuilder({
           const GIcon = spawn.icon;
           return (
             <div className="pointer-events-none fixed z-[60]" style={{ left: spawn.x + 14, top: spawn.y + 10 }}>
-              <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", boxShadow: "0 8px 24px rgb(0 0 0 / 0.5)" }}>
+              <div className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", boxShadow: "0 8px 24px var(--c-shadow-strong)" }}>
                 <GIcon className="h-4 w-4" style={{ color: spawn.accent }} />
                 <span className="text-xs" style={{ color: "var(--c-text-primary)" }}>{spawn.label}</span>
               </div>
@@ -1174,7 +1169,7 @@ function StepPreview({ layout, processFields, onClose }: { layout: LayoutElement
       </div>
 
       <div onMouseDown={(e) => e.stopPropagation()} style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
-        <div className="relative" style={{ width: CANVAS_W, height: CANVAS_H, background: "var(--c-bg-surface)", borderRadius: 16, border: "1px solid var(--c-border-strong)", boxShadow: "0 30px 90px rgb(0 0 0 / 0.7)", overflow: "hidden" }}>
+        <div className="relative" style={{ width: CANVAS_W, height: CANVAS_H, background: "var(--c-bg-surface)", borderRadius: 16, border: "1px solid var(--c-border-strong)", boxShadow: "0 30px 90px var(--c-shadow-heavy)", overflow: "hidden" }}>
           {visible.map((el) => {
             const common = { position: "absolute" as const, left: el.x, top: el.y, width: el.w, height: el.h, zIndex: el.kind === "section" ? 1 : 2 };
             if (el.kind === "divider") return <div key={el.id} style={{ ...common, display: "flex", alignItems: "center" }}><div style={{ width: "100%", height: Math.max(1, el.thickness ?? 2), background: resolveColor(el.color, "var(--c-border)") }} /></div>;

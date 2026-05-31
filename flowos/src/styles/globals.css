@@ -1162,7 +1162,7 @@ html.light .flo-grid-bg {
   border: 1px solid var(--c-border-strong);
   border-radius: 9px;
   padding: 3px;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.55);
+  box-shadow: 0 10px 30px var(--c-shadow-strong);
 }
 .flo-ftoolbar button {
   display: flex;
