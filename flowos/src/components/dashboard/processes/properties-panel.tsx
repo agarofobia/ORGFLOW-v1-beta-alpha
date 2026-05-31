@@ -84,7 +84,7 @@ export function PropertiesPanel({
     <div
       className="flex flex-col gap-3"
       style={{
-        width: 240,
+        width: 288,
         background: "var(--c-bg-surface)",
         border: "1px solid var(--c-border)",
         borderRadius: 8,

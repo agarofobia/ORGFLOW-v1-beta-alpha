@@ -582,7 +582,7 @@ export function StepLayoutBuilder({
 
       <div className="flex min-h-0 flex-1">
         {/* Paleta — dos modos: Agregar elementos | En esta ventana (colocados) */}
-        <div className="flo-scroll flex w-[252px] shrink-0 flex-col overflow-y-auto border-r" style={{ borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
+        <div className="flo-scroll flex w-[304px] shrink-0 flex-col overflow-y-auto border-r" style={{ borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
           {/* Tabs */}
           <div className="sticky top-0 z-10 px-3 pb-2.5 pt-3" style={{ background: "var(--c-bg-surface)", borderBottom: "1px solid var(--c-border)" }}>
             <div className="flo-seg">
@@ -908,7 +908,7 @@ export function StepLayoutBuilder({
           </div>
 
           {/* Inspector de propiedades */}
-          <div className="flex shrink-0 flex-col border-l" style={{ width: 264, borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
+          <div className="flex shrink-0 flex-col border-l" style={{ width: 316, borderColor: "var(--c-border)", background: "var(--c-bg-surface)" }}>
             {!selected ? (
               <div className="flex h-full flex-col items-center justify-center gap-3.5 px-7 text-center">
                 <span className="flo-icon-chip" style={{ width: 48, height: 48, background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-dim)" }}>
