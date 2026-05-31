@@ -33,6 +33,10 @@ export interface FormField {
   source?: "departments" | "employees" | "divisions"; // opciones dinámicas desde la org
   placeholder?: string;
   autoFolder?: string;        // type "file": carpeta destino en Docs al completar
+  // Valor por defecto con tokens dinámicos (text/textarea): `{Campo}` (del proceso)
+  // y `{@usuario}`/`{@hoy}`/etc (del sistema). Se interpola al abrir el paso. Si el
+  // campo es "solo lectura" → funciona como campo calculado.
+  defaultValue?: string;
 }
 
 // ─── Layout visual de la ventana de un paso (builder estilo Canva, por paso) ──

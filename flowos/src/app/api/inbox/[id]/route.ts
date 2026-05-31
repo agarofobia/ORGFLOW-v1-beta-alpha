@@ -8,13 +8,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/require-permission";
 import { apiError } from "@/lib/api-error";
 import type { ProcessNode, LayoutElement, FormField } from "@/lib/process-types";
+import { resolveSystemVars } from "@/lib/resolve-system-vars";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { orgId } = await auth();
+  const { orgId, userId } = await auth();
   if (!orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
@@ -33,6 +34,7 @@ export async function GET(
       .select({
         processDefinitionId: processInstances.processDefinitionId,
         context: processInstances.context,
+        startedBy: processInstances.startedBy,
       })
       .from(processInstances)
       .where(eq(processInstances.id, task.instanceId))
@@ -57,7 +59,15 @@ export async function GET(
       actions = node?.actions ?? [];
     }
 
-    return NextResponse.json({ ...task, formFields, fieldValues, layout, actions });
+    // Variables de sistema resueltas para esta ejecución (usuario actual, iniciador,
+    // empresa, fecha) → el runtime las usa para interpolar los tokens `{@...}`.
+    const systemVars = await resolveSystemVars({
+      orgId,
+      viewerClerkId: userId,
+      initiatorClerkId: instance?.startedBy ?? null,
+    });
+
+    return NextResponse.json({ ...task, formFields, fieldValues, layout, actions, systemVars });
   } catch (err) {
     return apiError(err);
   }

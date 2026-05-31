@@ -20,17 +20,26 @@ export function evalShowWhen(cond: ShowWhen | undefined, values: Record<string, 
   }
 }
 
-// Texto dinámico: reemplaza {label} por el valor del campo cuyo label coincide.
-// Ej: "Hola {Nombre}, pedido #{Id}" → "Hola Ana, pedido #42".
+// Texto dinámico: reemplaza tokens `{...}` por su valor. Dos fuentes:
+//  - `{@token}` → variable de SISTEMA (systemVars), ej {@usuario}, {@hoy}.
+//  - `{Etiqueta}` → campo del PROCESO cuyo label coincide (valor de la instancia).
+// Ej: "Hola {Solicitante}, aprobado por {@usuario} el {@hoy}".
 // Genérico (no importa FormField) para mantener el módulo puro.
 export function interpolate(
   text: string,
   fields: { id: string; label: string }[],
   values: Record<string, unknown>,
+  systemVars: Record<string, string> = {},
 ): string {
   if (!text || !text.includes("{")) return text;
-  return text.replace(/\{([^}]+)\}/g, (_m, rawLabel) => {
-    const label = String(rawLabel).trim().toLowerCase();
+  return text.replace(/\{([^}]+)\}/g, (_m, raw) => {
+    const key = String(raw).trim();
+    // Variable de sistema
+    if (key.startsWith("@")) {
+      return key in systemVars ? systemVars[key] : _m;
+    }
+    // Campo del proceso (por label, case-insensitive)
+    const label = key.toLowerCase();
     const field = fields.find((f) => f.label.trim().toLowerCase() === label);
     if (!field) return _m; // no matchea → deja el {texto} literal
     const v = values[field.id];

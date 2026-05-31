@@ -216,7 +216,11 @@ interface TaskWithForm extends InboxTask {
   fieldValues?: Record<string, unknown>; // valores acumulados de pasos anteriores (tren de carga)
   layout?: LayoutElement[];              // diseño visual de la ventana de este paso
   actions?: StepAction[];                // acciones/decisiones del paso (botones que ramifican)
+  systemVars?: Record<string, string>;  // variables de sistema resueltas ({@usuario}, {@hoy}…)
 }
+
+// Tipos cuyo valor por defecto (con tokens) tiene sentido pre-llenar.
+const DEFAULTABLE_TYPES = new Set<FormFieldType>(["text", "textarea"]);
 
 export default function TaskRunnerModal({
   taskId,
@@ -243,7 +247,20 @@ export default function TaskRunnerModal({
         // propio de la tarea si ya estaba parcialmente completada.
         const accumulated = (data.fieldValues && typeof data.fieldValues === "object") ? data.fieldValues : {};
         const own = (data.formData && typeof data.formData === "object") ? data.formData : {};
-        setFormData({ ...accumulated, ...own } as Record<string, unknown>);
+        const merged = { ...accumulated, ...own } as Record<string, unknown>;
+        // Valor por defecto con tokens: si el campo está vacío y tiene defaultValue,
+        // lo interpolamos (campos del proceso + variables de sistema) como inicial.
+        const fields = (data.formFields ?? []) as FormField[];
+        const interp = fields.map((f) => ({ id: f.id, label: f.label }));
+        const sysVars = (data.systemVars ?? {}) as Record<string, string>;
+        for (const f of fields) {
+          const cur = merged[f.id];
+          const empty = cur == null || cur === "";
+          if (empty && f.defaultValue && DEFAULTABLE_TYPES.has(f.type)) {
+            merged[f.id] = interpolate(f.defaultValue, interp, merged, sysVars);
+          }
+        }
+        setFormData(merged);
       })
       .finally(() => setLoading(false));
   }, [taskId]);
@@ -393,7 +410,7 @@ export default function TaskRunnerModal({
                       const vItems = el.vAlign === "top" ? "flex-start" : el.vAlign === "bottom" ? "flex-end" : "center";
                       return (
                         <div key={el.id} style={{ ...common, display: "flex", flexDirection: "column", justifyContent: vItems, fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.fontWeight ?? (el.kind === "title" ? 700 : 400), fontFamily: el.fontFamily ?? "inherit", color: resolveColor(el.color, el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)"), textAlign: el.align ?? "left" }}>
-                          {interpolate(el.text ?? "", interpFields, formData)}
+                          {interpolate(el.text ?? "", interpFields, formData, task?.systemVars ?? {})}
                         </div>
                       );
                     }

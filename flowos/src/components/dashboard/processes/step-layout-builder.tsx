@@ -47,6 +47,7 @@ import type {
 } from "@/lib/process-types";
 import { FIELD_TYPES, OPTION_FIELD_TYPES } from "./field-config";
 import { resolveColor, COLOR_VAR, TEXT_COLOR_SWATCHES, DIVIDER_COLOR_SWATCHES } from "./layout-style";
+import { SYSTEM_VARS, exampleSystemVars } from "@/lib/system-vars";
 
 // ─── Step Layout Builder (lienzo visual estilo Canva, por paso) ───────────────
 // Diseñador WYSIWYG de la ventana de un paso. Arrastrás campos/títulos/textos al
@@ -231,7 +232,8 @@ function OptionsEditor({ options, onChange }: { options: string[] | undefined; o
   );
 }
 
-// Insertar token de texto dinámico {Campo} en título/texto.
+// Insertar token dinámico: dos grupos — campos del proceso `{Campo}` y variables
+// del sistema `{@usuario}` / `{@hoy}` / etc.
 function DynInsert({ fields, onInsert }: { fields: FormField[]; onInsert: (token: string) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -241,18 +243,31 @@ function DynInsert({ fields, onInsert }: { fields: FormField[]; onInsert: (token
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
-  if (fields.length === 0) return null;
   return (
     <div ref={ref} className="relative inline-block">
       <button type="button" onClick={() => setOpen((v) => !v)} className="flo-ghost flex items-center gap-1.5" style={{ height: 28, padding: "0 9px", fontSize: 11.5 }}>
-        <Braces className="h-3 w-3" style={{ color: "var(--c-accent-blue)" }} /> Insertar campo
+        <Braces className="h-3 w-3" style={{ color: "var(--c-accent-blue)" }} /> Insertar dato
       </button>
       {open && (
-        <div className="flo-popin absolute left-0 z-40 overflow-auto" style={{ top: 32, background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", borderRadius: 9, padding: 5, boxShadow: "0 16px 40px var(--c-shadow-strong)", minWidth: 180, maxHeight: 220 }}>
-          {fields.map((f) => (
-            <div key={f.id} onClick={() => { onInsert(`{${f.label}}`); setOpen(false); }}
-              className="cursor-pointer rounded px-2 py-1.5 text-[12.5px] hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }}>
-              <span style={{ color: "var(--c-accent-blue)", background: "rgb(var(--c-accent-blue-rgb) / 0.12)", borderRadius: 4, padding: "0 3px" }}>{`{${f.label}}`}</span>
+        <div className="flo-popin absolute left-0 z-40 overflow-auto" style={{ top: 32, background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", borderRadius: 9, padding: 5, boxShadow: "0 16px 40px var(--c-shadow-strong)", minWidth: 200, maxHeight: 280 }}>
+          {fields.length > 0 && (
+            <>
+              <div className="flo-label px-2 pb-1 pt-0.5">Campos del proceso</div>
+              {fields.map((f) => (
+                <div key={f.id} onClick={() => { onInsert(`{${f.label}}`); setOpen(false); }}
+                  className="cursor-pointer rounded px-2 py-1.5 text-[12.5px] hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }}>
+                  <span style={{ color: "var(--c-accent-blue)", background: "rgb(var(--c-accent-blue-rgb) / 0.12)", borderRadius: 4, padding: "0 3px" }}>{`{${f.label}}`}</span>
+                </div>
+              ))}
+              <div className="my-1 h-px" style={{ background: "var(--c-border)" }} />
+            </>
+          )}
+          <div className="flo-label px-2 pb-1 pt-0.5">Variables del sistema</div>
+          {SYSTEM_VARS.map((v) => (
+            <div key={v.token} onClick={() => { onInsert(`{${v.token}}`); setOpen(false); }}
+              className="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-1.5 text-[12.5px] hover:bg-[var(--c-bg-elevated)]" style={{ color: "var(--c-text-secondary)" }}>
+              <span style={{ color: "var(--c-accent-violet)", background: "rgb(var(--c-accent-violet-rgb) / 0.12)", borderRadius: 4, padding: "0 3px" }}>{`{${v.token}}`}</span>
+              <span className="truncate text-[10px]" style={{ color: "var(--c-text-muted)" }}>{v.label}</span>
             </div>
           ))}
         </div>
@@ -939,7 +954,14 @@ export function StepLayoutBuilder({
                             </div>
                           </PRow>
                           {(f.type === "text" || f.type === "textarea") && (
-                            <PRow label="Placeholder"><FloInput value={f.placeholder ?? ""} onChange={(v) => patchField(f.id, { placeholder: v })} placeholder="Texto de ayuda…" /></PRow>
+                            <>
+                              <PRow label="Placeholder"><FloInput value={f.placeholder ?? ""} onChange={(v) => patchField(f.id, { placeholder: v })} placeholder="Texto de ayuda…" /></PRow>
+                              <PRow label="Valor por defecto" hint="Se autocompleta con datos. Insertá campos o variables del sistema. Con 'solo lectura' → campo calculado.">
+                                <textarea className="flo-input flo-scroll w-full" value={f.defaultValue ?? ""} onChange={(e) => patchField(f.id, { defaultValue: e.target.value || undefined })}
+                                  rows={2} placeholder="ej: Gasto de {Solicitante} — {@hoy}" style={{ minHeight: 46, padding: "8px 10px", fontSize: 12.5, resize: "vertical" }} />
+                                <div className="mt-1.5"><DynInsert fields={processFields} onInsert={(tok) => patchField(f.id, { defaultValue: (f.defaultValue ?? "") + (f.defaultValue && !f.defaultValue.endsWith(" ") ? " " : "") + tok })} /></div>
+                              </PRow>
+                            </>
                           )}
                           {isOptionType && (
                             <PRow label="Opciones">
@@ -1180,6 +1202,7 @@ function StepPreview({ layout, processFields, onClose }: { layout: LayoutElement
   for (const f of processFields) values[f.id] = sampleValueFor(f);
   const interpFields = processFields.map((f) => ({ id: f.id, label: f.label }));
   const fieldById = new Map(processFields.map((f) => [f.id, f]));
+  const sysVars = exampleSystemVars();
 
   const visible = layout.filter((el) => evalShowWhen(el.showWhen, values));
   const hidden = layout.length - visible.length;
@@ -1217,7 +1240,7 @@ function StepPreview({ layout, processFields, onClose }: { layout: LayoutElement
               const vItems = el.vAlign === "top" ? "flex-start" : el.vAlign === "bottom" ? "flex-end" : "center";
               return (
                 <div key={el.id} style={{ ...common, display: "flex", flexDirection: "column", justifyContent: vItems, fontSize: el.fontSize ?? (el.kind === "title" ? 22 : 13), fontWeight: el.fontWeight ?? (el.kind === "title" ? 700 : 400), fontFamily: el.fontFamily ?? "inherit", color: resolveColor(el.color, el.kind === "title" ? "var(--c-text-primary)" : "var(--c-text-muted)"), textAlign: el.align ?? "left" }}>
-                  {interpolate(el.text ?? "", interpFields, values)}
+                  {interpolate(el.text ?? "", interpFields, values, sysVars)}
                 </div>
               );
             }
