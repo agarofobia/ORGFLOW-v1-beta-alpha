@@ -39,6 +39,7 @@ import {
   Braces,
   ChevronUp,
   ChevronDown,
+  Calendar,
 } from "lucide-react";
 import Moveable from "react-moveable";
 import { evalShowWhen, interpolate } from "@/lib/form-conditions";
@@ -106,6 +107,19 @@ function makeNewField(type: FormFieldType): FormField {
   };
   if (OPTION_FIELD_TYPES.includes(type)) f.options = ["Opción A", "Opción B", "Opción C"];
   return f;
+}
+
+// Tamaño por defecto de un campo según su tipo (los de opciones/archivo necesitan
+// más alto para no cortarse en el render realista).
+function fieldSize(type: FormFieldType): { w: number; h: number } {
+  switch (type) {
+    case "textarea": return { w: 320, h: 96 };
+    case "radio": return { w: 320, h: 104 };
+    case "multiselect": return { w: 300, h: 124 };
+    case "file": return { w: 300, h: 86 };
+    case "checkbox": return { w: 280, h: 44 };
+    default: return { w: 280, h: 66 };
+  }
 }
 
 // Mapas de presentación (ícono / label / tamaño) para paleta, ghost y capas.
@@ -423,7 +437,8 @@ export function StepLayoutBuilder({
     const f = makeNewField(type);
     onCreateField([...processFields, f]);
     const c = cascadeRef.current; cascadeRef.current = (c + 1) % 6;
-    const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24 + c * 16, y: nextY, w: 280, h: 66 };
+    const sz = fieldSize(type);
+    const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24 + c * 16, y: nextY, w: sz.w, h: sz.h };
     commit([...layout, el]);
     setSelectedId(el.id);
   };
@@ -432,7 +447,8 @@ export function StepLayoutBuilder({
   const addFieldHere = (f: FormField) => {
     if (usedFieldIds.has(f.id)) return;
     const c = cascadeRef.current; cascadeRef.current = (c + 1) % 6;
-    const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24 + c * 16, y: nextY, w: 280, h: 66 };
+    const sz = fieldSize(f.type);
+    const el: LayoutElement = { id: nid(), kind: "field", fieldId: f.id, x: 24 + c * 16, y: nextY, w: sz.w, h: sz.h };
     commit([...layout, el]);
     setSelectedId(el.id);
   };
@@ -448,7 +464,8 @@ export function StepLayoutBuilder({
     let el: LayoutElement;
     if (payload.source === "field") {
       if (usedFieldIds.has(payload.field.id)) return;
-      el = { id: nid(), kind: "field", fieldId: payload.field.id, x: 0, y: 0, w: 280, h: 66 };
+      const sz = fieldSize(payload.field.type);
+      el = { id: nid(), kind: "field", fieldId: payload.field.id, x: 0, y: 0, w: sz.w, h: sz.h };
     } else {
       el = makePresentEl(payload.kind, 0, 0);
     }
@@ -476,7 +493,7 @@ export function StepLayoutBuilder({
       window.removeEventListener("mouseup", onUp);
       const r = sheetRef.current?.getBoundingClientRect();
       if (r && ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
-        const sz = payload.source === "field" ? { w: 280, h: 66 } : PRESENT_SIZE[payload.kind];
+        const sz = payload.source === "field" ? fieldSize(payload.field.type) : PRESENT_SIZE[payload.kind];
         placeFromPayload(payload, (ev.clientX - r.left) / zoom - sz.w / 2, (ev.clientY - r.top) / zoom - sz.h / 2);
       } else {
         // Soltado fuera del lienzo (o click sin arrastrar) → cascada arriba a la izq.
@@ -1158,35 +1175,98 @@ function sampleValueFor(f: FormField): unknown {
   }
 }
 
-function PreviewField({ field, value }: { field: FormField; value: unknown }) {
-  const box = { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 8, color: "var(--c-text-primary)" } as const;
+// Renderizador realista de un campo (no interactivo), compartido por el lienzo del
+// editor (mode "edit", muestra placeholders) y la vista previa (mode "live", con
+// valores de ejemplo). Cada tipo se dibuja como su control real, estilo prototipo.
+function fmtMoney(v: unknown): string {
+  const n = Number(v);
+  return isNaN(n) ? String(v ?? "") : n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export function FieldRender({ field, value, readOnly, mode }: { field: FormField; value?: unknown; readOnly?: boolean; mode: "edit" | "live" }) {
+  const ph = "var(--c-text-placeholder)";
+  const box: React.CSSProperties = { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", borderRadius: 8, color: "var(--c-text-secondary)", fontSize: 13.5, display: "flex", alignItems: "center", padding: "0 12px", height: 38, width: "100%" };
+  const opts = (field.options && field.options.length > 0) ? field.options : (field.source ? ["Desde la organización"] : ["Opción A", "Opción B"]);
+  const live = mode === "live";
+  const has = value != null && value !== "";
+
+  const control = (() => {
+    switch (field.type) {
+      case "textarea":
+        return <div style={{ ...box, height: "100%", minHeight: 52, alignItems: "flex-start", paddingTop: 10, lineHeight: 1.5, color: live && has ? "var(--c-text-primary)" : ph, display: "block" }}>{live && has ? String(value) : (field.placeholder || "Escribí aquí…")}</div>;
+      case "number":
+        return <div style={{ ...box, color: live && has ? "var(--c-text-primary)" : ph }}>{live && has ? String(value) : (field.placeholder || "0")}</div>;
+      case "currency":
+        return (
+          <div style={{ ...box, padding: 0, overflow: "hidden" }}>
+            <span style={{ display: "flex", alignItems: "center", height: "100%", padding: "0 11px", color: "var(--c-accent-emerald)", fontFamily: "var(--font-dm-mono)", fontSize: 13, borderRight: "1px solid var(--c-border)", background: "rgb(var(--c-accent-emerald-rgb) / 0.06)" }}>$</span>
+            <span style={{ padding: "0 12px", fontFamily: "var(--font-dm-mono)", color: live && has ? "var(--c-text-primary)" : ph, fontSize: 13.5 }}>{live && has ? fmtMoney(value) : "1.500,00"}</span>
+          </div>
+        );
+      case "date":
+        return <div style={{ ...box, justifyContent: "space-between", color: live && has ? "var(--c-text-primary)" : ph }}><span>{live && has ? String(value) : "dd / mm / aaaa"}</span><Calendar className="h-3.5 w-3.5" style={{ color: "var(--c-text-muted)" }} /></div>;
+      case "select":
+        return <div style={{ ...box, justifyContent: "space-between", color: live && has ? "var(--c-text-primary)" : ph }}><span>{live && has ? String(value) : "Elegir…"}</span><ChevronDown className="h-3.5 w-3.5" style={{ color: "var(--c-text-muted)" }} /></div>;
+      case "radio":
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", paddingTop: 3 }}>
+            {opts.map((o, i) => {
+              const sel = live && value === o;
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ width: 15, height: 15, borderRadius: 999, border: `1.5px solid ${sel ? "var(--c-accent-blue)" : "var(--c-border-strong)"}`, display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>{sel && <span style={{ width: 7, height: 7, borderRadius: 999, background: "var(--c-accent-blue)" }} />}</span>
+                  <span style={{ fontSize: 13, color: "var(--c-text-secondary)" }}>{o}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      case "multiselect": {
+        const arr = Array.isArray(value) ? (value as unknown[]) : [];
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, paddingTop: 3 }}>
+            {opts.map((o, i) => {
+              const sel = live && arr.includes(o);
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 16, height: 16, borderRadius: 5, border: `1.5px solid ${sel ? "var(--c-accent-blue)" : "var(--c-border-strong)"}`, background: sel ? "var(--c-accent-blue)" : "var(--c-bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>{sel && <Check className="h-2.5 w-2.5 text-white" />}</span>
+                  <span style={{ fontSize: 13, color: "var(--c-text-secondary)" }}>{o}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+      case "checkbox": {
+        const sel = live && value === true;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 9, height: "100%" }}>
+            <span style={{ width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${sel ? "var(--c-accent-blue)" : "var(--c-border-strong)"}`, background: sel ? "var(--c-accent-blue)" : "var(--c-bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>{sel && <Check className="h-3 w-3 text-white" />}</span>
+            <span style={{ fontSize: 13.5, color: "var(--c-text-secondary)" }}>{field.label || "Confirmo"}</span>
+          </div>
+        );
+      }
+      case "file":
+        return <div style={{ height: 46, border: "1.5px dashed var(--c-border-strong)", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", gap: 9, color: "var(--c-text-muted)", background: "rgb(var(--c-border-rgb) / 0.2)" }}><Upload className="h-4 w-4" /><span style={{ fontSize: 13 }}>{live && has ? String((value as { name?: string })?.name ?? value) : "Subir archivo"}</span></div>;
+      default: // text
+        return <div style={{ ...box, color: live && has ? "var(--c-text-primary)" : ph }}>{live && has ? String(value) : (field.placeholder || "Texto…")}</div>;
+    }
+  })();
+
+  // El checkbox dibuja su propia etiqueta inline → no repetimos el label arriba.
   if (field.type === "checkbox") {
-    return (
-      <label className="flex items-center gap-2 text-xs" style={{ color: "var(--c-text-secondary)" }}>
-        <span className="flex h-4 w-4 items-center justify-center rounded" style={{ background: value ? "var(--c-accent-blue)" : "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
-          {value ? <Check className="h-3 w-3 text-white" /> : null}
-        </span>
-        {field.label}
-      </label>
-    );
+    return <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", overflow: "hidden" }}>{control}</div>;
   }
-  if (field.type === "textarea") {
-    return <div className="w-full px-3 py-2 text-xs" style={{ ...box, minHeight: 56 }}>{String(value ?? "")}</div>;
-  }
-  if (field.type === "currency") {
-    const n = Number(value ?? 0);
-    const fmt = isNaN(n) ? String(value) : n.toLocaleString("es-AR", { minimumFractionDigits: 2 });
-    return <div className="flex h-9 items-center px-3 text-sm" style={box}>$ {fmt}</div>;
-  }
-  if (field.type === "multiselect") {
-    const arr = Array.isArray(value) ? value : [];
-    return (
-      <div className="flex flex-wrap gap-1">
-        {arr.map((v, i) => <span key={i} className="rounded px-2 py-1 text-[11px]" style={{ background: "rgb(var(--c-accent-blue-rgb) / 0.12)", color: "var(--c-accent-blue)" }}>{String(v)}</span>)}
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--c-text-secondary)", lineHeight: 1.1 }}>{field.label || "Campo"}</span>
+        {field.required && <Asterisk className="h-2 w-2" style={{ color: "var(--c-accent-red)" }} />}
+        {readOnly && <span className="flo-chip" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", padding: "1px 5px", fontSize: 8 }}><Lock className="h-2 w-2" /> solo lectura</span>}
       </div>
-    );
-  }
-  return <div className="flex h-9 items-center px-3 text-sm" style={box}>{String(value ?? "")}</div>;
+      <div style={{ flex: 1, minHeight: 0 }}>{control}</div>
+    </div>
+  );
 }
 
 function StepPreview({ layout, processFields, onClose }: { layout: LayoutElement[]; processFields: FormField[]; onClose: () => void }) {
@@ -1248,17 +1328,8 @@ function StepPreview({ layout, processFields, onClose }: { layout: LayoutElement
             const field = el.fieldId ? fieldById.get(el.fieldId) : undefined;
             if (!field) return null;
             return (
-              <div key={el.id} style={{ ...common, display: "flex", flexDirection: "column", gap: 4 }}>
-                {field.type !== "checkbox" && (
-                  <label className="flex items-center gap-2 text-xs font-medium" style={{ color: "var(--c-text-secondary)" }}>
-                    {field.label}
-                    {field.required && el.readOnly !== true && <span style={{ color: "var(--c-accent-red)" }}>*</span>}
-                    {el.readOnly && <span className="rounded px-1 py-0.5 font-mono text-[8px] uppercase" style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.15)", color: "var(--c-accent-amber)" }}>solo lectura</span>}
-                  </label>
-                )}
-                <div style={{ flex: 1, minHeight: 0 }}>
-                  <PreviewField field={field} value={values[field.id]} />
-                </div>
+              <div key={el.id} style={common}>
+                <FieldRender field={field} value={values[field.id]} readOnly={el.readOnly} mode="live" />
               </div>
             );
           })}
@@ -1395,15 +1466,13 @@ function LayoutElementPreview({ el, field }: { el: LayoutElement; field?: FormFi
       </div>
     );
   }
-  // field
+  // field — renderizado realista (mismo que la vista previa, con placeholders)
+  if (!field) {
+    return <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", padding: 6, fontSize: 11 }}><span style={{ color: "var(--c-accent-red)" }}>(campo eliminado)</span></div>;
+  }
   return (
-    <div style={{ width: "100%", height: "100%", padding: 6, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
-      <span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--c-text-secondary)" }}>
-        {field?.label ?? "(campo eliminado)"}
-        {field?.required && <Asterisk className="h-2 w-2" style={{ color: "var(--c-accent-red)" }} />}
-        {el.readOnly && <span className="flo-chip" style={{ background: "var(--c-bg-elevated)", color: "var(--c-text-muted)", padding: "1px 5px", fontSize: 8 }}><Lock className="h-2 w-2" /> solo lec.</span>}
-      </span>
-      <div className="flex-1 rounded-lg" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", minHeight: 8 }} />
+    <div style={{ width: "100%", height: "100%", padding: 4, overflow: "hidden" }}>
+      <FieldRender field={field} readOnly={el.readOnly} mode="edit" />
     </div>
   );
 }
