@@ -1195,3 +1195,38 @@ html.light .flo-grid-bg {
 
 @keyframes flo-popin { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
 .flo-popin { animation: flo-popin 0.14s ease; }
+
+/* ═══ Scrollbars personalizadas — globales, adaptadas al tema ═══════════════════ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border-strong) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--c-border-strong);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--c-text-dim);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner { background: transparent; }
+
+/* ═══ Handles/líneas de selección del lienzo (react-moveable) ══════════════════
+   Cuadraditos azules redondeados con la superficie del tema, como el prototipo. */
+.moveable-line {
+  background: var(--c-accent-blue) !important;
+}
+.moveable-control {
+  width: 11px !important;
+  height: 11px !important;
+  margin-top: -5.5px !important;
+  margin-left: -5.5px !important;
+  background: var(--c-bg-surface) !important;
+  border: 2px solid var(--c-accent-blue) !important;
+  border-radius: 3px !important;
+  box-shadow: 0 1px 4px var(--c-shadow-medium) !important;
+}
