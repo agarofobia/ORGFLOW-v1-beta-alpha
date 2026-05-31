@@ -26,6 +26,7 @@ export async function notify(opts: {
   title: string;
   body?: string;
   linkUrl?: string;
+  email?: boolean; // si false, solo in-app (default true → también email si está configurado)
 }) {
   try {
     let targetUserId = opts.userId ?? null;
@@ -54,7 +55,7 @@ export async function notify(opts: {
     });
 
     // 2. Enviar email (best-effort, skipea si no hay Resend configurado o no hay email)
-    if (resend && userRow.email) {
+    if (opts.email !== false && resend && userRow.email) {
       try {
         const link = opts.linkUrl ? `${appBaseUrl}${opts.linkUrl}` : appBaseUrl;
         await resend.emails.send({

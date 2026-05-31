@@ -2,10 +2,15 @@ import { db } from "@/db";
 import {
   processDefinitions, processInstances, inboxTasks,
   projectTemplates, projects, projectMilestones, tasks,
+  users, employees,
 } from "@/db/schema";
 import { eq, and, ne } from "drizzle-orm";
 import { logProcessEvent } from "@/lib/process-events";
 import { dispatchWebhook } from "@/lib/webhooks";
+import { notify } from "@/lib/notifications";
+import { resolveSystemVars } from "@/lib/resolve-system-vars";
+import { interpolate } from "@/lib/form-conditions";
+import type { FormField } from "./process-types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 // Los tipos puros del dominio (sin deps de DB) viven en `./process-types` para ser
@@ -21,9 +26,10 @@ export type {
   ProcessNode,
   ProcessEdge,
   StepAction,
+  NotifyConfig,
 } from "./process-types";
 
-import type { ProcessNode, ProcessEdge, StepAction } from "./process-types";
+import type { ProcessNode, ProcessEdge, StepAction, NotifyConfig } from "./process-types";
 
 interface HistoryEntry {
   nodeId: string;
@@ -485,13 +491,16 @@ export async function advanceInstance(opts: {
 
   const isEnd = nextNode.type === "endEvent";
   const isService = nextNode.type === "serviceTask" || nextNode.type === "automatedTask";
+  const isNotify = nextNode.type === "notifyTask";
+  // Nodos que se completan al instante (no requieren intervención humana).
+  const isAuto = isService || isNotify;
 
   const newHistoryEntry: HistoryEntry = {
     nodeId: nextNode.id,
     nodeLabel: nextNode.label,
     startedAt: now,
-    completedAt: isEnd || isService ? now : undefined,
-    status: isEnd || isService ? "completed" : "in_progress",
+    completedAt: isEnd || isAuto ? now : undefined,
+    status: isEnd || isAuto ? "completed" : "in_progress",
   };
 
   await db
@@ -578,6 +587,18 @@ export async function advanceInstance(opts: {
     return { success: true };
   }
 
+  // Notificación → ejecuta el aviso y auto-avanza (propaga el actor humano para que
+  // {@usuario} en el mensaje sea quien hizo el paso anterior).
+  if (isNotify) {
+    await executeNotify({ node: nextNode, instance, context, definition, completedBy });
+    return advanceInstance({
+      instanceId,
+      completedNodeId: nextNode.id,
+      output: {},
+      completedBy,
+    });
+  }
+
   // Service/automated task → auto-advance
   if (isService && nextNode.serviceAction) {
     return advanceInstance({
@@ -589,6 +610,65 @@ export async function advanceInstance(opts: {
   }
 
   return { success: true };
+}
+
+// ─── Ejecutar nodo de notificación ────────────────────────────────────────────
+
+async function resolveRecipients(
+  cfg: NotifyConfig,
+  instance: { organizationId: string; startedBy: string },
+  completedBy: string,
+): Promise<{ userId?: string; employeeId?: string }[]> {
+  if (cfg.toKind === "initiator" || cfg.toKind === "actor") {
+    const clerkId = cfg.toKind === "initiator" ? instance.startedBy : completedBy;
+    if (!clerkId || clerkId === "system") return [];
+    const u = (await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkId)).limit(1))[0];
+    return u ? [{ userId: u.id }] : [];
+  }
+  // position: "jobTitle" o "jobTitle||personId"
+  const [jobTitle, personId] = (cfg.toValue ?? "").split("||");
+  if (personId) return [{ employeeId: personId }];
+  if (!jobTitle) return [];
+  const emps = await db.select({ id: employees.id }).from(employees)
+    .where(and(eq(employees.organizationId, instance.organizationId), eq(employees.jobTitle, jobTitle)));
+  return emps.map((e) => ({ employeeId: e.id }));
+}
+
+async function executeNotify(opts: {
+  node: ProcessNode;
+  instance: { id: string; organizationId: string; startedBy: string };
+  context: Record<string, unknown>;
+  definition: { formFields?: unknown };
+  completedBy: string;
+}) {
+  const cfg = opts.node.notify;
+  if (!cfg) return;
+  try {
+    // Tokens del sistema: @usuario = quien hizo el paso anterior, @iniciador = el que arrancó.
+    const sysVars = await resolveSystemVars({
+      orgId: opts.instance.organizationId,
+      viewerClerkId: opts.completedBy && opts.completedBy !== "system" ? opts.completedBy : opts.instance.startedBy,
+      initiatorClerkId: opts.instance.startedBy,
+    });
+    const fields = ((opts.definition.formFields as FormField[]) ?? []).map((f) => ({ id: f.id, label: f.label }));
+    const title = interpolate(cfg.subject || opts.node.label, fields, opts.context, sysVars) || opts.node.label;
+    const body = interpolate(cfg.message || "", fields, opts.context, sysVars);
+    const targets = await resolveRecipients(cfg, opts.instance, opts.completedBy);
+    for (const t of targets) {
+      await notify({
+        userId: t.userId ?? null,
+        employeeId: t.employeeId ?? null,
+        organizationId: opts.instance.organizationId,
+        type: "task_assigned",
+        title,
+        body,
+        email: cfg.email,
+        linkUrl: "/dashboard/bandeja",
+      });
+    }
+  } catch (err) {
+    console.warn("executeNotify failed:", String(err));
+  }
 }
 
 // ─── Create inbox task ────────────────────────────────────────────────────────

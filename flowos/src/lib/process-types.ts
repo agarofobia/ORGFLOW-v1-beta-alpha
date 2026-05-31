@@ -104,6 +104,16 @@ export interface StepAction {
   to?: string; // nodeId destino (opcional)
 }
 
+// Configuración del nodo "Notificación": avisa a alguien (in-app + email opcional)
+// con un mensaje que admite tokens dinámicos ({Campo} y {@sistema}). Auto-avanza.
+export interface NotifyConfig {
+  toKind: "initiator" | "actor" | "position"; // iniciador / quien hizo el paso anterior / un puesto
+  toValue?: string;     // si position: "jobTitle" o "jobTitle||personId"
+  subject: string;      // título (con tokens)
+  message: string;      // cuerpo (con tokens)
+  email: boolean;       // además del in-app, mandar email
+}
+
 export interface ProcessNode {
   id: string;
   type: string;
@@ -116,6 +126,8 @@ export interface ProcessNode {
   layout?: LayoutElement[];
   // Acciones/decisiones del paso (solo userTask). Sin acciones → un botón "Completar".
   actions?: StepAction[];
+  // Config de notificación (solo nodo "notifyTask").
+  notify?: NotifyConfig;
   // SLA: tiempo esperado para completar este nodo en ms. Null = sin SLA.
   expectedDurationMs?: number | null;
 }

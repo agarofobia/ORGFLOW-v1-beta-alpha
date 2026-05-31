@@ -2,10 +2,11 @@
 
 // Panel lateral de propiedades del nodo seleccionado en el editor BPM:
 // nombre, descripción, puesto responsable (userTask), service action, etc.
-import { useEffect, useState } from "react";
-import { X, LayoutTemplate, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, LayoutTemplate, Plus, Trash2, Braces, Bell } from "lucide-react";
 import type { BpmData, BpmNode } from "./process-flow";
-import type { StepAction } from "@/lib/process-types";
+import type { StepAction, NotifyConfig } from "@/lib/process-types";
+import { SYSTEM_VARS } from "@/lib/system-vars";
 
 // ─── Hook puestos del organigrama ─────────────────────────────────────────────
 
@@ -27,6 +28,7 @@ export function useOrgPositions() {
 export function PropertiesPanel({
   node,
   allNodes,
+  processFields,
   onUpdate,
   onClose,
   onOpenLayoutBuilder,
@@ -34,6 +36,8 @@ export function PropertiesPanel({
   node: BpmNode;
   // Todos los nodos del proceso (para el destino de las acciones del paso).
   allNodes: { id: string; label: string; type: string }[];
+  // Campos del proceso (para insertar tokens en el mensaje de notificación).
+  processFields: { id: string; label: string }[];
   onUpdate: (id: string, data: Partial<BpmData>) => void;
   onClose: () => void;
   onOpenLayoutBuilder: () => void;
@@ -224,6 +228,10 @@ export function PropertiesPanel({
           />
         </div>
       )}
+
+      {node.type === "notifyTask" && (
+        <NotifyEditor node={node} processFields={processFields} positions={positions} onChange={(notify) => onUpdate(node.id, { notify })} />
+      )}
     </div>
   );
 }
@@ -304,6 +312,141 @@ function StepActionsEditor({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Menú "Insertar dato" (campos del proceso + variables del sistema) ────────
+function TokenMenu({ fields, onInsert }: { fields: { id: string; label: string }[]; onInsert: (token: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as globalThis.Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex items-center gap-1 rounded px-2 py-1 text-[10px]" style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", color: "var(--c-text-secondary)" }}>
+        <Braces className="h-2.5 w-2.5" style={{ color: "var(--c-accent-blue)" }} /> Insertar dato
+      </button>
+      {open && (
+        <div className="absolute left-0 z-40 mt-1 overflow-auto rounded-lg p-1.5" style={{ top: 26, background: "var(--c-bg-overlay)", border: "1px solid var(--c-border-strong)", boxShadow: "0 12px 32px var(--c-shadow-strong)", minWidth: 190, maxHeight: 260 }}>
+          {fields.length > 0 && (
+            <>
+              <div className="px-1.5 pb-1 pt-0.5 font-mono text-[8px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Campos del proceso</div>
+              {fields.map((f) => (
+                <div key={f.id} onClick={() => { onInsert(`{${f.label}}`); setOpen(false); }} className="cursor-pointer rounded px-2 py-1 text-[11.5px] hover:bg-[var(--c-bg-elevated)]">
+                  <span style={{ color: "var(--c-accent-blue)", background: "rgb(var(--c-accent-blue-rgb) / 0.12)", borderRadius: 4, padding: "0 3px" }}>{`{${f.label}}`}</span>
+                </div>
+              ))}
+              <div className="my-1 h-px" style={{ background: "var(--c-border)" }} />
+            </>
+          )}
+          <div className="px-1.5 pb-1 pt-0.5 font-mono text-[8px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Variables del sistema</div>
+          {SYSTEM_VARS.map((v) => (
+            <div key={v.token} onClick={() => { onInsert(`{${v.token}}`); setOpen(false); }} className="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-[11.5px] hover:bg-[var(--c-bg-elevated)]">
+              <span style={{ color: "var(--c-accent-violet)", background: "rgb(var(--c-accent-violet-rgb) / 0.12)", borderRadius: 4, padding: "0 3px" }}>{`{${v.token}}`}</span>
+              <span className="truncate text-[9px]" style={{ color: "var(--c-text-muted)" }}>{v.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Editor del nodo Notificación ─────────────────────────────────────────────
+function NotifyEditor({
+  node,
+  processFields,
+  positions,
+  onChange,
+}: {
+  node: BpmNode;
+  processFields: { id: string; label: string }[];
+  positions: OrgPosition[];
+  onChange: (cfg: NotifyConfig) => void;
+}) {
+  const cfg: NotifyConfig = node.data.notify ?? { toKind: "initiator", subject: "", message: "", email: true };
+  const patch = (p: Partial<NotifyConfig>) => onChange({ ...cfg, ...p });
+
+  const byTitle = positions.reduce<Record<string, OrgPosition[]>>((acc, p) => {
+    const key = p.jobTitle || "Sin puesto";
+    (acc[key] ??= []).push(p);
+    return acc;
+  }, {});
+  const jobTitles = Object.keys(byTitle).sort();
+  const [posTitle, posPerson] = (cfg.toValue ?? "").split("||");
+
+  const fieldStyle = { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" } as const;
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-lg px-2.5 py-2.5" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
+      <div className="flex items-center gap-1.5">
+        <Bell className="h-3.5 w-3.5" style={{ color: "var(--c-accent-cyan)" }} />
+        <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Notificación</span>
+      </div>
+
+      {/* Destinatario */}
+      <div>
+        <label className="mb-1 block font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Avisar a</label>
+        <div className="flex gap-1">
+          {([["initiator", "Iniciador"], ["actor", "Actor previo"], ["position", "Puesto"]] as const).map(([k, lbl]) => {
+            const active = cfg.toKind === k;
+            return (
+              <button key={k} type="button" onClick={() => patch({ toKind: k })}
+                className="flex-1 rounded px-1 py-1 text-[10px]"
+                style={{ background: active ? "rgb(var(--c-accent-cyan-rgb) / 0.15)" : "var(--c-bg-surface)", border: `1px solid ${active ? "var(--c-accent-cyan)" : "var(--c-border)"}`, color: active ? "var(--c-accent-cyan)" : "var(--c-text-muted)" }}>
+                {lbl}
+              </button>
+            );
+          })}
+        </div>
+        {cfg.toKind === "position" && (
+          <div className="mt-1.5 flex flex-col gap-1.5">
+            <select value={posTitle ?? ""} onChange={(e) => patch({ toValue: e.target.value })}
+              className="w-full rounded px-2 py-1.5 text-xs outline-none" style={fieldStyle}>
+              <option value="">— Elegí un puesto —</option>
+              {jobTitles.map((t) => <option key={t} value={t}>{t} ({byTitle[t].length})</option>)}
+            </select>
+            {posTitle && byTitle[posTitle]?.length > 1 && (
+              <select value={posPerson ?? ""} onChange={(e) => patch({ toValue: e.target.value ? `${posTitle}||${e.target.value}` : posTitle })}
+                className="w-full rounded px-2 py-1.5 text-xs outline-none" style={fieldStyle}>
+                <option value="">— Todo el puesto —</option>
+                {byTitle[posTitle].map((p) => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+              </select>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Asunto */}
+      <div>
+        <div className="mb-1 flex items-center justify-between">
+          <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Asunto</label>
+          <TokenMenu fields={processFields} onInsert={(tok) => patch({ subject: (cfg.subject ?? "") + tok })} />
+        </div>
+        <input value={cfg.subject} onChange={(e) => patch({ subject: e.target.value })} placeholder="ej: Tu gasto fue {decision}"
+          className="w-full rounded px-2 py-1.5 text-xs outline-none" style={fieldStyle} />
+      </div>
+
+      {/* Mensaje */}
+      <div>
+        <div className="mb-1 flex items-center justify-between">
+          <label className="font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Mensaje</label>
+          <TokenMenu fields={processFields} onInsert={(tok) => patch({ message: (cfg.message ?? "") + (cfg.message && !cfg.message.endsWith(" ") ? " " : "") + tok })} />
+        </div>
+        <textarea value={cfg.message} onChange={(e) => patch({ message: e.target.value })} rows={3} placeholder="ej: Hola {Solicitante}, tu gasto de {Monto} fue {decision} por {@usuario} el {@hoy}."
+          className="w-full rounded px-2 py-1.5 text-xs outline-none" style={{ ...fieldStyle, resize: "vertical" }} />
+      </div>
+
+      {/* Email */}
+      <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
+        <input type="checkbox" checked={cfg.email} onChange={(e) => patch({ email: e.target.checked })} />
+        Mandar también por email (si está configurado)
+      </label>
     </div>
   );
 }

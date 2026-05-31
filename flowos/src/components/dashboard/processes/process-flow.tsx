@@ -3,8 +3,8 @@
 // Topología BPM del editor: tipo de dato del nodo (BpmData), helpers de conversión
 // DB ↔ ReactFlow, componentes visuales de cada nodo, el mapa nodeTypes y la paleta.
 import { Handle, Position, type Node, type Edge } from "@xyflow/react";
-import { Circle, User, Settings, Zap, GitMerge, GitBranch } from "lucide-react";
-import type { LayoutElement, ProcessNode, ProcessEdge, StepAction } from "@/lib/process-types";
+import { Circle, User, Settings, Zap, GitMerge, GitBranch, Bell } from "lucide-react";
+import type { LayoutElement, ProcessNode, ProcessEdge, StepAction, NotifyConfig } from "@/lib/process-types";
 
 // ─── Node data type ───────────────────────────────────────────────────────────
 
@@ -17,6 +17,8 @@ export type BpmData = {
   layout?: LayoutElement[];
   // Acciones/decisiones del paso (solo userTask).
   actions?: StepAction[];
+  // Config de notificación (solo notifyTask).
+  notify?: NotifyConfig;
   allowTracking?: boolean;
   // Heatmap overlay — cuando está activo en el editor, este campo se inyecta
   // con el color calculado del cycle time del nodo (verde rápido → rojo lento).
@@ -38,6 +40,7 @@ export function nodesToDB(rfNodes: BpmNode[]): ProcessNode[] {
     serviceAction: n.data.serviceAction,
     layout: n.data.layout,
     actions: n.data.actions,
+    notify: n.data.notify,
     position: n.position,
   }));
 }
@@ -54,6 +57,7 @@ export function nodesFromDB(dbNodes: ProcessNode[]): BpmNode[] {
       serviceAction: n.serviceAction,
       layout: n.layout,
       actions: n.actions,
+      notify: n.notify,
     },
   }));
 }
@@ -189,6 +193,32 @@ function AutomatedTaskNode({ data }: { data: BpmData }) {
   );
 }
 
+function NotifyTaskNode({ data }: { data: BpmData }) {
+  return (
+    <div className="relative min-w-[160px] rounded-lg p-3"
+      style={{ background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-cyan-rgb) / 0.25)", borderLeft: "3px solid var(--c-accent-cyan)" }}>
+      <Handle type="target" position={Position.Top}
+        style={{ background: "var(--c-accent-cyan)", width: 8, height: 8, border: "none" }} />
+      <div className="flex items-center gap-2">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded"
+          style={{ background: "rgb(var(--c-accent-cyan-rgb) / 0.15)" }}>
+          <Bell className="h-3.5 w-3.5" style={{ color: "var(--c-accent-cyan)" }} />
+        </div>
+        <div>
+          <p className="text-xs font-medium leading-tight" style={{ color: "var(--c-text-primary)" }}>{data.label}</p>
+          {data.notify && (
+            <p className="mt-0.5 font-mono text-[9px]" style={{ color: "var(--c-text-muted)" }}>
+              → {data.notify.toKind === "initiator" ? "iniciador" : data.notify.toKind === "actor" ? "actor previo" : "puesto"}
+            </p>
+          )}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom}
+        style={{ background: "var(--c-accent-cyan)", width: 8, height: 8, border: "none" }} />
+    </div>
+  );
+}
+
 function DiamondNode({
   data,
   symbol,
@@ -229,6 +259,7 @@ export const nodeTypes = {
   userTask: UserTaskNode,
   serviceTask: ServiceTaskNode,
   automatedTask: AutomatedTaskNode,
+  notifyTask: NotifyTaskNode,
   parallelGateway: ParallelGatewayNode,
   exclusiveGateway: ExclusiveGatewayNode,
 };
@@ -241,6 +272,7 @@ export const PALETTE = [
   { type: "userTask", label: "Tarea humana", icon: User, color: "var(--c-accent-blue)", defaultLabel: "Nueva tarea" },
   { type: "serviceTask", label: "Servicio", icon: Settings, color: "var(--c-accent-amber)", defaultLabel: "Servicio" },
   { type: "automatedTask", label: "Automática", icon: Zap, color: "var(--c-accent-violet)", defaultLabel: "Tarea automática" },
+  { type: "notifyTask", label: "Notificación", icon: Bell, color: "var(--c-accent-cyan)", defaultLabel: "Notificar" },
   { type: "parallelGateway", label: "Gateway paralelo", icon: GitMerge, color: "var(--c-accent-amber)", defaultLabel: "Paralelo" },
   { type: "exclusiveGateway", label: "Gateway exclusivo", icon: GitBranch, color: "var(--c-accent-red)", defaultLabel: "Decisión" },
 ];
