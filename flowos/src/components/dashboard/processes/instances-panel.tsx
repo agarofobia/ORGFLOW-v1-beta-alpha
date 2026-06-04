@@ -21,6 +21,8 @@ type Instance = {
   startedBy: string;
   startedAt: string;
   completedAt: string | null;
+  // Timer/Espera: si != null y en el futuro, la instancia duerme hasta esa fecha.
+  resumeAt: string | null;
   context: Record<string, unknown>;
   history: HistEntry[];
 };
@@ -49,6 +51,14 @@ function fmtWhen(iso: string): string {
   if (diff < 3600000) return `hace ${Math.floor(diff / 60000)}m`;
   if (diff < 86400000) return `hace ${Math.floor(diff / 3600000)}h`;
   return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+// Tiempo restante hasta una fecha futura ("en 2h", "en 3d"). Para instancias dormidas.
+function fmtUntil(iso: string): string {
+  const diff = new Date(iso).getTime() - Date.now();
+  if (diff <= 0) return "pronto";
+  if (diff < 3600000) return `en ${Math.max(1, Math.floor(diff / 60000))}m`;
+  if (diff < 86400000) return `en ${Math.floor(diff / 3600000)}h`;
+  return `en ${Math.floor(diff / 86400000)}d`;
 }
 
 export default function InstancesPanel({
@@ -87,6 +97,10 @@ export default function InstancesPanel({
 
   const durationOf = (i: Instance) =>
     fmtDuration((i.completedAt ? new Date(i.completedAt).getTime() : Date.now()) - new Date(i.startedAt).getTime());
+
+  // Dormida en un nodo timer: corriendo, con resumeAt en el futuro.
+  const isWaiting = (i: Instance): boolean =>
+    i.status === "running" && !!i.resumeAt && new Date(i.resumeAt).getTime() > Date.now();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgb(0 0 0 / 0.55)", backdropFilter: "blur(3px)" }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -162,13 +176,15 @@ export default function InstancesPanel({
               {instances.map((i) => {
                 const meta = STATUS_META[i.status];
                 const stuck = isStuck(i);
+                const waiting = isWaiting(i);
                 return (
                   <button key={i.id} onClick={() => setSelected(i)} className="flex items-center gap-3 border-b px-5 py-3 text-left transition-colors hover:bg-[var(--c-bg-elevated)]" style={{ borderColor: "var(--c-border)" }}>
                     <span className="flex h-2 w-2 shrink-0 rounded-full" style={{ background: meta.color, boxShadow: i.status === "running" ? `0 0 8px ${meta.color}` : "none" }} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[13px] font-medium" style={{ color: "var(--c-text-primary)" }}>{i.status === "running" || i.status === "paused" ? nodeLabel(i.currentNodeId) : meta.label}</span>
-                        {stuck && <span className="flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[8px] uppercase" style={{ background: "rgb(var(--c-accent-red-rgb) / 0.12)", color: "var(--c-accent-red)" }}><Clock className="h-2.5 w-2.5" /> atascada</span>}
+                        {waiting && <span className="flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[8px] uppercase" style={{ background: "rgb(var(--c-accent-amber-rgb) / 0.12)", color: "var(--c-accent-amber)" }}><Clock className="h-2.5 w-2.5" /> esperando · despierta {fmtUntil(i.resumeAt!)}</span>}
+                        {stuck && !waiting && <span className="flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[8px] uppercase" style={{ background: "rgb(var(--c-accent-red-rgb) / 0.12)", color: "var(--c-accent-red)" }}><Clock className="h-2.5 w-2.5" /> atascada</span>}
                       </div>
                       <p className="font-mono text-[9px]" style={{ color: "var(--c-text-muted)" }}>
                         {i.id.slice(0, 8)} · {fmtWhen(i.startedAt)} · {durationOf(i)}{i.startedBy && i.startedBy !== "system" ? ` · ${i.startedBy.slice(0, 10)}` : ""}

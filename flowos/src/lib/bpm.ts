@@ -27,6 +27,7 @@ export type {
   ProcessEdge,
   StepAction,
   NotifyConfig,
+  TimerConfig,
 } from "./process-types";
 
 import type { ProcessNode, ProcessEdge, StepAction, NotifyConfig } from "./process-types";
@@ -492,15 +493,21 @@ export async function advanceInstance(opts: {
   const isEnd = nextNode.type === "endEvent";
   const isService = nextNode.type === "serviceTask" || nextNode.type === "automatedTask";
   const isNotify = nextNode.type === "notifyTask";
-  // Nodos que se completan al instante (no requieren intervención humana).
+  const isTimer = nextNode.type === "timerTask";
+  // Timer con duración > 0 → la instancia DUERME (history in_progress + resumeAt seteado,
+  // el cron la despierta). Timer mal configurado (<=0) → se comporta como auto-avance.
+  const timerMs = isTimer ? Math.max(0, nextNode.timer?.durationMs ?? 0) : 0;
+  const isSleepingTimer = isTimer && timerMs > 0;
+  // Nodos que se completan al instante (no requieren intervención humana ni espera).
   const isAuto = isService || isNotify;
+  const completesNow = isEnd || isAuto || (isTimer && !isSleepingTimer);
 
   const newHistoryEntry: HistoryEntry = {
     nodeId: nextNode.id,
     nodeLabel: nextNode.label,
     startedAt: now,
-    completedAt: isEnd || isAuto ? now : undefined,
-    status: isEnd || isAuto ? "completed" : "in_progress",
+    completedAt: completesNow ? now : undefined,
+    status: completesNow ? "completed" : "in_progress",
   };
 
   await db
@@ -509,6 +516,9 @@ export async function advanceInstance(opts: {
       currentNodeId: nextNode.id,
       status: isEnd ? "completed" : "running",
       completedAt: isEnd ? new Date() : null,
+      // Si entramos a un timer dormido → marcamos cuándo despertar; en cualquier otro
+      // avance limpiamos resumeAt (incl. cuando el cron reanuda y seguimos a otro nodo).
+      resumeAt: isSleepingTimer ? new Date(Date.now() + timerMs) : null,
       context,
       history: [...updatedHistory, newHistoryEntry],
     })
@@ -585,6 +595,22 @@ export async function advanceInstance(opts: {
       metadata: { assigneeDeptId: nextNode.assigneeDeptId ?? null },
     });
     return { success: true };
+  }
+
+  // Timer / Espera → la instancia ya quedó dormida (resumeAt seteado arriba). PARAMOS
+  // acá: el cron /api/cron/resume-timers la despertará cuando venza y llamará a
+  // advanceInstance(completedNodeId = este timer) para seguir el flujo.
+  if (isSleepingTimer) {
+    return { success: true };
+  }
+  // Timer sin duración válida (<=0) → no tiene sentido dormir, avanzamos de una.
+  if (isTimer) {
+    return advanceInstance({
+      instanceId,
+      completedNodeId: nextNode.id,
+      output: {},
+      completedBy: "system",
+    });
   }
 
   // Notificación → ejecuta el aviso y auto-avanza (propaga el actor humano para que

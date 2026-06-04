@@ -114,6 +114,13 @@ export interface NotifyConfig {
   email: boolean;       // además del in-app, mandar email
 }
 
+// Configuración del nodo "Timer / Espera" (solo `timerTask`): pausa la instancia
+// `durationMs` y la reanuda sola vía cron. v1: duración fija. La instancia sigue
+// "running" mientras duerme; `processInstances.resumeAt` marca cuándo despertar.
+export interface TimerConfig {
+  durationMs: number;   // cuánto esperar desde que el flujo entra al nodo
+}
+
 export interface ProcessNode {
   id: string;
   type: string;
@@ -128,6 +135,8 @@ export interface ProcessNode {
   actions?: StepAction[];
   // Config de notificación (solo nodo "notifyTask").
   notify?: NotifyConfig;
+  // Config de timer/espera (solo nodo "timerTask").
+  timer?: TimerConfig;
   // SLA: tiempo esperado para completar este nodo en ms. Null = sin SLA.
   expectedDurationMs?: number | null;
 }

@@ -1,0 +1,30 @@
+name: Resume process timers
+
+# Despierta las instancias de proceso dormidas en un nodo `timerTask` cuyo tiempo de
+# espera ya venció. Pega al endpoint /api/cron/resume-timers con el CRON_SECRET.
+#
+# Por qué acá y no solo en vercel.json: el plan Hobby de Vercel ejecuta los crons como
+# máximo 1×/día, inútil para timers de minutos/horas. GitHub Actions corre cada ~10 min
+# gratis y desacoplado del plan. El cron de vercel.json queda como fallback diario.
+#
+# Requiere el secret de repo CRON_SECRET (mismo valor que la env var en Vercel prod).
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # cada 10 minutos (GitHub puede agregar algo de latencia)
+  workflow_dispatch: {}       # permite gatillarlo a mano desde la pestaña Actions
+
+# Evita solapamientos si una corrida tarda más que el intervalo.
+concurrency:
+  group: resume-timers
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit resume-timers endpoint
+        run: |
+          curl -fsS --max-time 60 -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://flowos-delta.vercel.app/api/cron/resume-timers

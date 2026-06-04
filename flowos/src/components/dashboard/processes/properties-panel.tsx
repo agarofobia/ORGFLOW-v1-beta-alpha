@@ -3,9 +3,9 @@
 // Panel lateral de propiedades del nodo seleccionado en el editor BPM:
 // nombre, descripción, puesto responsable (userTask), service action, etc.
 import { useEffect, useRef, useState } from "react";
-import { X, LayoutTemplate, Plus, Trash2, Braces, Bell } from "lucide-react";
+import { X, LayoutTemplate, Plus, Trash2, Braces, Bell, Clock } from "lucide-react";
 import type { BpmData, BpmNode } from "./process-flow";
-import type { StepAction, NotifyConfig } from "@/lib/process-types";
+import type { StepAction, NotifyConfig, TimerConfig } from "@/lib/process-types";
 import { SYSTEM_VARS } from "@/lib/system-vars";
 
 // ─── Hook puestos del organigrama ─────────────────────────────────────────────
@@ -232,6 +232,72 @@ export function PropertiesPanel({
       {node.type === "notifyTask" && (
         <NotifyEditor node={node} processFields={processFields} positions={positions} onChange={(notify) => onUpdate(node.id, { notify })} />
       )}
+
+      {node.type === "timerTask" && (
+        <TimerEditor node={node} onChange={(timer) => onUpdate(node.id, { timer })} />
+      )}
+    </div>
+  );
+}
+
+// ─── Editor de timer / espera ────────────────────────────────────────────────
+// Pausa la instancia un tiempo fijo y la reanuda sola (vía cron). El valor se compone
+// de un número + una unidad y se guarda como durationMs.
+const TIMER_UNITS: { value: string; label: string; ms: number }[] = [
+  { value: "min", label: "minutos", ms: 60000 },
+  { value: "h", label: "horas", ms: 3600000 },
+  { value: "d", label: "días", ms: 86400000 },
+];
+
+function TimerEditor({
+  node,
+  onChange,
+}: {
+  node: BpmNode;
+  onChange: (cfg: TimerConfig) => void;
+}) {
+  const cfg: TimerConfig = node.data.timer ?? { durationMs: 86400000 };
+  // Derivar valor + unidad desde durationMs: elegimos la unidad más grande que dé entero.
+  const unit = cfg.durationMs % 86400000 === 0 ? "d" : cfg.durationMs % 3600000 === 0 ? "h" : "min";
+  const unitMs = TIMER_UNITS.find((u) => u.value === unit)!.ms;
+  const amount = Math.max(0, Math.round(cfg.durationMs / unitMs));
+  const fieldStyle = { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" } as const;
+
+  const setAmount = (n: number) => onChange({ durationMs: Math.max(0, n) * unitMs });
+  const setUnit = (u: string) => {
+    const ms = TIMER_UNITS.find((x) => x.value === u)!.ms;
+    onChange({ durationMs: amount * ms });
+  };
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-lg px-2.5 py-2.5" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
+      <div className="flex items-center gap-1.5">
+        <Clock className="h-3.5 w-3.5" style={{ color: "var(--c-accent-amber)" }} />
+        <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Timer / Espera</span>
+      </div>
+
+      <div>
+        <label className="mb-1 block font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Esperar</label>
+        <div className="flex gap-1.5">
+          <input
+            type="number"
+            min={0}
+            value={amount}
+            onChange={(e) => setAmount(parseInt(e.target.value, 10) || 0)}
+            className="w-20 rounded px-2 py-1.5 text-sm outline-none"
+            style={fieldStyle}
+          />
+          <select value={unit} onChange={(e) => setUnit(e.target.value)}
+            className="flex-1 rounded px-2 py-1.5 text-sm outline-none" style={fieldStyle}>
+            {TIMER_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <p className="font-mono text-[9px] leading-relaxed" style={{ color: "var(--c-text-muted)" }}>
+        La instancia se pausa y se reanuda sola al vencer. La resolución real depende de
+        la frecuencia del cron (cada 5 min en prod).
+      </p>
     </div>
   );
 }

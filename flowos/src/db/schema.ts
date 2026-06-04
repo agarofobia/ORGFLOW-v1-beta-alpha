@@ -571,6 +571,10 @@ export const processInstances = pgTable(
     startedBy: text("started_by").notNull(),
     startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    // Timer/Espera: cuándo reanudar una instancia dormida en un nodo `timerTask`.
+    // null = no está esperando. El cron /api/cron/resume-timers despierta las vencidas
+    // (status="running" AND resumeAt <= now). La instancia sigue "running" mientras duerme.
+    resumeAt: timestamp("resume_at", { withTimezone: true }),
     context: jsonb("context").notNull().default({}),
     history: jsonb("history").notNull().default([]),
   },
@@ -578,6 +582,7 @@ export const processInstances = pgTable(
     orgIdx: index("proc_inst_org_idx").on(t.organizationId),
     defIdx: index("proc_inst_def_idx").on(t.processDefinitionId),
     statusIdx: index("proc_inst_status_idx").on(t.status),
+    resumeIdx: index("proc_inst_resume_idx").on(t.resumeAt),
   })
 );
 
