@@ -346,6 +346,7 @@ export function DesignerFlow({
             node={selectedNode}
             allNodes={nodes.map((n) => ({ id: n.id, label: n.data.label, type: n.type ?? "" }))}
             processFields={formFields.map((f) => ({ id: f.id, label: f.label }))}
+            currentProcessId={definition.id}
             onUpdate={updateNodeData}
             onClose={() => setSelectedNode(null)}
             onOpenLayoutBuilder={() => setLayoutBuilderNodeId(selectedNode.id)}

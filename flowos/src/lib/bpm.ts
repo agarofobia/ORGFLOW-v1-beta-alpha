@@ -28,6 +28,7 @@ export type {
   StepAction,
   NotifyConfig,
   TimerConfig,
+  CallProcessConfig,
 } from "./process-types";
 
 import type { ProcessNode, ProcessEdge, StepAction, NotifyConfig } from "./process-types";
@@ -494,12 +495,13 @@ export async function advanceInstance(opts: {
   const isService = nextNode.type === "serviceTask" || nextNode.type === "automatedTask";
   const isNotify = nextNode.type === "notifyTask";
   const isTimer = nextNode.type === "timerTask";
+  const isCallProcess = nextNode.type === "callProcessTask";
   // Timer con duración > 0 → la instancia DUERME (history in_progress + resumeAt seteado,
   // el cron la despierta). Timer mal configurado (<=0) → se comporta como auto-avance.
   const timerMs = isTimer ? Math.max(0, nextNode.timer?.durationMs ?? 0) : 0;
   const isSleepingTimer = isTimer && timerMs > 0;
   // Nodos que se completan al instante (no requieren intervención humana ni espera).
-  const isAuto = isService || isNotify;
+  const isAuto = isService || isNotify || isCallProcess;
   const completesNow = isEnd || isAuto || (isTimer && !isSleepingTimer);
 
   const newHistoryEntry: HistoryEntry = {
@@ -613,6 +615,19 @@ export async function advanceInstance(opts: {
     });
   }
 
+  // Llamar proceso → dispara una instancia nueva del proceso hijo (fire-and-forget) y
+  // auto-avanza. No espera a que el hijo termine. Propaga el actor humano como iniciador
+  // del hijo (cae al iniciador del padre si el avance fue del sistema).
+  if (isCallProcess) {
+    await executeCallProcess({ node: nextNode, instance, context, completedBy });
+    return advanceInstance({
+      instanceId,
+      completedNodeId: nextNode.id,
+      output: {},
+      completedBy,
+    });
+  }
+
   // Notificación → ejecuta el aviso y auto-avanza (propaga el actor humano para que
   // {@usuario} en el mensaje sea quien hizo el paso anterior).
   if (isNotify) {
@@ -694,6 +709,45 @@ async function executeNotify(opts: {
     }
   } catch (err) {
     console.warn("executeNotify failed:", String(err));
+  }
+}
+
+// ─── Ejecutar nodo "Llamar proceso" (proceso → proceso) ──────────────────────
+// Dispara una instancia nueva del proceso destino. Best-effort: si falla, lo loguea
+// y el padre sigue su flujo (fire-and-forget). Guarda anti-loop directo: un proceso no
+// puede dispararse a sí mismo (evita recursión infinita instancia→instancia).
+
+async function executeCallProcess(opts: {
+  node: ProcessNode;
+  instance: { id: string; organizationId: string; processDefinitionId: string; startedBy: string };
+  context: Record<string, unknown>;
+  completedBy: string;
+}) {
+  const cfg = opts.node.callProcess;
+  if (!cfg?.targetProcessId) return;
+  // Anti-loop directo: no permitir que un proceso se dispare a sí mismo.
+  if (cfg.targetProcessId === opts.instance.processDefinitionId) {
+    console.warn("executeCallProcess: target == proceso actual — omitido para evitar loop infinito");
+    return;
+  }
+  try {
+    const startedBy =
+      opts.completedBy && opts.completedBy !== "system" ? opts.completedBy : opts.instance.startedBy;
+    // El hijo siempre conoce a su padre; con passContext además hereda los datos cargados.
+    const childContext: Record<string, unknown> = cfg.passContext
+      ? { ...opts.context, _parentInstanceId: opts.instance.id }
+      : { _parentInstanceId: opts.instance.id };
+    const res = await startInstance({
+      processDefinitionId: cfg.targetProcessId,
+      organizationId: opts.instance.organizationId,
+      startedBy,
+      context: childContext,
+    });
+    if ("error" in res) {
+      console.warn("executeCallProcess: startInstance falló:", res.error);
+    }
+  } catch (err) {
+    console.warn("executeCallProcess failed:", String(err));
   }
 }
 

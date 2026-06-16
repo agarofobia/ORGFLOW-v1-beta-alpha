@@ -121,6 +121,15 @@ export interface TimerConfig {
   durationMs: number;   // cuánto esperar desde que el flujo entra al nodo
 }
 
+// Configuración del nodo "Llamar proceso" (solo `callProcessTask`): al entrar, dispara
+// una instancia NUEVA de otro proceso (fire-and-forget) y auto-avanza sin esperar a que
+// el hijo termine. El hijo recibe `_parentInstanceId` en su context para trazabilidad;
+// con `passContext` además hereda los datos cargados del proceso padre.
+export interface CallProcessConfig {
+  targetProcessId: string;   // processDefinitionId del proceso a disparar
+  passContext: boolean;      // copiar el context (datos) del padre al hijo
+}
+
 export interface ProcessNode {
   id: string;
   type: string;
@@ -137,6 +146,8 @@ export interface ProcessNode {
   notify?: NotifyConfig;
   // Config de timer/espera (solo nodo "timerTask").
   timer?: TimerConfig;
+  // Config de "llamar proceso" (solo nodo "callProcessTask").
+  callProcess?: CallProcessConfig;
   // SLA: tiempo esperado para completar este nodo en ms. Null = sin SLA.
   expectedDurationMs?: number | null;
 }

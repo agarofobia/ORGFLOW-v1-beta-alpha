@@ -3,8 +3,8 @@
 // Topología BPM del editor: tipo de dato del nodo (BpmData), helpers de conversión
 // DB ↔ ReactFlow, componentes visuales de cada nodo, el mapa nodeTypes y la paleta.
 import { Handle, Position, type Node, type Edge } from "@xyflow/react";
-import { Circle, User, Settings, Zap, GitMerge, GitBranch, Bell, Clock } from "lucide-react";
-import type { LayoutElement, ProcessNode, ProcessEdge, StepAction, NotifyConfig, TimerConfig } from "@/lib/process-types";
+import { Circle, User, Settings, Zap, GitMerge, GitBranch, Bell, Clock, Workflow } from "lucide-react";
+import type { LayoutElement, ProcessNode, ProcessEdge, StepAction, NotifyConfig, TimerConfig, CallProcessConfig } from "@/lib/process-types";
 
 // Formatea una duración en ms a texto corto ("2 d", "3 h", "15 min"). Compartido
 // entre el nodo del editor y el dashboard de instancias.
@@ -33,6 +33,8 @@ export type BpmData = {
   notify?: NotifyConfig;
   // Config de timer/espera (solo timerTask).
   timer?: TimerConfig;
+  // Config de "llamar proceso" (solo callProcessTask).
+  callProcess?: CallProcessConfig;
   allowTracking?: boolean;
   // Heatmap overlay — cuando está activo en el editor, este campo se inyecta
   // con el color calculado del cycle time del nodo (verde rápido → rojo lento).
@@ -56,6 +58,7 @@ export function nodesToDB(rfNodes: BpmNode[]): ProcessNode[] {
     actions: n.data.actions,
     notify: n.data.notify,
     timer: n.data.timer,
+    callProcess: n.data.callProcess,
     position: n.position,
   }));
 }
@@ -74,6 +77,7 @@ export function nodesFromDB(dbNodes: ProcessNode[]): BpmNode[] {
       actions: n.actions,
       notify: n.notify,
       timer: n.timer,
+      callProcess: n.callProcess,
     },
   }));
 }
@@ -261,6 +265,30 @@ function TimerTaskNode({ data }: { data: BpmData }) {
   );
 }
 
+function CallProcessNode({ data }: { data: BpmData }) {
+  return (
+    <div className="relative min-w-[160px] rounded-lg p-3"
+      style={{ background: "var(--c-bg-surface)", border: "1px solid rgb(var(--c-accent-emerald-rgb) / 0.25)", borderLeft: "3px solid var(--c-accent-emerald)" }}>
+      <Handle type="target" position={Position.Top}
+        style={{ background: "var(--c-accent-emerald)", width: 8, height: 8, border: "none" }} />
+      <div className="flex items-center gap-2">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded"
+          style={{ background: "rgb(var(--c-accent-emerald-rgb) / 0.15)" }}>
+          <Workflow className="h-3.5 w-3.5" style={{ color: "var(--c-accent-emerald)" }} />
+        </div>
+        <div>
+          <p className="text-xs font-medium leading-tight" style={{ color: "var(--c-text-primary)" }}>{data.label}</p>
+          <p className="mt-0.5 font-mono text-[9px]" style={{ color: "var(--c-text-muted)" }}>
+            {data.callProcess?.targetProcessId ? "→ dispara proceso" : "sin proceso destino"}
+          </p>
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom}
+        style={{ background: "var(--c-accent-emerald)", width: 8, height: 8, border: "none" }} />
+    </div>
+  );
+}
+
 function DiamondNode({
   data,
   symbol,
@@ -303,6 +331,7 @@ export const nodeTypes = {
   automatedTask: AutomatedTaskNode,
   notifyTask: NotifyTaskNode,
   timerTask: TimerTaskNode,
+  callProcessTask: CallProcessNode,
   parallelGateway: ParallelGatewayNode,
   exclusiveGateway: ExclusiveGatewayNode,
 };
@@ -317,6 +346,7 @@ export const PALETTE = [
   { type: "automatedTask", label: "Automática", icon: Zap, color: "var(--c-accent-violet)", defaultLabel: "Tarea automática" },
   { type: "notifyTask", label: "Notificación", icon: Bell, color: "var(--c-accent-cyan)", defaultLabel: "Notificar" },
   { type: "timerTask", label: "Timer / Espera", icon: Clock, color: "var(--c-accent-amber)", defaultLabel: "Esperar" },
+  { type: "callProcessTask", label: "Llamar proceso", icon: Workflow, color: "var(--c-accent-emerald)", defaultLabel: "Disparar proceso" },
   { type: "parallelGateway", label: "Gateway paralelo", icon: GitMerge, color: "var(--c-accent-amber)", defaultLabel: "Paralelo" },
   { type: "exclusiveGateway", label: "Gateway exclusivo", icon: GitBranch, color: "var(--c-accent-red)", defaultLabel: "Decisión" },
 ];

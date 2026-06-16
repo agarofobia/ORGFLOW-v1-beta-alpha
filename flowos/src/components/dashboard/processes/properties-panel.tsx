@@ -3,9 +3,9 @@
 // Panel lateral de propiedades del nodo seleccionado en el editor BPM:
 // nombre, descripción, puesto responsable (userTask), service action, etc.
 import { useEffect, useRef, useState } from "react";
-import { X, LayoutTemplate, Plus, Trash2, Braces, Bell, Clock } from "lucide-react";
+import { X, LayoutTemplate, Plus, Trash2, Braces, Bell, Clock, Workflow } from "lucide-react";
 import type { BpmData, BpmNode } from "./process-flow";
-import type { StepAction, NotifyConfig, TimerConfig } from "@/lib/process-types";
+import type { StepAction, NotifyConfig, TimerConfig, CallProcessConfig } from "@/lib/process-types";
 import { SYSTEM_VARS } from "@/lib/system-vars";
 
 // ─── Hook puestos del organigrama ─────────────────────────────────────────────
@@ -25,10 +25,29 @@ export function useOrgPositions() {
   return positions;
 }
 
+// ─── Hook procesos disparables (para el nodo "Llamar proceso") ────────────────
+// Trae todos los procesos de la org (flat, sin carpetas). Solo los "active" pueden
+// dispararse — el motor rechaza los draft/archived al instanciar.
+export type ProcessListItem = { id: string; name: string; status: string; category: string };
+
+export function useProcessList() {
+  const [processes, setProcesses] = useState<ProcessListItem[]>([]);
+  useEffect(() => {
+    fetch("/api/processes?flat=1")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: ProcessListItem[]) => {
+        if (Array.isArray(data)) setProcesses(data);
+      })
+      .catch(() => {});
+  }, []);
+  return processes;
+}
+
 export function PropertiesPanel({
   node,
   allNodes,
   processFields,
+  currentProcessId,
   onUpdate,
   onClose,
   onOpenLayoutBuilder,
@@ -38,6 +57,8 @@ export function PropertiesPanel({
   allNodes: { id: string; label: string; type: string }[];
   // Campos del proceso (para insertar tokens en el mensaje de notificación).
   processFields: { id: string; label: string }[];
+  // Id del proceso que se está editando (para excluirlo del nodo "Llamar proceso").
+  currentProcessId: string;
   onUpdate: (id: string, data: Partial<BpmData>) => void;
   onClose: () => void;
   onOpenLayoutBuilder: () => void;
@@ -236,6 +257,10 @@ export function PropertiesPanel({
       {node.type === "timerTask" && (
         <TimerEditor node={node} onChange={(timer) => onUpdate(node.id, { timer })} />
       )}
+
+      {node.type === "callProcessTask" && (
+        <CallProcessEditor node={node} currentProcessId={currentProcessId} onChange={(callProcess) => onUpdate(node.id, { callProcess })} />
+      )}
     </div>
   );
 }
@@ -297,6 +322,70 @@ function TimerEditor({
       <p className="font-mono text-[9px] leading-relaxed" style={{ color: "var(--c-text-muted)" }}>
         La instancia se pausa y se reanuda sola al vencer. La resolución real depende de
         la frecuencia del cron (cada 5 min en prod).
+      </p>
+    </div>
+  );
+}
+
+// ─── Editor de "Llamar proceso" (proceso → proceso) ──────────────────────────
+// Dispara una instancia nueva de otro proceso (fire-and-forget) y auto-avanza. Solo
+// procesos "active" pueden dispararse; el proceso actual se excluye (anti-loop directo).
+function CallProcessEditor({
+  node,
+  currentProcessId,
+  onChange,
+}: {
+  node: BpmNode;
+  currentProcessId: string;
+  onChange: (cfg: CallProcessConfig) => void;
+}) {
+  const cfg: CallProcessConfig = node.data.callProcess ?? { targetProcessId: "", passContext: false };
+  const patch = (p: Partial<CallProcessConfig>) => onChange({ ...cfg, ...p });
+  const processes = useProcessList();
+  const fieldStyle = { background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)", color: "var(--c-text-primary)" } as const;
+
+  // Disparables: distintos del actual, que no sean carpetas. Marcamos los no-activos.
+  const options = processes.filter((p) => p.id !== currentProcessId && p.category !== "folder");
+  const selected = options.find((p) => p.id === cfg.targetProcessId);
+
+  return (
+    <div className="flex flex-col gap-2.5 rounded-lg px-2.5 py-2.5" style={{ background: "var(--c-bg-elevated)", border: "1px solid var(--c-border)" }}>
+      <div className="flex items-center gap-1.5">
+        <Workflow className="h-3.5 w-3.5" style={{ color: "var(--c-accent-emerald)" }} />
+        <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--c-text-muted)" }}>Llamar proceso</span>
+      </div>
+
+      <div>
+        <label className="mb-1 block font-mono text-[9px] uppercase" style={{ color: "var(--c-text-muted)" }}>Proceso a disparar</label>
+        <select value={cfg.targetProcessId} onChange={(e) => patch({ targetProcessId: e.target.value })}
+          className="w-full rounded px-2 py-1.5 text-xs outline-none" style={fieldStyle}>
+          <option value="">— Elegí un proceso —</option>
+          {options.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}{p.status !== "active" ? ` (${p.status})` : ""}
+            </option>
+          ))}
+        </select>
+        {options.length === 0 && (
+          <p className="mt-1 font-mono text-[9px]" style={{ color: "var(--c-text-placeholder)" }}>
+            No hay otros procesos para disparar todavía.
+          </p>
+        )}
+        {selected && selected.status !== "active" && (
+          <p className="mt-1 font-mono text-[9px]" style={{ color: "var(--c-accent-amber)" }}>
+            ⚠ Este proceso no está activo — no se va a disparar hasta publicarlo.
+          </p>
+        )}
+      </div>
+
+      <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--c-text-muted)", cursor: "pointer" }}>
+        <input type="checkbox" checked={cfg.passContext} onChange={(e) => patch({ passContext: e.target.checked })} />
+        Pasarle los datos cargados de este proceso
+      </label>
+
+      <p className="font-mono text-[9px] leading-relaxed" style={{ color: "var(--c-text-muted)" }}>
+        Dispara una instancia nueva y sigue de largo (no espera a que el hijo termine). El
+        hijo recibe el id de esta instancia como padre.
       </p>
     </div>
   );
