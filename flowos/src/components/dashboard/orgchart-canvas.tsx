@@ -48,6 +48,13 @@ import {
 import { NodeInfoPanel, UnitEditPanel, type EmployeeWithSection } from "./orgchart/NodeInfoPanel";
 import { getEffectiveRole } from "./orgchart/roles";
 import BulkActionToolbar from "./orgchart/BulkActionToolbar";
+import {
+  computeCoupledSizes, computeAdjacency, computeDeptAdjacency,
+  computeCoupledGroupPositions, computeAbsorption, computeDeptHeadIds,
+  computeDeptInternalLayout, computeDirectorSyntheticEdges,
+} from "./orgchart/layout";
+import { computeDivisionSnap as snapDivision, computeDepartmentSnap as snapDepartment } from "./orgchart/snap";
+import { LAYOUT } from "./orgchart/constants";
 
 
 // ─── Debounce helper ─────────────────────────────────────────────────────────
@@ -526,170 +533,32 @@ function OrgChartFlow() {
   }, [markSyncing]);
 
   // ── Auto-size logic ──────────────────────────────────────────────────────
-  // Compute the natural size needed by a single division based on its children.
-  // Truly proportional: empty divisions are small, packed divisions are big.
-  const HEADER_H = 80;       // header (64) + a little gap
-  const FOOTER_H_ON = 52;    // when footer is enabled
-  const PADDING = 16;
-  const DEPT_W = 280;
-  const DEPT_H = 200;
-  const DEPT_GAP = 20;
-  const EMP_W = 200;
-  const EMP_H = 70;
-  const EMP_GAP = 12;
+  // Constantes canónicas del layout (orgchart/constants.ts). La geometría vive en
+  // orgchart/layout.ts; acá sólo se memoizan los resultados.
+  const { HEADER_H, PADDING, DEPT_W, DEPT_H, DEPT_GAP, EMP_H, EMP_GAP } = LAYOUT;
 
-  const computeDivisionNaturalSize = useCallback((d: Division): { w: number; h: number } => {
-    const childDepts = departments.filter(x => x.divisionId === d.id);
-    const directEmps = (employees ?? []).filter(e => e.divisionId === d.id && !e.departmentId);
-    const footerH = d.showFooter ? FOOTER_H_ON : 0;
-
-    if (childDepts.length === 0 && directEmps.length === 0) {
-      return { w: 320, h: HEADER_H + 60 + footerH };
-    }
-
-    // Bounding box. Cada depto crece según sus empleados (excluyendo head promovido)
-    // Y todos los hermanos de la división comparten el mismo alto (el max) para que
-    // la división se vea uniforme sin huecos.
-    let maxChildX = 0;
-    let maxChildY = 0;
-    // Pre-cálculo de altura needed por depto
-    const heights: number[] = [];
-    childDepts.forEach(dept => {
-      const isHeadPromoted = (dept.promoteHead ?? false) && !!dept.headEmployeeId;
-      const empCount = (employees ?? []).filter(e =>
-        e.departmentId === dept.id &&
-        (!isHeadPromoted || e.id !== dept.headEmployeeId)
-      ).length;
-      const mode = dept.layoutMode ?? "vertical";
-      const step = mode === "compact" ? (44 + 6) : (EMP_H + EMP_GAP);
-      const needed = 34 + 12 + empCount * step + 16;
-      heights.push(Math.max(dept.sizeHeight ?? DEPT_H, needed));
-    });
-    const maxDeptH = heights.length > 0 ? Math.max(...heights) : DEPT_H;
-    childDepts.forEach(dept => {
-      const dW = Math.max(dept.sizeWidth ?? DEPT_W, 290);
-      const x = (dept.positionX ?? PADDING) + dW;
-      const y = (dept.positionY ?? HEADER_H + PADDING) + maxDeptH;
-      if (x > maxChildX) maxChildX = x;
-      if (y > maxChildY) maxChildY = y;
-    });
-    directEmps.forEach(emp => {
-      const x = (emp.positionX ?? PADDING) + EMP_W;
-      const y = (emp.positionY ?? HEADER_H + PADDING) + EMP_H;
-      if (x > maxChildX) maxChildX = x;
-      if (y > maxChildY) maxChildY = y;
-    });
-
-    const w = Math.max(320, maxChildX + PADDING);
-    const h = Math.max(HEADER_H + 80, maxChildY + PADDING) + footerH;
-    return { w, h };
-  }, [departments, employees]);
-
-  // For coupled divisions, all in the same group share max(naturalSize) so they're symmetric.
-  // For solo (uncoupled) divisions, use the natural size directly — no stored override.
-  const coupledSizes = useMemo(() => {
-    const sizes = new Map<string, { w: number; h: number }>();
-    const groups = new Map<string, Division[]>();
-    divisions.forEach(d => {
-      const key = d.couplingGroup ?? `solo:${d.id}`;
-      const arr = groups.get(key) ?? [];
-      arr.push(d);
-      groups.set(key, arr);
-    });
-    groups.forEach((group, key) => {
-      if (key.startsWith("solo:")) {
-        const d = group[0];
-        sizes.set(d.id, computeDivisionNaturalSize(d));
-      } else {
-        let maxW = 0, maxH = 0;
-        group.forEach(d => {
-          const nat = computeDivisionNaturalSize(d);
-          maxW = Math.max(maxW, nat.w);
-          maxH = Math.max(maxH, nat.h);
-        });
-        group.forEach(d => sizes.set(d.id, { w: maxW, h: maxH }));
-      }
-    });
-    return sizes;
-  }, [divisions, computeDivisionNaturalSize]);
+  // Tamaños: acopladas comparten max del grupo; solo usan su natural. Lógica en layout.ts.
+  const coupledSizes = useMemo(
+    () => computeCoupledSizes(divisions, departments, employees ?? []),
+    [divisions, departments, employees],
+  );
 
   // Adjacency: which divisions have left/right neighbors (for fused visual).
   // Derived from couplingGroup membership + positionX order — NOT from pixel tolerance.
   // This way it stays correct even when division sizes change dynamically.
-  const adjacency = useMemo(() => {
-    const map = new Map<string, { left: boolean; right: boolean }>();
-    divisions.forEach(d => map.set(d.id, { left: false, right: false }));
-    const groups = new Map<string, Division[]>();
-    divisions.forEach(d => {
-      if (!d.couplingGroup) return;
-      const arr = groups.get(d.couplingGroup) ?? [];
-      arr.push(d);
-      groups.set(d.couplingGroup, arr);
-    });
-    groups.forEach(group => {
-      if (group.length <= 1) return;
-      const sorted = [...group].sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
-      sorted.forEach((div, i) => {
-        map.set(div.id, { left: i > 0, right: i < sorted.length - 1 });
-      });
-    });
-    return map;
-  }, [divisions]);
+  const adjacency = useMemo(() => computeAdjacency(divisions), [divisions]);
 
   // Set de IDs de todos los heads de departamento — usado para generar edges correctas.
-  const deptHeadIds = useMemo(() => {
-    const s = new Set<string>();
-    for (const dp of departments) {
-      if (dp.headEmployeeId) s.add(dp.headEmployeeId);
-    }
-    return s;
-  }, [departments]);
+  const deptHeadIds = useMemo(() => computeDeptHeadIds(departments), [departments]);
 
   // Absorción de subordinados: un manager (role=manager) cuyos subordinados
   // sean TODOS miembros (role=member) los "absorbe" → se renderizan como lista
   // inline dentro del card del manager, no como cards separados.
   // No aplica si algún subordinado es manager/director (ahí se necesita la jerarquía visible).
-  const absorption = useMemo(() => {
-    const absorbedIds = new Set<string>(); // empleados que NO se renderizan como cards separados
-    const managerSubsMap = new Map<string, Array<{ id: string; fullName: string; jobTitle: string; color: string; isVacant: boolean; unit?: { id: string; name: string; color: string | null; isHead: boolean } | null }>>();
-
-    // Mapeo managerId → subordinados directos
-    const directReports = new Map<string, Employee[]>();
-    for (const e of employees ?? []) {
-      if (!e.managerId) continue;
-      const list = directReports.get(e.managerId) ?? [];
-      list.push(e);
-      directReports.set(e.managerId, list);
-    }
-
-    for (const [mgrId, subs] of directReports.entries()) {
-      const mgr = (employees ?? []).find(e => e.id === mgrId);
-      if (!mgr) continue;
-      // Solo absorben los managers (encargados), no directores ni miembros sueltos
-      const mgrRole = getEffectiveRole(mgr, employees ?? [], departments, units);
-      if (mgrRole !== "manager") continue;
-      // Todos los subs deben ser members puros (sin sub-managers)
-      const allMembers = subs.every(s => getEffectiveRole(s, employees ?? [], departments, units) === "member");
-      if (!allMembers) continue;
-      // Absorber
-      const list = subs.map(s => {
-        const u = s.unitId ? units.find(x => x.id === s.unitId) : null;
-        return {
-          id: s.id,
-          fullName: s.fullName,
-          jobTitle: s.jobTitle || "Sin asignar",
-          color: s.color || "var(--c-accent-blue)",
-          isVacant: s.fullName === "[Puesto vacante]",
-          imageUrl: (s as Employee & { imageUrl?: string | null }).imageUrl ?? null,
-          unit: u ? { id: u.id, name: u.name, color: u.color, isHead: u.headEmployeeId === s.id } : null,
-        };
-      });
-      managerSubsMap.set(mgrId, list);
-      subs.forEach(s => absorbedIds.add(s.id));
-    }
-
-    return { absorbedIds, managerSubsMap };
-  }, [employees, departments, units]);
+  const absorption = useMemo(
+    () => computeAbsorption(employees ?? [], departments, units),
+    [employees, departments, units],
+  );
 
   // Edges sintéticas — generadas automáticamente, no se persisten ni son editables:
   //   1. Secretario divisional → Departamento (__sync_dir_<deptId>)
@@ -698,183 +567,35 @@ function OrgChartFlow() {
   //      Se omite el edge hacia los directores (heads de depto) ya que su conexión
   //      está cubierta por la regla 1 (secretario → depto que los contiene).
   // El usuario ve la jerarquía completa sin tener que dibujar líneas a mano.
-  const directorSyntheticEdges = useMemo<Edge[]>(() => {
-    const out: Edge[] = [];
-    const empIds = new Set((employees ?? []).map(e => e.id));
-
-    // 1. Secretario → Departamento
-    // Cada depto se conecta desde el seniorEmployee de su división (el secretario),
-    // no desde el director, porque el director ahora vive DENTRO del depto.
-    for (const dp of departments) {
-      if (!dp.divisionId) continue;
-      const div = divisions.find(d => d.id === dp.divisionId);
-      const secId = div?.seniorEmployeeId;
-      if (secId && empIds.has(secId)) {
-        out.push({
-          id: `__sync_dir_${dp.id}`,
-          source: secId,
-          target: dp.id,
-          type: "bicolor",
-          selectable: false,
-          deletable: false,
-          focusable: false,
-        });
-      }
-    }
-
-    // 2. Manager → Subordinado (managerId chain)
-    // EXCEPTO si el subordinado fue absorbido inline en el card del manager, o
-    // si el subordinado es head de un departamento (su conexión es secretario→depto).
-    // targetHandle='left' → la línea sale por debajo del manager y entra al
-    // subordinado por su lateral izquierdo. Esto da un routing en L más limpio
-    // que entrar siempre por arriba (que cruzaría visualmente con otros nodos).
-    for (const e of employees ?? []) {
-      if (!e.managerId || !empIds.has(e.managerId)) continue;
-      if (absorption.absorbedIds.has(e.id)) continue;
-      if (deptHeadIds.has(e.id)) continue; // edge cubierto por secretario→depto
-      out.push({
-        id: `__sync_mgr_${e.id}`,
-        source: e.managerId,
-        target: e.id,
-        targetHandle: "left",
-        type: "bicolor",
-        selectable: false,
-        deletable: false,
-        focusable: false,
-      });
-    }
-
-    return out;
-  }, [departments, employees, absorption, divisions, deptHeadIds]);
+  const directorSyntheticEdges = useMemo<Edge[]>(
+    () => computeDirectorSyntheticEdges(departments, employees ?? [], divisions, absorption.absorbedIds, deptHeadIds),
+    [departments, employees, absorption, divisions, deptHeadIds],
+  );
 
   // Motor de layout interno por departamento — respeta el layoutMode del depto:
   //   - "vertical": stack vertical con indent por nivel (modo default, clásico)
   //   - "compact": stack vertical SIN indent, gap menor, cards más chicas (mostradas vía empCompact)
   //   - "manual": no auto-posiciona nada, respeta lo que el usuario dragueó
   // El head/director siempre se incluye dentro del depto (arriba del todo), ya NO se promueve afuera.
-  const deptInternalLayout = useMemo(() => {
-    const positions = new Map<string, { x: number; y: number }>();
-    const COL_X = 16;
-    const TOP_Y = 34 + 12;
-
-    departments.forEach(dept => {
-      const mode = dept.layoutMode ?? "vertical";
-      if (mode === "manual") return; // no auto-posiciona — drag manual rules
-
-      // El director/head siempre se incluye en el layout interno del depto
-      const empsInDept = (employees ?? []).filter(e =>
-        e.departmentId === dept.id &&
-        !absorption.absorbedIds.has(e.id) &&
-        e.manualPosition !== true
-      );
-      if (empsInDept.length === 0) return;
-
-      // Altura de paso por modo: compact usa cards más chicas → menos espacio vertical
-      const STEP = mode === "compact" ? (44 + 6) : (70 + 12); // EMP_H + EMP_GAP
-      const INDENT = mode === "compact" ? 0 : 20;
-
-      const visited = new Set<string>();
-      let y = TOP_Y;
-      const place = (empId: string, depth: number = 0) => {
-        if (visited.has(empId)) return;
-        const emp = empsInDept.find(e => e.id === empId);
-        if (!emp) return;
-        visited.add(empId);
-        positions.set(empId, { x: COL_X + depth * INDENT, y });
-        y += STEP;
-        empsInDept
-          .filter(e => e.managerId === empId)
-          .forEach(sub => place(sub.id, depth + 1));
-      };
-
-      // El director/head siempre es el primero (arriba del todo en el depto)
-      if (dept.headEmployeeId && empsInDept.some(e => e.id === dept.headEmployeeId)) {
-        place(dept.headEmployeeId, 0);
-      }
-      // Empleados sin manager en este depto (top-level)
-      empsInDept
-        .filter(e => (!e.managerId || !empsInDept.some(m => m.id === e.managerId)) && !visited.has(e.id))
-        .forEach(e => place(e.id, 0));
-      // Huérfanos
-      empsInDept.forEach(e => { if (!visited.has(e.id)) place(e.id, 0); });
-    });
-
-    return positions;
-  }, [departments, employees, absorption]);
+  const deptInternalLayout = useMemo(
+    () => computeDeptInternalLayout(departments, employees ?? [], absorption.absorbedIds),
+    [departments, employees, absorption],
+  );
 
   // Adyacencia entre departamentos: dos depts del MISMO division con misma Y y
   // X alineados (right de uno = left del otro, dentro de tolerancia) → se ven fusionados.
   // No requiere columna couplingGroup en DB — se deriva puramente de posiciones.
-  const deptAdjacency = useMemo(() => {
-    const map = new Map<string, { left: boolean; right: boolean }>();
-    departments.forEach(d => map.set(d.id, { left: false, right: false }));
-    // Agrupar por divisionId (sólo se fusionan depts dentro de la misma división)
-    const byDiv = new Map<string, Department[]>();
-    departments.forEach(d => {
-      if (!d.divisionId) return;
-      const arr = byDiv.get(d.divisionId) ?? [];
-      arr.push(d);
-      byDiv.set(d.divisionId, arr);
-    });
-    const TOL_X = 4;
-    const TOL_Y = 30;
-    byDiv.forEach(list => {
-      list.forEach(a => {
-        const aX = a.positionX ?? 0;
-        const aY = a.positionY ?? 0;
-        const aW = a.sizeWidth ?? DEPT_W;
-        for (const b of list) {
-          if (b.id === a.id) continue;
-          const bX = b.positionX ?? 0;
-          const bY = b.positionY ?? 0;
-          const bW = b.sizeWidth ?? DEPT_W;
-          if (Math.abs(aY - bY) > TOL_Y) continue;
-          // b está pegado a la derecha de a
-          if (Math.abs((aX + aW) - bX) < TOL_X) {
-            const cur = map.get(a.id) ?? { left: false, right: false };
-            map.set(a.id, { left: cur.left, right: true });
-            const curB = map.get(b.id) ?? { left: false, right: false };
-            map.set(b.id, { left: true, right: curB.right });
-          }
-        }
-      });
-    });
-    return map;
-  }, [departments]);
+  const deptAdjacency = useMemo(() => computeDeptAdjacency(departments), [departments]);
   // Keep ref in sync so resize callbacks can read it without adding it as a dep
   useEffect(() => { deptAdjacencyRef.current = deptAdjacency; }, [deptAdjacency]);
 
   // Dynamic positions for coupled groups: when a division grows/shrinks, right-side
   // siblings shift automatically so the group stays flush — no DB write needed.
   // Solo divisions just use their stored positionX/Y unchanged.
-  const coupledGroupPositions = useMemo(() => {
-    const positions = new Map<string, { x: number; y: number }>();
-    const groups = new Map<string, Division[]>();
-    divisions.forEach(d => {
-      if (!d.couplingGroup) return;
-      const arr = groups.get(d.couplingGroup) ?? [];
-      arr.push(d);
-      groups.set(d.couplingGroup, arr);
-    });
-    // CRÍTICO: el cumX debe usar el ancho REAL que se va a renderizar
-    // (mismo cálculo que computedNodes). Si una div está en manualSize, su
-    // sizeWidth puede diferir del coupledSizes (que sólo calcula natural).
-    // Sin esta corrección, al manual-resize una div en grupo se rompe la fusión.
-    const widthFor = (d: Division) => {
-      if (manualSizeDivs.has(d.id)) return d.sizeWidth ?? 720;
-      return coupledSizes.get(d.id)?.w ?? d.sizeWidth ?? 720;
-    };
-    groups.forEach(group => {
-      const sorted = [...group].sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
-      let cumX = sorted[0].positionX ?? 0;
-      const baseY = sorted[0].positionY ?? 0;
-      sorted.forEach(div => {
-        positions.set(div.id, { x: cumX, y: baseY });
-        cumX += widthFor(div);
-      });
-    });
-    return positions;
-  }, [divisions, coupledSizes, manualSizeDivs]);
+  const coupledGroupPositions = useMemo(
+    () => computeCoupledGroupPositions(divisions, coupledSizes, manualSizeDivs),
+    [divisions, coupledSizes, manualSizeDivs],
+  );
 
   const handleUnitClick = useCallback((unitId: string) => {
     const unit = unitsRef.current.find(u => u.id === unitId);
@@ -1125,86 +846,18 @@ function OrgChartFlow() {
 
   // ── Snap helper: when dropping a division near another, align edges and couple ──
   // Returns { x, y, couplingGroup } if a snap should happen, else null
-  const computeDivisionSnap = useCallback((draggedId: string, dragX: number, dragY: number): { x: number; y: number; couplingGroup: string; anchorId: string } | null => {
-    const dragged = divisions.find(d => d.id === draggedId);
-    if (!dragged) return null;
-    const dragSize = coupledSizes.get(draggedId) ?? { w: dragged.sizeWidth ?? 720, h: dragged.sizeHeight ?? 500 };
-    const SNAP_PX = 80;
-    const Y_TOLERANCE = 100;
-
-    for (const other of divisions) {
-      if (other.id === draggedId) continue;
-      // Usar la posición VISUAL (lo que el usuario ve) — para divisiones acopladas,
-      // la posición real en el canvas viene de coupledGroupPositions, no de positionX.
-      // Sin esto, si la división A fue acoplada a B, su positionX guardado puede
-      // diferir del lugar donde realmente se ve → snap falla.
-      const visual = coupledGroupPositions.get(other.id);
-      const oX = visual?.x ?? other.positionX ?? 0;
-      const oY = visual?.y ?? other.positionY ?? 0;
-      const oSize = coupledSizes.get(other.id) ?? { w: other.sizeWidth ?? 720, h: other.sizeHeight ?? 500 };
-      const yClose = Math.abs(dragY - oY) < Y_TOLERANCE;
-
-      // Drop on right side of `other`
-      if (yClose && Math.abs(dragX - (oX + oSize.w)) < SNAP_PX) {
-        return { x: oX + oSize.w, y: oY, couplingGroup: other.couplingGroup ?? other.id, anchorId: other.id };
-      }
-      // Drop on left side of `other` — align dragged.right with other.left
-      if (yClose && Math.abs((dragX + dragSize.w) - oX) < SNAP_PX) {
-        return { x: oX - dragSize.w, y: oY, couplingGroup: other.couplingGroup ?? other.id, anchorId: other.id };
-      }
-    }
-    return null;
-  }, [divisions, coupledSizes, coupledGroupPositions]);
+  const computeDivisionSnap = useCallback(
+    (draggedId: string, dragX: number, dragY: number) =>
+      snapDivision(draggedId, dragX, dragY, divisions, coupledSizes, coupledGroupPositions),
+    [divisions, coupledSizes, coupledGroupPositions],
+  );
 
   // Snap entre departamentos del MISMO division — los pega bordes-con-bordes igual que divisiones.
   // No usa couplingGroup (no existe esa columna en depts); solo alinea X y Y.
-  const computeDepartmentSnap = useCallback((draggedId: string, dragX: number, dragY: number): { x: number; y: number } | null => {
-    const dragged = departments.find(d => d.id === draggedId);
-    if (!dragged || !dragged.divisionId) return null;
-    const dragW = dragged.sizeWidth ?? 280;
-    // SNAP_PX: distancia de borde a borde para activar el snap lateral.
-    // 40px — snap solo cuando el borde está muy cerca, no desde cualquier distancia.
-    const SNAP_PX = 40;
-    // Y_TOL: tolerancia vertical. 22px ≈ un header de dept.
-    // Evita que depts en filas distintas se fusionen al estar "a la misma altura".
-    const Y_TOL = 22;
-
-    let bestSnap: { x: number; y: number } | null = null;
-    let bestDist = Infinity;
-
-    for (const other of departments) {
-      if (other.id === draggedId) continue;
-      if (other.divisionId !== dragged.divisionId) continue; // sólo dentro de la misma división
-      const oX = other.positionX ?? 0;
-      const oY = other.positionY ?? 0;
-      const oW = other.sizeWidth ?? 280;
-      const yClose = Math.abs(dragY - oY) < Y_TOL;
-      if (!yClose) continue;
-
-      // Caso 1: SOLAPAMIENTO — el dragged está encima del other.
-      // Resolver por centro relativo: el dept cae al lado donde está su centro.
-      const overlapsX = dragX < oX + oW && dragX + dragW > oX;
-      if (overlapsX) {
-        const dragCenter = dragX + dragW / 2;
-        const otherCenter = oX + oW / 2;
-        const snapX = dragCenter > otherCenter ? oX + oW : oX - dragW;
-        const dist = Math.abs(dragX - snapX);
-        if (dist < bestDist) { bestDist = dist; bestSnap = { x: snapX, y: oY }; }
-        continue;
-      }
-
-      // Caso 2: CERCA pero sin solapar — snap al candidato más cercano dentro de SNAP_PX
-      const distRight = Math.abs(dragX - (oX + oW));       // dragged a la derecha de other
-      const distLeft  = Math.abs((dragX + dragW) - oX);    // dragged a la izquierda de other
-      if (distRight < SNAP_PX && distRight < bestDist) {
-        bestDist = distRight; bestSnap = { x: oX + oW, y: oY };
-      }
-      if (distLeft < SNAP_PX && distLeft < bestDist) {
-        bestDist = distLeft; bestSnap = { x: oX - dragW, y: oY };
-      }
-    }
-    return bestSnap;
-  }, [departments]);
+  const computeDepartmentSnap = useCallback(
+    (draggedId: string, dragX: number, dragY: number) => snapDepartment(draggedId, dragX, dragY, departments),
+    [departments],
+  );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const onNodesChange = useCallback((changes: NodeChange[]) => {
