@@ -771,3 +771,127 @@ export function RenameModal({ initialValue, title, onSave, onClose }: {
     </div>
   );
 }
+
+// ─── Adoptar departamento (picker) ────────────────────────────────────────────
+// Lista los departamentos de OTRAS divisiones (o sueltos) para adoptarlos en la
+// división destino. La persistencia la hace el caller vía onAdopt(deptId).
+export function AdoptDepartmentModal({ targetDivisionId, divisions, departments, onAdopt, onClose }: {
+  targetDivisionId: string;
+  divisions: Division[];
+  departments: Department[];
+  onAdopt: (deptId: string) => void;
+  onClose: () => void;
+}) {
+  const targetDiv = divisions.find(d => d.id === targetDivisionId);
+  const adoptable = departments.filter(d => d.divisionId !== targetDivisionId);
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
+      {...backdropClose(onClose)}
+    >
+      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>Adoptar departamento</p>
+            <p style={{ margin: "2px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>→ {targetDiv?.name ?? ""}</p>
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div style={{ overflowY: "auto", padding: 8 }}>
+          {adoptable.length === 0 ? (
+            <p style={{ color: "var(--c-text-muted)", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos disponibles</p>
+          ) : adoptable.map(dept => {
+            const fromDiv = divisions.find(d => d.id === dept.divisionId);
+            return (
+              <button
+                key={dept.id}
+                onClick={() => onAdopt(dept.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  width: "100%", padding: "10px 12px", borderRadius: 8,
+                  border: "none", cursor: "pointer", background: "transparent", textAlign: "left",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--c-bg-elevated)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "var(--c-accent-blue)", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {dept.name}
+                  </p>
+                  <p style={{ margin: "1px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>
+                    {fromDiv ? `En: ${fromDiv.name}` : "Sin división"}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Mover empleado a departamento (picker) ───────────────────────────────────
+// La reasignación la hace el caller vía onMove(dept).
+export function MoveEmployeeModal({ currentDepartmentId, departments, divisions, onMove, onClose }: {
+  currentDepartmentId: string | null;
+  departments: Department[];
+  divisions: Division[];
+  onMove: (dept: Department) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
+      {...backdropClose(onClose)}
+    >
+      <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>Mover a departamento</p>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div style={{ overflowY: "auto", padding: 8 }}>
+          {departments.length === 0 ? (
+            <p style={{ color: "var(--c-text-muted)", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos</p>
+          ) : departments.map(dept => {
+            const isCurrent = currentDepartmentId === dept.id;
+            const parentDiv = divisions.find(d => d.id === dept.divisionId);
+            return (
+              <button
+                key={dept.id}
+                disabled={isCurrent}
+                onClick={() => onMove(dept)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  width: "100%", padding: "10px 12px", borderRadius: 8,
+                  border: "none", cursor: isCurrent ? "default" : "pointer",
+                  background: isCurrent ? "rgb(var(--c-accent-blue-rgb) / 0.08)" : "transparent",
+                  opacity: isCurrent ? 0.6 : 1,
+                  textAlign: "left",
+                }}
+                onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = "var(--c-bg-elevated)"; }}
+                onMouseLeave={e => { if (!isCurrent) e.currentTarget.style.background = "transparent"; }}
+              >
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "var(--c-accent-blue)", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {dept.name}
+                  </p>
+                  {parentDiv && (
+                    <p style={{ margin: "1px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>{parentDiv.name}</p>
+                  )}
+                </div>
+                {isCurrent && <span style={{ fontSize: 10, color: "var(--c-accent-blue)", flexShrink: 0 }}>actual</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}

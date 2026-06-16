@@ -23,7 +23,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  UserPlus, X, Loader2, Layers, FolderPlus, Users, Briefcase,
+  UserPlus, Loader2, Layers, FolderPlus, Users, Briefcase,
   Sparkles, Search, Download,
 } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -40,6 +40,7 @@ import {
   NewPositionModal, type NewPositionParent,
   DivisionEditModal, DepartmentEditModal,
   QuickPromptModal, RenameModal,
+  AdoptDepartmentModal, MoveEmployeeModal,
 } from "./orgchart/modals";
 import {
   AddPositionPanel, AddGroupPanel, SearchPanel,
@@ -1778,6 +1779,35 @@ function OrgChartFlow() {
     }
   };
 
+  // Adoptar un departamento en la división `adoptingDivisionId` (modal AdoptDepartmentModal).
+  const handleAdoptDepartment = (deptId: string) => {
+    if (!adoptingDivisionId) return;
+    const localX = 20;
+    const localY = HEADER_H + 20;
+    fetch(`/api/departments/${deptId}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ divisionId: adoptingDivisionId, positionX: localX, positionY: localY }),
+    }).catch(() => {});
+    setDepartments(prev => prev.map(d =>
+      d.id === deptId ? { ...d, divisionId: adoptingDivisionId, positionX: localX, positionY: localY } : d
+    ));
+    setAdoptingDivisionId(null);
+  };
+
+  // Mover el empleado `movingEmployeeId` a un departamento (modal MoveEmployeeModal).
+  const handleMoveEmployee = async (dept: Department) => {
+    if (!movingEmployeeId) return;
+    await updateEmployeeRef.current(movingEmployeeId, {
+      departmentId: dept.id,
+      divisionId: dept.divisionId ?? null,
+      managerId: null,
+      manualPosition: false,
+      positionX: 30,
+      positionY: 80,
+    });
+    setMovingEmployeeId(null);
+  };
+
   // Dedup defensivo justo antes del render. Si por algún motivo (HMR, race en
   // setState, applyNodeChanges añadiendo duplicados, etc.) llegan dos nodes/edges
   // con el mismo id, React falla con "Each child in a list should have a unique
@@ -2223,134 +2253,25 @@ function OrgChartFlow() {
       )}
 
       {/* Adopt department into division picker */}
-      {adoptingDivisionId && (() => {
-        const targetDiv = divisions.find(d => d.id === adoptingDivisionId);
-        // Depts que NO son de esta división (pueden ser de otra o sin div)
-        const adoptable = departments.filter(d => d.divisionId !== adoptingDivisionId);
-        return (
-          <div
-            style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
-            onMouseDown={e => { if (e.target === e.currentTarget) setAdoptingDivisionId(null); }}
-          >
-            <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>Adoptar departamento</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>→ {targetDiv?.name ?? ""}</p>
-                </div>
-                <button onClick={() => setAdoptingDivisionId(null)} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div style={{ overflowY: "auto", padding: 8 }}>
-                {adoptable.length === 0 ? (
-                  <p style={{ color: "var(--c-text-muted)", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos disponibles</p>
-                ) : adoptable.map(dept => {
-                  const fromDiv = divisions.find(d => d.id === dept.divisionId);
-                  return (
-                    <button
-                      key={dept.id}
-                      onClick={async () => {
-                        // Posición local dentro de la nueva división
-                        const localX = 20;
-                        const localY = HEADER_H + 20;
-                        fetch(`/api/departments/${dept.id}`, {
-                          method: "PUT", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ divisionId: adoptingDivisionId, positionX: localX, positionY: localY }),
-                        }).catch(() => {});
-                        setDepartments(prev => prev.map(d =>
-                          d.id === dept.id ? { ...d, divisionId: adoptingDivisionId, positionX: localX, positionY: localY } : d
-                        ));
-                        setAdoptingDivisionId(null);
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        width: "100%", padding: "10px 12px", borderRadius: 8,
-                        border: "none", cursor: "pointer", background: "transparent", textAlign: "left",
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "var(--c-bg-elevated)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-                    >
-                      <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "var(--c-accent-blue)", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {dept.name}
-                        </p>
-                        <p style={{ margin: "1px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>
-                          {fromDiv ? `En: ${fromDiv.name}` : "Sin división"}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {adoptingDivisionId && (
+        <AdoptDepartmentModal
+          targetDivisionId={adoptingDivisionId}
+          divisions={divisions}
+          departments={departments}
+          onAdopt={handleAdoptDepartment}
+          onClose={() => setAdoptingDivisionId(null)}
+        />
+      )}
 
       {/* Move employee to department picker */}
       {movingEmployeeId && (
-        <div
-          style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--c-shadow-strong)", display: "flex", alignItems: "center", justifyContent: "center" }}
-          onMouseDown={e => { if (e.target === e.currentTarget) setMovingEmployeeId(null); }}
-        >
-          <div style={{ background: "var(--c-bg-surface)", border: "1px solid var(--c-border)", borderRadius: 12, width: 380, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>Mover a departamento</p>
-              <button onClick={() => setMovingEmployeeId(null)} style={{ background: "transparent", border: "none", color: "var(--c-text-muted)", cursor: "pointer" }}>
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div style={{ overflowY: "auto", padding: 8 }}>
-              {departments.length === 0 ? (
-                <p style={{ color: "var(--c-text-muted)", fontSize: 12, textAlign: "center", padding: "20px 0" }}>No hay departamentos</p>
-              ) : departments.map(dept => {
-                const emp = (employees ?? []).find(e => e.id === movingEmployeeId);
-                const isCurrent = emp?.departmentId === dept.id;
-                const parentDiv = divisions.find(d => d.id === dept.divisionId);
-                return (
-                  <button
-                    key={dept.id}
-                    disabled={isCurrent}
-                    onClick={async () => {
-                      await updateEmployeeRef.current(movingEmployeeId, {
-                        departmentId: dept.id,
-                        divisionId: dept.divisionId ?? null,
-                        managerId: null,
-                        manualPosition: false,
-                        positionX: 30,
-                        positionY: 80,
-                      });
-                      setMovingEmployeeId(null);
-                    }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      width: "100%", padding: "10px 12px", borderRadius: 8,
-                      border: "none", cursor: isCurrent ? "default" : "pointer",
-                      background: isCurrent ? "rgb(var(--c-accent-blue-rgb) / 0.08)" : "transparent",
-                      opacity: isCurrent ? 0.6 : 1,
-                      textAlign: "left",
-                    }}
-                    onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = "var(--c-bg-elevated)"; }}
-                    onMouseLeave={e => { if (!isCurrent) e.currentTarget.style.background = "transparent"; }}
-                  >
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: dept.color ?? "var(--c-accent-blue)", flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--c-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {dept.name}
-                      </p>
-                      {parentDiv && (
-                        <p style={{ margin: "1px 0 0", fontSize: 10, color: "var(--c-text-muted)" }}>{parentDiv.name}</p>
-                      )}
-                    </div>
-                    {isCurrent && <span style={{ fontSize: 10, color: "var(--c-accent-blue)", flexShrink: 0 }}>actual</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <MoveEmployeeModal
+          currentDepartmentId={(employees ?? []).find(e => e.id === movingEmployeeId)?.departmentId ?? null}
+          departments={departments}
+          divisions={divisions}
+          onMove={handleMoveEmployee}
+          onClose={() => setMovingEmployeeId(null)}
+        />
       )}
 
       {/* Bulk actions toolbar — solo aparece con 2+ employee nodes seleccionados */}
