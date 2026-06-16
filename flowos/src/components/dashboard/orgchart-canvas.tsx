@@ -27,7 +27,7 @@ import { useOrganization } from "@clerk/nextjs";
 // Tipos, nodos, modales y ColorPicker viven en src/components/dashboard/orgchart/
 import type {
   Division, Department,
-  EmployeeNode, DepartmentNode, AnyNode,
+  EmployeeNode, AnyNode,
 } from "./orgchart/types";
 import { nodeTypes, edgeTypes } from "./orgchart/nodes";
 import {
@@ -41,12 +41,11 @@ import {
   ContextMenu, type CtxTarget,
 } from "./orgchart/panels";
 import { NodeInfoPanel, UnitEditPanel, type EmployeeWithSection } from "./orgchart/NodeInfoPanel";
-import { getEffectiveRole } from "./orgchart/roles";
 import BulkActionToolbar from "./orgchart/BulkActionToolbar";
 import {
   computeCoupledSizes, computeAdjacency, computeDeptAdjacency,
   computeCoupledGroupPositions, computeAbsorption, computeDeptHeadIds,
-  computeDeptInternalLayout, computeDirectorSyntheticEdges,
+  computeDeptInternalLayout, computeDirectorSyntheticEdges, buildNodes,
 } from "./orgchart/layout";
 import { computeDivisionSnap as snapDivision, computeDepartmentSnap as snapDepartment } from "./orgchart/snap";
 import { LAYOUT } from "./orgchart/constants";
@@ -524,189 +523,19 @@ function OrgChartFlow() {
   }, []);
 
   // ── Build the React Flow nodes from data ──────────────────────────────────
-  const computedNodes: AnyNode[] = useMemo(() => {
-    const result: AnyNode[] = [];
-    const seen = new Set<string>();
-    const push = (n: AnyNode) => {
-      if (seen.has(n.id)) return; // defensive dedup — avoids React duplicate-key warnings
-      seen.add(n.id);
-      result.push(n);
-    };
-
-    const TRANSITION = "width 220ms cubic-bezier(0.4,0,0.2,1), height 220ms cubic-bezier(0.4,0,0.2,1), transform 220ms cubic-bezier(0.4,0,0.2,1)";
-
-    // Divisions
-    divisions.forEach(d => {
-      const isManual = manualSizeDivs.has(d.id);
-      const isCollapsed = collapsedDivs.has(d.id);
-      const isSyncing = syncingNodeIds.has(d.id);
-      const size = isManual
-        ? { w: d.sizeWidth ?? 720, h: d.sizeHeight ?? 500 }
-        : (coupledSizes.get(d.id) ?? { w: d.sizeWidth ?? 720, h: d.sizeHeight ?? 500 });
-      const adj = adjacency.get(d.id) ?? { left: false, right: false };
-      const seniorEmp = d.seniorEmployeeId ? (employees ?? []).find(e => e.id === d.seniorEmployeeId) : null;
-      const pos = coupledGroupPositions.get(d.id) ?? { x: d.positionX ?? 0, y: d.positionY ?? 0 };
-      push({
-        id: d.id,
-        type: "division",
-        position: pos,
-        data: {
-          name: d.name,
-          color: d.color ?? "var(--c-accent-blue)",
-          isDivision: true,
-          subtitle: d.subtitle,
-          footerText: d.footerText,
-          showFooter: d.showFooter,
-          adjLeft: adj.left,
-          adjRight: adj.right,
-          senior: seniorEmp ? { fullName: seniorEmp.fullName, jobTitle: seniorEmp.jobTitle, color: seniorEmp.color } : null,
-          isConnectable: globalConnectable && d.isConnectable !== false,
-          autoSize: !isManual,
-          collapsed: isCollapsed,
-          onResize: handleDivisionResize,
-          onResizeLive: handleDivisionResizeLive,
-        },
-        style: {
-          width: size.w,
-          height: isCollapsed ? HEADER_H : size.h,
-          zIndex: 0,
-          ...(isSyncing && { transition: TRANSITION }),
-        },
-        draggable: true,
-        selectable: true,
-      });
-    });
-
-    // Pre-cálculo: altura necesaria por cada depto individualmente.
-    // Cada dept crece para contener su contenido. Los depts adyacentes sincronizan
-    // su height SOLO vía handleDepartmentResize (BFS del grupo fusionado), no aquí.
-    // Eliminar el "siblingsMaxH" evita que resizear un dept afecte a otros no pegados.
-    const DEPT_HDR = 34; const DEPT_TOP_PAD = 12; const DEPT_BOT_PAD = 16;
-    const deptNeededHeight = new Map<string, number>();
-    for (const dp of departments) {
-      // El director/head se excluye del cálculo de altura mínima para no forzar
-      // un mínimo mayor que el sizeHeight guardado (lo que bloquearía el resize).
-      // El director se renderiza dentro del depto independientemente.
-      const isHeadPromoted = (dp.promoteHead ?? false) && !!dp.headEmployeeId;
-      const empCount = (employees ?? []).filter(e =>
-        e.departmentId === dp.id &&
-        (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
-        !absorption.absorbedIds.has(e.id)
-      ).length;
-      const mode = dp.layoutMode ?? "vertical";
-      const step = mode === "compact" ? (44 + 6) : (EMP_H + EMP_GAP);
-      const needed = DEPT_HDR + DEPT_TOP_PAD + empCount * step + DEPT_BOT_PAD;
-      deptNeededHeight.set(dp.id, Math.max(dp.sizeHeight ?? DEPT_H, needed));
-    }
-
-    // Departments — child of division if has divisionId; skip if parent division is collapsed
-    departments.forEach(dp => {
-      if (dp.divisionId && collapsedDivs.has(dp.divisionId)) return;
-      const isHeadPromoted = (dp.promoteHead ?? false) && !!dp.headEmployeeId;
-      const empCount = (employees ?? []).filter(e =>
-        e.departmentId === dp.id &&
-        (!isHeadPromoted || e.id !== dp.headEmployeeId) &&
-        !absorption.absorbedIds.has(e.id)
-      ).length;
-      const headEmp = dp.headEmployeeId ? (employees ?? []).find(e => e.id === dp.headEmployeeId) : null;
-      const dAdj = deptAdjacency.get(dp.id) ?? { left: false, right: false };
-      const isSyncingDept = syncingNodeIds.has(dp.id);
-      const dpLayoutMode = dp.layoutMode ?? "vertical";
-      // Altura independiente por dept — crece para contener su contenido.
-      // La sincronización entre depts adyacentes ocurre en handleDepartmentResize (BFS).
-      const deptH = deptNeededHeight.get(dp.id) ?? DEPT_H;
-      // Ancho mínimo = COL_X(16) + maxIndent(3 niveles×20=60) + cardWidth(200) + rightPad(14) = 290
-      const neededW = 290;
-      const deptW = Math.max(dp.sizeWidth ?? DEPT_W, neededW);
-      const node: DepartmentNode = {
-        id: dp.id,
-        type: "department",
-        position: { x: dp.positionX ?? 30, y: dp.positionY ?? 80 },
-        data: {
-          name: dp.name, color: dp.color ?? "#C8902C", isDepartment: true,
-          head: headEmp ? { fullName: headEmp.fullName, jobTitle: headEmp.jobTitle, color: headEmp.color } : null,
-          employeeCount: empCount,
-          adjLeft: dAdj.left, adjRight: dAdj.right,
-          onResize: handleDepartmentResize,
-          onResizeLive: handleDepartmentResizeLive,
-        },
-        style: {
-          width: deptW,
-          height: deptH,
-          zIndex: 1,
-          ...(isSyncingDept && { transition: TRANSITION }),
-        },
-        draggable: true,
-        selectable: true,
-      };
-      if (dp.divisionId) {
-        node.parentId = dp.divisionId;
-        node.extent = "parent";
-      }
-      push(node);
-    });
-
-    // Employees — child of department > division > standalone; skip if parent is collapsed
-    (employees || []).forEach((emp, idx) => {
-      // Skip si fue absorbido por su manager (se renderiza inline en el card del manager)
-      if (absorption.absorbedIds.has(emp.id)) return;
-      // Skip employees whose containing division is collapsed
-      if (emp.departmentId) {
-        const dept = departments.find(d => d.id === emp.departmentId);
-        if (dept?.divisionId && collapsedDivs.has(dept.divisionId)) return;
-      } else if (emp.divisionId && collapsedDivs.has(emp.divisionId)) {
-        return;
-      }
-
-      // ── EMPLEADO (director o normal — todos viven dentro de su depto/división) ──
-      const effectiveRole = getEffectiveRole(emp, employees ?? [], departments, units);
-      // Posición: si manualPosition=false y hay layout calculado → usar layout jerárquico.
-      // Si manualPosition=true o no hay layout → usar positionX/Y del DB (drag manual).
-      const autoPos = !emp.manualPosition ? deptInternalLayout.get(emp.id) : undefined;
-      const pos = autoPos
-        ?? { x: emp.positionX ?? ((idx % 4) * 220 + 20), y: emp.positionY ?? (Math.floor(idx / 4) * 80 + 80) };
-
-      // Modo compact heredado del depto contenedor (si el dept tiene layoutMode='compact')
-      const empDept = emp.departmentId ? departments.find(d => d.id === emp.departmentId) : undefined;
-      const isCompactMode = empDept?.layoutMode === "compact";
-
-      const subsInCard = absorption.managerSubsMap.get(emp.id);
-      const node: EmployeeNode = {
-        id: emp.id,
-        type: "employee",
-        position: pos,
-        data: {
-          fullName: emp.fullName,
-          jobTitle: emp.jobTitle || "Sin asignar",
-          color: emp.color || "var(--c-accent-blue)",
-          status: emp.status,
-          imageUrl: (emp as Employee & { imageUrl?: string | null }).imageUrl ?? null,
-          role: effectiveRole,
-          departmentId: emp.departmentId,
-          showRoleBadge: showRoleBadges,
-          compact: isCompactMode,
-          subordinatesInCard: subsInCard,
-          unit: (() => {
-            const u = emp.unitId ? units.find(x => x.id === emp.unitId) : null;
-            return u ? { id: u.id, name: u.name, color: u.color, isHead: u.headEmployeeId === emp.id } : null;
-          })(),
-          onUnitClick: handleUnitClick,
-          onSubClick: handleSubClick,
-        },
-      };
-      if (emp.departmentId && departments.some(d => d.id === emp.departmentId)) {
-        node.parentId = emp.departmentId;
-        node.extent = "parent";
-      } else if (emp.divisionId && divisions.some(d => d.id === emp.divisionId)) {
-        node.parentId = emp.divisionId;
-        node.extent = "parent";
-      }
-      push(node);
-    });
-
-    return result;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, deptHeadIds, absorption, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive, handleUnitClick, handleSubClick]);
+  // Build de los nodos ReactFlow — el "hub" vive en orgchart/layout.ts (buildNodes).
+  const computedNodes: AnyNode[] = useMemo(
+    () => buildNodes({
+      divisions, departments, employees: employees ?? [], units,
+      coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, absorption,
+      manualSizeDivs, collapsedDivs, syncingNodeIds, showRoleBadges, globalConnectable,
+      onDivisionResize: handleDivisionResize, onDivisionResizeLive: handleDivisionResizeLive,
+      onDepartmentResize: handleDepartmentResize, onDepartmentResizeLive: handleDepartmentResizeLive,
+      onUnitClick: handleUnitClick, onSubClick: handleSubClick,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [divisions, departments, employees, units, coupledSizes, adjacency, coupledGroupPositions, deptAdjacency, deptInternalLayout, deptHeadIds, absorption, showRoleBadges, globalConnectable, manualSizeDivs, collapsedDivs, syncingNodeIds, handleDivisionResize, handleDepartmentResize, handleDivisionResizeLive, handleDepartmentResizeLive, handleUnitClick, handleSubClick],
+  );
 
   // Local nodes state — ReactFlow mutates this freely during drag (smooth UX).
   // We sync from `computedNodes` whenever the underlying data changes.
