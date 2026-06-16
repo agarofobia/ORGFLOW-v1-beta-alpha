@@ -1,6 +1,5 @@
 "use client";
 
-import dagre from "@dagrejs/dagre";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
@@ -18,8 +17,6 @@ import {
   Panel,
   useReactFlow,
   useNodesInitialized,
-  getNodesBounds,
-  getViewportForBounds,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
@@ -56,6 +53,10 @@ import {
 } from "./orgchart/layout";
 import { computeDivisionSnap as snapDivision, computeDepartmentSnap as snapDepartment } from "./orgchart/snap";
 import { LAYOUT } from "./orgchart/constants";
+import { useOrgChartToggles } from "./orgchart/use-orgchart-toggles";
+import { useUndoRedo, type MoveOp } from "./orgchart/use-undo-redo";
+import { computeAutoLayout } from "./orgchart/auto-layout";
+import { exportOrgChartPng } from "./orgchart/export-png";
 
 
 // ─── Debounce helper ─────────────────────────────────────────────────────────
@@ -101,47 +102,16 @@ function OrgChartFlow() {
   const [collapsedDivs, setCollapsedDivs] = useState<Set<string>>(new Set());
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
-  const [globalConnectable, setGlobalConnectable] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("flowos-orgchart-global-connectable") !== "false";
-  });
-  // Cuando ON: al resize de un item acoplado, los hermanos del grupo también se ajustan
-  const [linkedResize, setLinkedResize] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("flowos-orgchart-linked-resize") !== "false";
-  });
-  // Toggle: mostrar badges DIR/ENC sobre las tarjetas. Por default OFF — la jerarquía
-  // se infiere por la posición + líneas. Si el usuario lo prende, aparecen los badges.
-  const [showRoleBadges, setShowRoleBadges] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("flowos-orgchart-show-badges") === "true";
-  });
-  // Lock layout: cuando ON, bloquea el drag de TODOS los nodes → click izquierdo
-  // en cualquier parte hace pan del canvas. Útil para navegar sin desarmar la estructura.
-  const [locked, setLocked] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("flowos-orgchart-locked") === "true";
-  });
+  const {
+    globalConnectable, setGlobalConnectable,
+    linkedResize, setLinkedResize,
+    showRoleBadges, setShowRoleBadges,
+    locked, setLocked,
+  } = useOrgChartToggles();
 
   // ── Undo / Redo (solo posiciones de nodes) ────────────────────────────────
-  // Stack de operaciones de movimiento. Cada vez que un node termina de draggar,
-  // se registra { entityType, id, fromPos, toPos }. Undo aplica fromPos, redo toPos.
-  // Limitado a 50 entradas para no consumir memoria.
-  type MoveOp = {
-    entityType: "employee" | "division" | "department";
-    id: string;
-    fromX: number; fromY: number;
-    toX: number; toY: number;
-  };
-  const [undoStack, setUndoStack] = useState<MoveOp[]>([]);
-  const [redoStack, setRedoStack] = useState<MoveOp[]>([]);
-  const recordMove = useCallback((op: MoveOp) => {
-    setUndoStack(prev => {
-      const next = [...prev, op];
-      return next.length > 50 ? next.slice(-50) : next;
-    });
-    setRedoStack([]); // nueva acción → invalida el redo
-  }, []);
+  // applyMove vive acá porque necesita los setters de estado; los stacks + atajos de
+  // teclado están en useUndoRedo (orgchart/use-undo-redo.ts).
   const applyMove = useCallback((op: MoveOp, useFromPos: boolean) => {
     const x = useFromPos ? op.fromX : op.toX;
     const y = useFromPos ? op.fromY : op.toY;
@@ -165,40 +135,7 @@ function OrgChartFlow() {
       setDepartments(prev => prev.map(d => d.id === op.id ? { ...d, positionX: x, positionY: y } : d));
     }
   }, []);
-  const doUndo = useCallback(() => {
-    setUndoStack(prev => {
-      if (prev.length === 0) return prev;
-      const op = prev[prev.length - 1];
-      applyMove(op, true);
-      setRedoStack(r => [...r, op]);
-      return prev.slice(0, -1);
-    });
-  }, [applyMove]);
-  const doRedo = useCallback(() => {
-    setRedoStack(prev => {
-      if (prev.length === 0) return prev;
-      const op = prev[prev.length - 1];
-      applyMove(op, false);
-      setUndoStack(u => [...u, op]);
-      return prev.slice(0, -1);
-    });
-  }, [applyMove]);
-  // Ctrl+Z / Ctrl+Shift+Z atajos
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      const key = e.key.toLowerCase();
-      if (key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        doUndo();
-      } else if ((key === "z" && e.shiftKey) || key === "y") {
-        e.preventDefault();
-        doRedo();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [doUndo, doRedo]);
+  const { recordMove, doUndo, doRedo, canUndo, canRedo } = useUndoRedo(applyMove);
   // Nodos que están recibiendo un cambio programático de tamaño/posición y necesitan animar.
   // Se vacía solo ~350ms después de marcar para no animar drags posteriores.
   const [syncingNodeIds, setSyncingNodeIds] = useState<Set<string>>(new Set());
@@ -1531,127 +1468,9 @@ function OrgChartFlow() {
     autoLayoutRunningRef.current = true;
     setAutoLayoutPending(true);
     try {
-      const g = new dagre.graphlib.Graph();
-      g.setDefaultEdgeLabel(() => ({}));
-      g.setGraph({ rankdir: "LR", nodesep: 80, ranksep: 120, marginx: 50, marginy: 50 });
-
-      // Group coupled divisions — treat each coupling group as a single dagre node
-      const couplingGroups = new Map<string, Division[]>();
-      const standaloneDivs: Division[] = [];
-      divisions.forEach(d => {
-        if (d.couplingGroup) {
-          const arr = couplingGroups.get(d.couplingGroup) ?? [];
-          arr.push(d);
-          couplingGroups.set(d.couplingGroup, arr);
-        } else {
-          standaloneDivs.push(d);
-        }
-      });
-
-      // Standalone divisions → individual dagre nodes
-      standaloneDivs.forEach(d => {
-        const sz = coupledSizes.get(d.id) ?? { w: d.sizeWidth ?? 720, h: d.sizeHeight ?? 500 };
-        g.setNode(d.id, { width: sz.w, height: sz.h });
-      });
-
-      // Coupling groups → one dagre node each (combined width, max height)
-      couplingGroups.forEach((group, groupKey) => {
-        const sorted = [...group].sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
-        const totalW = sorted.reduce((sum, d) => sum + (coupledSizes.get(d.id)?.w ?? d.sizeWidth ?? 720), 0);
-        const maxH = Math.max(...sorted.map(d => coupledSizes.get(d.id)?.h ?? d.sizeHeight ?? 500));
-        g.setNode(`__group_${groupKey}`, { width: totalW, height: maxH });
-      });
-
-      // Map division ID → dagre node ID (handles coupling)
-      const getDagreId = (divId: string): string | null => {
-        const div = divisions.find(d => d.id === divId);
-        if (!div) return null;
-        return div.couplingGroup ? `__group_${div.couplingGroup}` : divId;
-      };
-
-      // Add edges between divisions
-      edges.forEach(e => {
-        const src = getDagreId(e.source);
-        const tgt = getDagreId(e.target);
-        if (src && tgt && src !== tgt && g.hasNode(src) && g.hasNode(tgt)) {
-          g.setEdge(src, tgt);
-        }
-      });
-
-      dagre.layout(g);
-
-      const newDivPositions = new Map<string, { x: number; y: number }>();
-
-      standaloneDivs.forEach(d => {
-        const n = g.node(d.id);
-        if (!n) return;
-        const sz = coupledSizes.get(d.id) ?? { w: d.sizeWidth ?? 720, h: d.sizeHeight ?? 500 };
-        newDivPositions.set(d.id, { x: n.x - sz.w / 2, y: n.y - sz.h / 2 });
-      });
-
-      couplingGroups.forEach((group, groupKey) => {
-        const n = g.node(`__group_${groupKey}`);
-        if (!n) return;
-        const sorted = [...group].sort((a, b) => (a.positionX ?? 0) - (b.positionX ?? 0));
-        const totalW = sorted.reduce((sum, d) => sum + (coupledSizes.get(d.id)?.w ?? d.sizeWidth ?? 720), 0);
-        const maxH = Math.max(...sorted.map(d => coupledSizes.get(d.id)?.h ?? d.sizeHeight ?? 500));
-        let cumX = n.x - totalW / 2;
-        const baseY = n.y - maxH / 2;
-        sorted.forEach(d => {
-          const dw = coupledSizes.get(d.id)?.w ?? d.sizeWidth ?? 720;
-          newDivPositions.set(d.id, { x: cumX, y: baseY });
-          cumX += dw;
-        });
-      });
-
-      // Re-layout departments within each division:
-      //   • Equal width — each dept gets (divWidth - 2*PAD) / numDepts
-      //   • Fused (0 gap) — depts touch each other, snapped
-      //   • Centered horizontally within the division
-      //   • Y starts BELOW the secretary card (if the division has a senior employee)
-      // Also: the secretary employee is centered at the top of the content area.
-      const HDR_Y = 80; const PAD = 16;
-      const SEC_CARD_H = 70; const SEC_GAP = 16;
-      const newDeptPositions = new Map<string, { x: number; y: number }>();
-      const newDeptSizes    = new Map<string, number>();           // sizeWidth per dept
-      const newSecPositions = new Map<string, { x: number; y: number }>(); // secretary employees
-
-      divisions.forEach(div => {
-        // Width to use: manual size takes precedence over auto-computed
-        const divW = manualSizeDivs.has(div.id)
-          ? (div.sizeWidth ?? 720)
-          : (coupledSizes.get(div.id)?.w ?? div.sizeWidth ?? 720);
-
-        // Secretary: center it at top of content area
-        if (div.seniorEmployeeId) {
-          const EMP_CARD_W = 200;
-          newSecPositions.set(div.seniorEmployeeId, {
-            x: Math.max(PAD, Math.round((divW - EMP_CARD_W) / 2)),
-            y: HDR_Y,
-          });
-        }
-
-        const divDepts = departments.filter(dp => dp.divisionId === div.id);
-        if (divDepts.length === 0) return;
-
-        // Equal width: fill available width, fused (no gap between adjacent depts)
-        const availW = divW - 2 * PAD;
-        const equalW = Math.max(180, Math.floor(availW / divDepts.length));
-        const totalGroupW = equalW * divDepts.length;
-        const startX = Math.max(PAD, Math.round((divW - totalGroupW) / 2));
-
-        // Y: leave room for secretary if present
-        const deptY = div.seniorEmployeeId
-          ? HDR_Y + SEC_CARD_H + SEC_GAP
-          : HDR_Y;
-
-        let cumX = startX;
-        divDepts.forEach(dept => {
-          newDeptPositions.set(dept.id, { x: cumX, y: deptY });
-          newDeptSizes.set(dept.id, equalW);
-          cumX += equalW; // 0 gap → adjacent depts fuse automatically
-        });
-      });
+      // Cálculo dagre + posiciones de depts/secretarios → orgchart/auto-layout.ts
+      const { newDivPositions, newDeptPositions, newDeptSizes, newSecPositions } =
+        computeAutoLayout(divisions, departments, edges, coupledSizes, manualSizeDivs);
 
       // Save to API in chunks to avoid saturating the Supabase pool (max 5 conns).
       // Con 27 depts + 10 divs + secretarios eran ~45 requests concurrentes →
@@ -1711,50 +1530,7 @@ function OrgChartFlow() {
   const handleExportPng = useCallback(async () => {
     setExportingPng(true);
     try {
-      // Capturar TODOS los nodes (no solo los visibles en el viewport).
-      // 1) Calcular bounding box completo de todos los nodes
-      // 2) Definir dimensiones de imagen al tamaño real del contenido + padding
-      // 3) Usar getViewportForBounds para alinear el transform del viewport interno
-      // 4) Renderizar .react-flow__viewport con esas dimensiones forzadas → todo entra
-      const allNodes = nodes;
-      if (allNodes.length === 0) return;
-      const bounds = getNodesBounds(allNodes);
-      const padding = 60;
-      const scale = 1; // 1:1 real-size; pixelRatio multiplica densidad para legibilidad
-      const imageWidth = Math.ceil(bounds.width * scale) + padding * 2;
-      const imageHeight = Math.ceil(bounds.height * scale) + padding * 2;
-      const viewport = getViewportForBounds(bounds, imageWidth, imageHeight, 0.1, 2, padding / imageWidth);
-
-      const viewportEl = document.querySelector(".react-flow__viewport") as HTMLElement | null;
-      if (!viewportEl) return;
-
-      const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(viewportEl, {
-        backgroundColor: "var(--c-bg-base)",
-        width: imageWidth,
-        height: imageHeight,
-        // pixelRatio 2 = imagen al doble de densidad, ideal para zoom + lectura
-        pixelRatio: 2,
-        style: {
-          width: `${imageWidth}px`,
-          height: `${imageHeight}px`,
-          transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-        },
-        // Filtra paneles flotantes y puntos de conexión (handles) para un PNG limpio.
-        // Las edges son SVG paths con coordenadas propias → no dependen del DOM del handle.
-        filter: (node) => {
-          if (!(node instanceof Element)) return true;
-          return !node.classList.contains("react-flow__panel")
-              && !node.classList.contains("react-flow__minimap")
-              && !node.classList.contains("react-flow__controls")
-              && !node.classList.contains("react-flow__handle")
-              && !node.classList.contains("orgchart-handle");
-        },
-      });
-      const a = document.createElement("a");
-      a.download = `organigrama-${new Date().toISOString().slice(0, 10)}.png`;
-      a.href = dataUrl;
-      a.click();
+      await exportOrgChartPng(nodes);
     } catch (err) {
       console.error("Export PNG error:", err);
     } finally {
@@ -2041,11 +1817,7 @@ function OrgChartFlow() {
                 ].map(t => (
                   <button
                     key={t.key}
-                    onClick={() => {
-                      const next = !t.on;
-                      t.setter(next);
-                      try { localStorage.setItem(`flowos-orgchart-${t.key}`, String(t.key === "locked" ? !next : next)); } catch {}
-                    }}
+                    onClick={() => t.setter(!t.on)}
                     title={`${t.label}: ${t.on ? "ON" : "OFF"}`}
                     className="flex h-9 items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-[var(--c-border)]"
                     style={{ background: "transparent", border: "none", cursor: "pointer" }}
@@ -2083,12 +1855,12 @@ function OrgChartFlow() {
                 {/* Historia */}
                 <button
                   onClick={doUndo}
-                  disabled={undoStack.length === 0}
+                  disabled={!canUndo}
                   title="Deshacer (Ctrl+Z)"
                   className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-border)]"
                   style={{
-                    color: undoStack.length === 0 ? "var(--c-text-placeholder)" : "var(--c-text-secondary)",
-                    cursor: undoStack.length === 0 ? "not-allowed" : "pointer",
+                    color: !canUndo ? "var(--c-text-placeholder)" : "var(--c-text-secondary)",
+                    cursor: !canUndo ? "not-allowed" : "pointer",
                     fontSize: 16,
                   }}
                 >
@@ -2096,12 +1868,12 @@ function OrgChartFlow() {
                 </button>
                 <button
                   onClick={doRedo}
-                  disabled={redoStack.length === 0}
+                  disabled={!canRedo}
                   title="Rehacer (Ctrl+Shift+Z)"
                   className="flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--c-border)]"
                   style={{
-                    color: redoStack.length === 0 ? "var(--c-text-placeholder)" : "var(--c-text-secondary)",
-                    cursor: redoStack.length === 0 ? "not-allowed" : "pointer",
+                    color: !canRedo ? "var(--c-text-placeholder)" : "var(--c-text-secondary)",
+                    cursor: !canRedo ? "not-allowed" : "pointer",
                     fontSize: 16,
                   }}
                 >
