@@ -57,6 +57,7 @@ import { useOrgChartToggles } from "./orgchart/use-orgchart-toggles";
 import { useUndoRedo, type MoveOp } from "./orgchart/use-undo-redo";
 import { computeAutoLayout } from "./orgchart/auto-layout";
 import { exportOrgChartPng } from "./orgchart/export-png";
+import { useOrgChartData } from "./orgchart/use-orgchart-data";
 
 
 // ─── Debounce helper ─────────────────────────────────────────────────────────
@@ -78,10 +79,12 @@ function OrgChartFlow() {
   const { screenToFlowPosition, getViewport, setViewport, fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
 
-  const [divisions, setDivisions] = useState<Division[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+  // Estado de datos + carga + refs + persistencia de edges → orgchart/use-orgchart-data.ts
+  const {
+    divisions, setDivisions, departments, setDepartments,
+    units, setUnits, edges, setEdges,
+    divisionsRef, departmentsRef, unitsRef, saveEdges,
+  } = useOrgChartData();
   const [showAddEmp, setShowAddEmp] = useState(false);
   const [showAddGroup, setShowAddGroup] = useState<"division" | "department" | null>(null);
   const [pendingCreatePos, setPendingCreatePos] = useState<{ x: number; y: number } | null>(null);
@@ -165,9 +168,6 @@ function OrgChartFlow() {
   // ── Refs estables para callbacks ──────────────────────────────────────────
   const employeesRef = useRef(employees);
   const updateEmployeeRef = useRef(updateEmployee);
-  const divisionsRef = useRef<Division[]>([]);
-  const departmentsRef = useRef<Department[]>([]);
-  const unitsRef = useRef<Unit[]>([]);
   const linkedResizeRef = useRef<boolean>(true);
   // deptAdjacency snapshot for use inside resize callbacks (updated by useEffect)
   const deptAdjacencyRef = useRef<Map<string, { left: boolean; right: boolean }>>(new Map());
@@ -185,41 +185,6 @@ function OrgChartFlow() {
   // wiped from state and saved to DB as removed.
   const suppressEdgeRemove = useRef(false);
 
-  // ── Load divisions, departments, units, edges ────────────────────────────
-  // RESILIENCIA: si un fetch falla (500 cold-start, red, etc.) devolvemos `null`
-  // (NO `[]`). Un `null` significa "no pude cargar" → preservamos el estado previo.
-  // Sin esto, un 500 transitorio en /api/departments dejaba `departments = []` y
-  // los empleados se apilaban en la división sin su contenedor → orgchart roto.
-  const reloadGroups = useCallback(async () => {
-    const safeFetch = async <T,>(url: string): Promise<T | null> => {
-      try {
-        const r = await fetch(url);
-        if (!r.ok) return null;
-        return (await r.json()) as T;
-      } catch {
-        return null;
-      }
-    };
-    const [d, dp, u, edgesRes] = await Promise.all([
-      safeFetch<Division[]>("/api/divisions"),
-      safeFetch<Department[]>("/api/departments"),
-      safeFetch<Unit[]>("/api/units"),
-      safeFetch<{ edges: Edge[] }>("/api/orgchart/state"),
-    ]);
-    // Solo actualizamos cada slice si su fetch tuvo éxito (Array válido).
-    // Si falló (null), mantenemos lo que ya había en pantalla.
-    if (Array.isArray(d)) setDivisions(d);
-    if (Array.isArray(dp)) setDepartments(dp);
-    if (Array.isArray(u)) setUnits(u);
-    if (edgesRes && Array.isArray(edgesRes.edges)) {
-      setEdges(edgesRes.edges.map((e: Edge) => ({ ...e, type: "bicolor" })));
-    }
-  }, []);
-
-  useEffect(() => { reloadGroups(); }, [reloadGroups]);
-  useEffect(() => { divisionsRef.current = divisions; }, [divisions]);
-  useEffect(() => { departmentsRef.current = departments; }, [departments]);
-  useEffect(() => { unitsRef.current = units; }, [units]);
   useEffect(() => { linkedResizeRef.current = linkedResize; }, [linkedResize]);
 
   // Fix del bug visual al cargar: edges apuntan a handles sin dimensiones medidas.
@@ -771,15 +736,8 @@ function OrgChartFlow() {
     requestAnimationFrame(() => { suppressEdgeRemove.current = false; });
   }, [computedNodes]);
 
-  // ── Save edges (debounced) ────────────────────────────────────────────────
-  const saveEdges = useCallback(async (edgesToSave: Edge[]) => {
-    await fetch("/api/orgchart/state", {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ edges: edgesToSave }),
-    }).catch(() => {});
-  }, []);
-  // Debounce corto (200ms): si el usuario cierra el browser justo después de conectar
-  // dos nodos, perder 200ms es aceptable; 800ms perdía edges con regularidad.
+  // saveEdges viene de useOrgChartData. Debounce corto (200ms): si el usuario cierra el
+  // browser justo después de conectar dos nodos, perder 200ms es aceptable.
   const debouncedSaveEdges = useDebounce(saveEdges, 200);
 
   // ── Snap helper: when dropping a division near another, align edges and couple ──
